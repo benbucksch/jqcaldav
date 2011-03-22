@@ -1,0 +1,126 @@
+ACDT,Australian Central Daylight Time,+1030
+ACST,Australian Central Standard Time,+930
+ACT,ASEAN Common Time,+800
+ADT,Atlantic Daylight Time,-300
+AEDT,Australian Eastern Daylight Time,+1100
+AEST,Australian Eastern Standard Time,+1000
+AFT,Afghanistan Time,+430
+AKDT,Alaska Daylight Time,-800
+AKST,Alaska Standard Time,-900
+AMST,Armenia Summer Time,+500
+AMT,Armenia Time,+400
+ART,Argentina Time,-300
+AST,Arab Standard Time (Kuwait, Riyadh),+300
+AST,Arabian Standard Time (Abu Dhabi, Muscat),+400
+AST,Arabic Standard Time (Baghdad),+300
+AST,Atlantic Standard Time,-400
+AWDT,Australian Western Daylight Time,+900
+AWST,Australian Western Standard Time,+800
+AZOST,Azores Standard Time,-100
+AZT,Azerbaijan Time,+400
+BDT,Brunei Time,+800
+BIOT,British Indian Ocean Time,+600
+BIT,Baker Island Time,-1200
+BOT,Bolivia Time,-400
+BRT,Brasilia Time,-300
+BST,Bangladesh Standard Time,+600
+BST,British Summer Time,+100
+BTT,Bhutan Time,+600
+CAT,Central Africa Time,+200
+CCT,Cocos Islands Time,+630
+CDT,Central Daylight Time (North America),-500
+CEDT,Central European Daylight Time,+200
+CEST,Central European Summer Time,+200
+CET,Central European Time,+100
+CHAST,Chatham Standard Time,+1245
+CIST,Clipperton Island Standard Time,-800
+CKT,Cook Island Time,-1000
+CLST,Chile Summer Time,-300
+CLT,Chile Standard Time,-400
+COST,Colombia Summer Time,-400
+COT,Colombia Time,-500
+CST,Central Standard Time (North America),-600
+CST,China Standard Time,+800
+CVT,Cape Verde Time,-100
+CXT,Christmas Island Time,+700
+ChST,Chamorro Standard Time,+1000
+DST,Daylight saving time,Depending
+DFT,AIX specific equivalent of Central European Time,+100
+EAST,Easter Island Standard Time,-600
+EAT,East Africa Time,+300
+ECT,Eastern Caribbean Time (does not recognise DST),-400
+ECT,Ecuador Time,-500
+EDT,Eastern Daylight Time (North America),-400
+EEDT,Eastern European Daylight Time,+300
+EEST,Eastern European Summer Time,+300
+EET,Eastern European Time,+200
+EST,Eastern Standard Time (North America),-500
+FJT,Fiji Time,+1200
+FKST,Falkland Islands Summer Time,-300
+FKT,Falkland Islands Time,-400
+GALT,Galapagos Time,-600
+GET,Georgia Standard Time,+400
+GFT,French Guiana Time,-300
+GILT,Gilbert Island Time,+1200
+GIT,Gambier Island Time,-900
+GMT,Greenwich Mean Time,UTC
+GST,South Georgia and the South Sandwich Islands,-200
+GYT,Guyana Time,-400
+HADT,Hawaii-Aleutian Daylight Time,-900
+HAST,Hawaii-Aleutian Standard Time,-1000
+HKT,Hong Kong Time,+800
+HMT,Heard and McDonald Islands Time,+500
+HST,Hawaii Standard Time,-1000
+IRKT,Irkutsk Time,+800
+IRST,Iran Standard Time,+330
+IST,Indian Standard Time,+530
+IST,Irish Summer Time,+100
+IST,Israel Standard Time,+200
+JST,Japan Standard Time,+900
+KRAT,Krasnoyarsk Time,+700
+KST,Korea Standard Time,+900
+LHST,Lord Howe Standard Time,+1030
+LINT,Line Islands Time,+1400
+MAGT,Magadan Time,+1100
+MDT,Mountain Daylight Time (North America),-600
+MIT,Marquesas Islands Time,-930
+MSD,Moscow Summer Time,+400
+MSK,Moscow Standard Time,+300
+MST,Malaysian Standard Time,+800
+MST,Mountain Standard Time (North America),-700
+MST,Myanmar Standard Time,+630
+MUT,Mauritius Time,+400
+NDT,Newfoundland Daylight Time,-230
+NFT,Norfolk Time,+1130
+NPT,Nepal Time,+545
+NST,Newfoundland Standard Time,-330
+NT,Newfoundland Time,-330
+OMST,Omsk Time,+600
+PDT,Pacific Daylight Time (North America),-700
+PETT,Kamchatka Time,+1200
+PHOT,Phoenix Island Time,+1300
+PKT,Pakistan Standard Time,+500
+PST,Pacific Standard Time (North America),-800
+PST,Philippine Standard Time,+800
+RET,Réunion Time,+400
+SAMT,Samara Time,+400
+SAST,South African Standard Time,+200
+SBT,Solomon Islands Time,+1100
+SCT,Seychelles Time,+400
+SLT,Sri Lanka Time,+530
+SST,Samoa Standard Time,-1100
+SST,Singapore Standard Time,+800
+TAHT,Tahiti Time,-1000
+THA,Thailand Standard Time,+700
+UTC,Coordinated Universal Time,0
+UYST,Uruguay Summer Time,-200
+UYT,Uruguay Standard Time,-300
+VET,Venezuelan Standard Time,-430
+VLAT,Vladivostok Time,+1000
+WAT,West Africa Time,+100
+WEDT,Western European Daylight Time,+100
+WEST,Western European Summer Time,+100
+WET,Western European Time,0000
+YAKT,Yakutsk Time,+900
+YEKT,Yekaterinburg Time,+500
+
