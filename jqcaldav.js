@@ -3009,8 +3009,7 @@ function calstyle ()
 	'#wcal .event[transparent=TRANSPARENT]:before { content: " "; font-face: times; width: 4px; position: relative; display: block; float: left; height: .15em; margin-left: -.7em; border: none; border-top: .471em double; border-bottom: .471em double;  }' + "\n" +
 	"#wcal .event[status=CANCELLED] { text-decoration: line-through; } \n" +
 	"#wcal .day ul li.event[status=TENTATIVE] { opacity: 0.75; border-left: 3px solid orange; } \n" +
-	if ( settings.showConfirmed )
-		"#wcal .day ul li.event[status=CONFIRMED] { opacity: 0.75; border-left: 3px solid orange; } \n" +
+	"#wcal .day ul li.event[status=CONFIRMED] { opacity: 0.75; border-left: 3px solid orange; } \n" +
 	'.event:hover { color: white;  -webkit-box-flex: 0; -moz-box-flex: 0; box-flex: 0; min-height: 1em; }' + "\n" +
 	'.week .day ul.eventlist > li.multiday { width: 100%;  }' + "\n" +
 	'.eventstart.event:before { content:none !important;  }' + "\n" +
