@@ -1,0 +1,8 @@
+#Header set Access-Control-Allow-Origin "*"
+#Header set X-Content-Security-Policy "allow *; xhr-src '*'"
+
+RewriteEngine on
+RewriteCond %{HTTP:Origin} ^https://cal.afpc.tamu.edu [NC]
+RewriteCond %{HTTP:X-Requested-With} ^XMLHttpRequest [NC]
+RewriteCond %{HTTP:Authorization} username=\?([^\?]+)\?
+RewriteRule /test/http://(.*)$ http://$1 [P,L,QSA]
