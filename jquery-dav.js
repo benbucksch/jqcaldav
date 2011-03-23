@@ -145,8 +145,37 @@ jQuery.extend ({
 									 complete: s.complete,
 									 }
 						);
+			},
+		lock : function( origSettings ) { 
+		var s = jQuery.extend(true, {}, jQuery.ajaxSettings,{type:'LOCK'},origSettings);
+				return jQuery.ajax ( { beforeSend: function (r){var h = s.headers;for (var i in h)r.setRequestHeader(i,h[i])},
+									 cache: s.cache,
+									 contentType: s.contentType,
+                   data: s.data,
+									 password: encodeURIComponent(s.password),
+									 username: encodeURIComponent(s.username),
+									 type: 'LOCK',
+                   url: s.url,
+									 success: s.success,
+									 complete: s.complete,
+									 }
+						);
+			},
+		unlock : function( origSettings ) { 
+		var s = jQuery.extend(true, {}, jQuery.ajaxSettings,{type:'UNLOCK'},origSettings);
+				return jQuery.ajax ( { beforeSend: function (r){var h = s.headers;for (var i in h)r.setRequestHeader(i,h[i])},
+									 cache: s.cache,
+									 contentType: s.contentType,
+                   data: s.data,
+									 password: encodeURIComponent(s.password),
+									 username: encodeURIComponent(s.username),
+									 type: 'UNLOCK',
+                   url: s.url,
+									 success: s.success,
+									 complete: s.complete,
+									 }
+						);
 			}
-
 });
 
 (function( $ ){
@@ -155,6 +184,7 @@ jQuery.extend ({
 			$.fn.caldav.eventTiming = new Array();
 			$.fn.caldav.eventAverageTime = 100;
 			$.fn.caldav.coalesceEvents = new Array ();
+			$.fn.caldav.locks = {};
 			var t = document.createElementNS('test','node');
 			//if ( t.nodeName && ! t.nodeName.match(/:/) )
 			//	$.fn.caldav.xmlNSfield = 'nodeName';
@@ -209,7 +239,7 @@ jQuery.extend ({
 			jQuery.fn.caldav.data = jQuery.extend ( true, 
 					jQuery.fn.caldav.data ,
 					{ principalDisplayName: $("response principal",r.responseXML).parent().parent().children("displayname:first").text(),
-					principalHome: $("calendar-home-set:first",r.responseXML).text(),
+					principalHome: $.trim($("["+$.fn.caldav.xmlNSfield+"=calendar-home-set]:first",r.responseXML).text()),
 					}
 				);
 			var principals = new Object ;
@@ -343,7 +373,7 @@ jQuery.extend ({
 			}
 			if ( ! $.fn.caldav.coalesceEvents[cal].timeout )
 			{
-				var delayedCall =  function (cal){ //var cal = this.cal ;
+				var delayedCall =  function (cal){ 
 					$.fn.caldav('getCoalescedEvents',
 						$.fn.caldav.coalesceEvents[cal].params,
 						$.fn.caldav.coalesceEvents[cal].start,
@@ -536,6 +566,54 @@ jQuery.extend ({
 			return this;
 		},
 
+		lock: function ( url, timeout, callback ) { 
+			var to = timeout?timeout:600;
+			var data = '<?xml version="1.0" encoding="utf-8"?>' + "\n" +
+				'<D:lockinfo xmlns:D="DAV:">'+
+					'<D:lockscope><D:exclusive/></D:lockscope>'+
+						'<D:locktype><D:write/></D:locktype>'+
+						'<D:owner>'+
+							'<D:href>'+$.fn.caldav.data.principalHome +'</D:href>'+
+						'</D:owner>'+
+				'</D:lockinfo>';
+			$.lock ($.extend(true,{},$.fn.caldav.options,{url:url},{headers:{Depth:0,Timeout:'Second-'+to},contentType:'text/xml; charset="utf-8"',
+							data:data,complete: function (r,s){
+					if (s=='success')
+					{
+						if ( r.status == 200 || r.status == 201 )
+						{ 
+							var to = Number(String($("["+$.fn.caldav.xmlNSfield+"=timeout]",r.responseXML).text()).replace(/second-/i,''));
+							var cancel = window.setTimeout (function(){delete $.fn.caldav.locks[url];},to*1000);
+							$.fn.caldav.locks[url] = {token:r.getResponseHeader('Lock-Token'),timeout:to,taken:$.now(),unsetlock:cancel };
+						}
+						else
+							if ( typeof(callback) == 'function' )
+								callback(r,s);
+					}
+					else
+						if ( typeof(callback) == 'function' )
+							callback(r,s);
+				}
+			}));
+		},
+		
+		unlock: function ( url ) { 
+			if ( $.fn.caldav.locks[url] && $.fn.caldav.locks[url].timeout > ( $.now() - $.fn.caldav.locks[url].taken ) / 1000 )
+				var token = $.fn.caldav.locks[url].token;
+			else
+				return ;
+			window.clearTimeout($.fn.caldav.locks[url].unsetlock);
+			$.unlock ($.extend(true,{},$.fn.caldav.options,{url:url},{headers:{'Lock-Token':token},
+				complete: function (r,s){
+					if (s!='success')
+					{
+						r.abort();
+						return false;
+					}
+				}
+			}));
+		},
+
 		makeCalendar: function ( params, cal, props ) { 
 			var ns = 'xmlns:x2="http://apple.com/ns/ical/"';
 			var nsArray = ["urn:ietf:params:xml:ns:caldav","DAV:","http://apple.com/ns/ical/"];
@@ -607,14 +685,29 @@ jQuery.extend ({
 		putEvent : function( params , content ) {  	
 			$.fn.caldav('spinner',true);
 			var tmpOptions = $.extend(true,{},jQuery.fn.caldav.options,params);
-		  $.head ($.extend(true,tmpOptions,{contentType:undefined,headers:{},data:null,complete: function (r,s){
-				if ( r.status != 404 )
-					tmpOptions.headers['If-Match']=r.getResponseHeader('ETag');
+			console.log( params.url,  $.fn.caldav.locks );
+			if ( $.fn.caldav.locks[params.url] )
+			{
+				if ( tmpOptions.headers == undefined ) tmpOptions.headers = {};
+				tmpOptions.headers['If']= $.fn.caldav.locks[params.url].token;
 			  $.put ($.extend(true,tmpOptions,{contentType:'text/calendar',data:content,complete: function (r,s){
 					$.fn.caldav('spinner',false);
-					$.fn.caldav.options.eventPut(r,s);}
-				}))
-			}}));
+					$.fn.caldav('unlock',params.url);
+					$.fn.caldav.options.eventPut(r,s);
+					}
+				}));
+			}
+			else
+			{
+			  $.head ($.extend(true,tmpOptions,{contentType:undefined,headers:{},data:null,complete: function (r,s){
+					if ( r.status != 404 )
+						tmpOptions.headers['If-Match']=r.getResponseHeader('ETag');
+				  $.put ($.extend(true,tmpOptions,{contentType:'text/calendar',data:content,complete: function (r,s){
+						$.fn.caldav('spinner',false);
+						$.fn.caldav.options.eventPut(r,s);}
+					}))
+				}}));
+			}
 			return this;
 		},	
 

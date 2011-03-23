@@ -8,6 +8,18 @@ N.B. the surest way to log out is to completely close the Browser,
 including all tabs and windows.
 
 ---------------------------------------------------------------------
+Install
+
+copy example.html to index.html and edit the data-caldavurl and 
+data-calproxyurl attributes.
+
+data-caldavurl is the address of your caldav servers root
+  if you are using DAViCal and installed it in a subdirectory foo on 
+	server bar it would be https://bar/foo/ or https://bar/foo/davical.php
+
+data-calproxyurl is the directory where the .htaccess file is located
+
+---------------------------------------------------------------------
 Licenses
 
 Copyright (c) 2011, Rob Ostensen ( rob@boxacle.net )

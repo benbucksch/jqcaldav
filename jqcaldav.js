@@ -38,7 +38,7 @@ function getTZ ( d )
 	return false;
 }
 
-var defaults={ui:{calendar:"Calendars",todos:"To Do","add":"Add",settings:"Settings",subscribe:"Subscribe",today:"Today",week:"Week",month:"Month",start:"Day Starts",end:"Day Ends",twentyFour:"24 Hour Time",username:'Username',password:'Password','go':'go','New Event':'New Event',"done":"Done","delete":"Delete","name":"name","color":"color","description":"description","url":"url","privileges":"privileges","logout":"Logout","new calendar":"New Calendar","yes":"yes","no":"no","logout error":"Error logging out, please CLOSE or RESTART your browser!","owner":"Owner","subscribed":"Subscribed"},
+var defaults={ui:{calendar:"Calendars",todos:"To Do","add":"Add",settings:"Settings",subscribe:"Subscribe",today:"Today",week:"Week",month:"Month",start:"Day Starts",end:"Day Ends",twentyFour:"24 Hour Time",username:'Username',password:'Password','go':'go','New Event':'New Event',"alarm":"alarm","done":"Done","delete":"Delete","name":"name","color":"color","description":"description","url":"url","privileges":"privileges","logout":"Logout","new calendar":"New Calendar","yes":"yes","no":"no","logout error":"Error logging out, please CLOSE or RESTART your browser!","owner":"Owner","subscribed":"Subscribed","lock failed":"failed to acquire lock, may not be able to save changes"},
 	months:["January","February","March","April","May","June","July","August","September","October","November","December"],
 	weekdays:["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
 	dropquestion:["Do you want to move",["All occurences","This one occurence"]],
@@ -50,19 +50,20 @@ var defaults={ui:{calendar:"Calendars",todos:"To Do","add":"Add",settings:"Setti
 		url:"url",action:"action",repeat:"repeat",trigger:"trigger","last-modified":"last modified","request-status":"request status",},
 	valueNames:{"TRANSPARENT":"transparent","OPAQUE":"opaque","TENTATIVE":"tentative","CONFIRMED":"confirmed","CANCELLED":"cancelled","NEEDS-ACTION":"needs-action",
 		"COMPLETED":"completed","IN-PROCESS":"in-process","DRAFT":"draft","FINAL":"final","CANCELLED":"cancelled","PUBLIC":"public","PRIVATE":"private",
-		"CONFIDENTIAL":"confidential"},
+		"CONFIDENTIAL":"confidential","SOUND":"sound","MESSAGE":"message"},
+	"durations":{"minutes before":"minutes before","hours before":"hours before","days before":"days before","weeks before":"weeks before","minutes after":"minutes after","hours after":"hours after","days after":"days after","weeks after":"weeks after","on date":"on date"},
 	"recurrenceUI":{"YEAR":"year","MONTH":"month","WEEK":"week","DAI":"day","HOUR":"hour","MINUTE":"minute","SECOND":"second","day":"day","time":"time","times":"times","until":"until","every":"every","on":"on"},
 	"privileges":{"all":"all","bind":"bind","unbind":"unbind","unlock":"unlock","read":"read","acl":"acl","free-busy":"free-busy","privileges":"privileges","write":"write","content":"content","properties":"properties","acl":"acl","schedule-send":"schedule-send","invite":"invite","reply":"reply","freebusy":"freebusy","schedule-deliver":"schedule-deliver","invite":"invite","reply":"reply","query-freebusy":"query-freebusy"}};
 
 var ui=defaults.ui, months=defaults.months, weekdays=defaults.weekdays, dropquestion=defaults.dropquestion,
-deletequestion=defaults.deletequestion, deleteCalQuestion=defaults.deleteCalQuestion, fieldNames=defaults.fieldNames, valueNames= defaults.valueNames,privileges=defaults.privileges ;
+deletequestion=defaults.deletequestion, deleteCalQuestion=defaults.deleteCalQuestion, fieldNames=defaults.fieldNames, valueNames= defaults.valueNames,privileges=defaults.privileges ,durations=defaults.durations;
 var recurrenceUI=defaults.recurrenceUI;
 
 $(document).ready ( function () {
 		var here = $('.jqcaldav:eq(0)');
 		$.ajax({url:String(navigator.language?navigator.language:navigator.userLanguage).toLowerCase()+'.js',async:false, dataType:"json",success:function(d){
 			if (d.ui != undefined){ui=d.ui;months=d.months;weekdays=d.weekdays;dropquestion=d.dropquestion;
-				deletequestion=d.deletequestion;fieldNames=d.fieldNames;valueNames=d.valueNames;
+				deletequestion=d.deletequestion;fieldNames=d.fieldNames;valueNames=d.valueNames;durations=d.durations;
 				recurrenceUI=d.recurrenceUI;deleteCalQuestion=d.deleteCalQuestion;privileges=d.privileges;}
 			else
 				{ui=defaults.ui; months=defaults.months; weekdays=defaults.weekdays; dropquestion=defaults.dropquestion;
@@ -70,11 +71,14 @@ $(document).ready ( function () {
 				{ui=defaults.ui; months=defaults.months; weekdays=defaults.weekdays; dropquestion=defaults.dropquestion;
 				deletequestion=defaults.deletequestion; fieldNames=defaults.fieldNames; valueNames= defaults.valueNames; recurrenceUI=defaults.recurrenceUI;}
 		});
-		$(here).append('<form id="cal_login" ><div style="max-width: 40%; min-width: 16em;margin: 30%; margin-top:1em; padding: 2em; -moz-border-radius: 1.5em; -webkit-border-radius: 1.5em; border-radius: 1.5em; ' +
-			'-moz-box-shadow: 0px 0px 10px #888; -webkit-box-shadow: 0px 0px 10px #888; box-shadow: 0px 0px 10px #888; "><div style="text-align:center"><span style="width:50%;margin-left: -3em;display: block;float:left;'+
-			'text-align: right; padding-right: 1em;">'+ui.username+'</span><input id="name" size="20" style="float: left;" autofocus /></div><div style="clear: left;text-align:center;"><span style="width:50%;margin-left: -3em;'+
-			'display: block;float:left;text-align: right; padding-right: 1em;">'+ui.password+'</span><input id="pass" size="20" type="password" style="float: left;"/></div><div>&nbsp;</div><input id="pass" size="20" type="button" value="'+ui.go+'" style="float: left;" /><div>&nbsp;</div></div></form>');
-		console.log(ui);
+		if ( $('.jqcaldav:eq(0)').data('wait') != 'true' ) 
+		{
+			$(here).append('<form id="cal_login" ><div style="max-width: 40%; min-width: 16em;margin: 30%; margin-top:1em; padding: 2em; -moz-border-radius: 1.5em; -webkit-border-radius: 1.5em; border-radius: 1.5em; ' +
+				'-moz-box-shadow: 0px 0px 10px #888; -webkit-box-shadow: 0px 0px 10px #888; box-shadow: 0px 0px 10px #888; "><div style="text-align:center"><span style="width:50%;margin-left: -3em;display: block;float:left;'+
+				'text-align: right; padding-right: 1em;">'+ui.username+'</span><input id="name" size="20" style="float: left;" autofocus /></div><div style="clear: left;text-align:center;"><span style="width:50%;margin-left: -3em;'+
+				'display: block;float:left;text-align: right; padding-right: 1em;">'+ui.password+'</span><input id="pass" size="20" type="password" style="float: left;"/></div><div>&nbsp;</div><input id="pass" size="20" type="button" value="'+ui.go+'" style="float: left;" /><div>&nbsp;</div></div></form>');
+		}
+		if ( debug ) console.log(ui);
 		$('#cal_login input:eq(0)').focus();
 		$('#cal_login').submit(function(e){console.log('doinging it');doit(e);return false;});
 		$('#cal_login input').keypress(function (e){if (e.keyCode=='13'){doit(e); return false; }});
@@ -100,12 +104,22 @@ var extdepth = 0;
 
 function doit ( e )
 {
-	if ( $('#name').val().length < 3 && $('#pass').val().length < 3 )
+	if ( $('.jqcaldav:eq(0)').data('wait') == 'true' ) 
+	{
+		if ( $('.jqcaldav:eq(0)').data('username').length < 3 && $('.jqcaldav:eq(0)').data('password').length < 3 )
+			return;
+	}
+	else if ( $('#name').val().length < 3 && $('#pass').val().length < 3 )
 		return;
+	else
+	{
+		$('.jqcaldav:eq(0)').data('username',$('#name').val());
+		$('.jqcaldav:eq(0)').data('password',$('#pass').val());
+	}
 	if ( $('#wcal').length > 0 )
 		$('#calwrap').remove();
 	var loading = $('<div id="caldavloading1" style="display:none;position:fixed;left:100%;top:100%;margin-top:-1em;margin-left:-4em;text-align: center; width:4em; background-color:black;color:white;-moz-border-top-left-radius:.5em;-webkit-border-top-left-radius:.5em;border-top-left-radius:.5em;opacity:.5;z-index:100;" data-loading="0" ><span>'+ui.loading+'</span></div>').appendTo(document.body);
-	cd = $(document).caldav ( { url: $('.jqcaldav:first').data('caldavurl'), username:$('#name').val(), password:$('#pass').val(), events: addEvents, todos: addToDos,eventPut: eventPut, eventDel: eventDel, deletedCalendar: deletedCalendar, logout: logout, loading: $('#caldavloading1')} );
+	cd = $(document).caldav ( { url: $('.jqcaldav:first').data('caldavurl'), username:$('.jqcaldav:eq(0)').data('username'), password:$('.jqcaldav:eq(0)').data('password'), events: addEvents, todos: addToDos,eventPut: eventPut, eventDel: eventDel, deletedCalendar: deletedCalendar, logout: logout, loading: $('#caldavloading1')} );
 	$.fn.caldav.options.calendars = gotCalendars;
 	$(document).caldav('getCalendars', {});
 	$(window).unload ( logoutClicked ); 
@@ -183,6 +197,12 @@ function ctagCheck ()
 	var cals = $(document).caldav('calendars');
 	// TODO add getctag/sync token periodic check to refresh changed events
 	// http://tools.ietf.org/html/draft-daboo-webdav-sync-05#section-3.1
+	for ( var i=0; i< cals.length; i++)
+	{
+		if ( cals[i].ctag.length > 0 )
+		{
+		}
+	}
 }
 
 function eventPut(r,s)
@@ -641,17 +661,17 @@ function toggleCalendar ()
 	var i = this.id;
 	if ( ! this.checked ) 
 	{
-		ss.updateRule ( '#wcal .day .event.'+i ,{ opacity: 0 }  );
-		ss.updateRule ( '#wcal .day .event.'+i +'bg',{ opacity: 0 } );
+		ss.updateRule ( '#wcal .day .event.'+i ,{ opacity: 0, height: 0 }  );
+		ss.updateRule ( '#wcal .day .event.'+i +'bg',{ opacity: 0, height: 0 } );
 		window.setTimeout(function(){ss.updateRule ( '#wcal .day .event.'+i ,{ display: 'none' }  );
-		ss.updateRule ( '#wcal .day .event.'+i +'bg',{ display:'none' } );},300);
+		ss.updateRule ( '#wcal .day .event.'+i +'bg',{ display:'none' } );},250);
 	}
 	else 
 	{
-		ss.updateRule ( '#wcal .day .event.'+i ,{ opacity: 1 }  );
-		ss.updateRule ( '#wcal .day .event.'+i +'bg',{ opacity: 1 } );
 		ss.updateRule ( '#wcal .day .event.'+i ,{ display: 'block' }  );
 		ss.updateRule ( '#wcal .day .event.'+i +'bg',{ display: 'block' } );
+		window.setTimeout(function(){ss.updateRule ( '#wcal .day .event.'+i ,{ opacity: 1, height: null }  );
+		ss.updateRule ( '#wcal .day .event.'+i +'bg',{ opacity: 1, height: null } );},100);
 	}
 	var cals = $(document).caldav('calendars');
 	var scals = $('#wcal').data('subscribed');
@@ -1276,6 +1296,7 @@ function insertEvent ( href, icsObj, c, start, end , current)
 
 			desc += cevent.summary.VALUE; 
 			var transp = cevent.transp!=undefined?cevent.transp.VALUE:'TRANSPARENT';
+			var status = cevent.status!=undefined?'status="'+cevent.status.VALUE+'"':'';
 			var duration = 0+parseInt(tdiff/900000)*15;
 			if ( duration >= (settings.end.getLongMinutes() - settings.start.getLongMinutes() )/25*15 )
 				duration = 1;
@@ -1293,7 +1314,7 @@ function insertEvent ( href, icsObj, c, start, end , current)
 				var b = true;
 			}
 			if ( entry.length == 0 )
-				var entry = $('<li class="event calendar' + c + ' time' + etime + '" data-duration="' + duration + '" draggable="true" data-time="' + time + '" href="' + href + '" eventcount="'+eventcount+'" uid="' + cevent.uid.VALUE + '" instance="' + estart.DateString() +  '" transparent="' + transp + '" >'+desc+'</li>');
+				var entry = $('<li class="event calendar' + c + ' time' + etime + '" data-duration="' + duration + '" draggable="true" data-time="' + time + '" href="' + href + '" eventcount="'+eventcount+'" uid="' + cevent.uid.VALUE + '" instance="' + estart.DateString() +  '" transparent="' + transp + '" '+status+' >'+desc+'</li>');
 			//if ( time == 0 )
 			//	$(entry).addClass('calendar' + c + 'bg');
 			$(entry).data('ics', icsObj);
@@ -1855,13 +1876,16 @@ function eventHover (e)
 		var props = [];
 		props.push('summary');
 		if ( tdiff == 86400000 ) 
-			duration = true
+			duration = true;
 		props.push('ESTART');
 		props.push('EEND');
 		for ( var x in d.PARENT.components.vevent.optional){props.push(d.PARENT.components.vevent.optional[x]); }
+		if ( d.vcalendar[type].valarm != undefined )
+		{
+			props.push('valarm');
+		}
 		d.vcalendar[type]['ESTART'] = d.PARENT.newField('DTSTART',estart);
 		d.vcalendar[type]['EEND'] = d.PARENT.newField('DTEND',eend);
-		console.log(props);
 	}
 	else if ( d.vcalendar.vtodo != undefined )
 	{	
@@ -1887,6 +1911,12 @@ function eventHover (e)
 			case 'DURATION':
 				var label = fieldNames['duration'];
 				break;
+			case 'valarm':
+				used.push(props[x]);
+				var li = $('<li><span class="label alarm" >'+ui.alarm+'</span></li>');
+				$(li).append(printAlarm(d.vcalendar[type][props[x]]));
+				$(ul).append(li);
+				continue;
 			default:
 				if ( used.indexOf(props[x]) != -1 )
 					continue;
@@ -1900,7 +1930,6 @@ function eventHover (e)
 		}
 		if ( d.vcalendar[type][props[x]] )
 		{
-			used.push(props[x]);
 			if ( d.vcalendar[type][props[x]].length > 1 )
 				$(ul).append('<li><span class="label '+props[x]+'" '+extra+' >'+label+'</span><span class="value" data-value="'+d.vcalendar[type][props[x]] +'" >'+d.vcalendar[type][props[x]] +'</span></li>');
 			else
@@ -1932,6 +1961,9 @@ function eventClick(e)
 	$('#calpopupe').remove();
 	e.stopPropagation();
 	eventHover(e);
+	var cp = $($('#wcal').data('popup'));
+	var href = $($(cp).data('event')).attr('href');
+	$(document).caldav('lock',href,600,function(){alert(ui['lock failed'])});
 	$('#calpopup').clone(true).attr('id','calpopupe').removeClass('left right bottom').appendTo('#calwrap');
 	$('#wcal').data('popup','#calpopupe');
 	$('#calpopup').hide();
@@ -1974,7 +2006,7 @@ function eventClick(e)
 			);
 	draggable ( $('#calpopupe') );
 	$('#calpopupe').show();
-	$('#calpopupe .value,.evheader').attr('contentEditable',true);
+	$('#calpopupe .value,.evheader,#calpopupe .action,#calpopupe .length').attr('contentEditable',true);
 	$('#calpopupe .value,.evheader').attr('spellcheck','true');
 	$('#wcal').data('clicked', e.target);
 	$(document).click( $('#wcal').data('edit_click') ); 
@@ -2119,6 +2151,91 @@ function addField(e)
 	console.log(showFields);
 }
 
+function printAlarm(a)
+{
+	var alarms = [];
+	if ( a.action != undefined )
+		alarms.push(a);
+	else
+		alarms = a;
+	console.log( alarms.length + ' alarms' );
+	for ( var A in alarms )
+	{
+		if ( alarms[A].trigger != undefined && alarms[A].action == "AUDIO" || alarms[A].action == "DISPLAY" )
+		{
+			if ( alarms[A].trigger.DURATION != undefined )
+			{
+				var atime = alarms[A].trigger.DURATION;
+				var type = 'dur';
+			}
+			else if ( alarms[A].trigger.DATE != undefined )
+			{
+				var atime = alarms[A].trigger.DATE;
+				var type = 'date';
+			}
+			else 
+				continue ;
+			var atext = '';
+			if ( alarms[A].description != undefined )
+				atext = alarms[A].description;
+		}
+	}
+	var ret = $('<span class="alarm"><span class="action">sound</span><span class="value">15</span><span class="length">minutes</span></span>');
+	$('.action,.length',ret).bind('click, focus',alarmFieldClick);
+	return ret;
+}
+
+function alarmFieldClick(e)
+{
+	var f = {length:['minutes before','hours before','days before','weeks before','minutes after','hours after','days after','weeks after','on date'],
+					action:['SOUND','MESSAGE']};
+	var options = f[$(e.target).attr('class')]; 
+	if ($(e.target).attr('class') == 'length' ) 
+		var list = durations;
+	else
+		var list = valueNames;
+	var currentValue = $(e.target).text();
+	var txt = '<div class="completionWrapper"><div class="completion">';
+	for ( var j = 0; j < options.length; j++ )
+		txt = txt + '<div'+ (list[options[j]]==currentValue?' class="selected" ':'') +'>'+list[options[j]]+'</div>';
+	txt = txt + '</div></div>';
+	var comp = $(txt);
+	$(comp).children().click(function(evt){$(evt.target).parent().parent().next().text($(evt.target).text());
+		$(evt.target).parent().parent().fadeOut(function(){$(this).remove();});
+		popupOverflowAuto();
+		return false;
+	});
+	$(e.target).bind('keydown',function (e2){ 
+		e2.spaceSelects = true; 
+		e2.search = true; 
+		e2.removeOnEscape = true; 
+		var k = keyboardSelector(e2);
+		if ( k == 'cancel' )
+		{
+			$('#wcal').data('eatCancel',true);
+			$(this).unbind('blur');
+			popupOverflowAuto();
+			e2.stopPropagation();
+			return false;
+		}
+		else if ( $(k).length == 1 )
+		{
+			$(this).unbind('blur');
+			$(this).text($(k).text());
+			$(this).prev().fadeOut(function(){$(this).remove();});
+			popupOverflowAuto();
+			var ret = e2.which==9;	
+			return ret;
+		}	
+		else
+			return k;
+		},false);
+	$(comp).css({top:$(e.target).position().top,left:$(e.target).position().left,'margin-left':'2em'});
+	$(e.target).bind('blur',function(evt){$(evt.target).prev().fadeOut(function(){$(this).remove();});popupOverflowAuto();$(this).unbind(evt);});
+	popupOverflowVisi();
+	$(e.target).before(comp);
+}
+
 function eventEdited (e)
 {
 	var edited = false;
@@ -2196,7 +2313,8 @@ function eventEdited (e)
 		if ( href != '+&New Event' )
 		{
 			$('[href="'+$(evt).attr('src')+'"]').fadeOut('fast',function (){$(evt).remove();  } );
-			var params = { url:cals[c].url.replace(/(.*?\.[a-zA-Z]+)\/.*/,'$1'+href),username:$('#name').val(),password:$('#pass').val()};
+			//var params = { url:cals[c].url.replace(/(.*?\.[a-zA-Z]+)\/.*/,'$1'+href),username:$('#name').val(),password:$('#pass').val()};
+			var params = { url:href,username:$('#name').val(),password:$('#pass').val()};
 			$(document).caldav('putEvent',params,d.PARENT.printiCal (  )); 
 		}
 		else
@@ -2576,6 +2694,9 @@ function buildcal(d)
 	$(cal).data('edit_click',function ( e ){ var box = $('#wcal').data('popup');
 			if ( $('#wcal').data('clicked') != e.target && $(e.target).parents(box).length < 1 && e.target != $(box)[0] )
 			{
+					var href = $($(box).data('event')).attr('href');
+					if ( String(href).length > 1 && $.fn.caldav.locks[href] != undefined )
+						$(document).caldav('unlock',href);
 					$('#wcal').removeData('clicked');
 					$('#wcal').removeData('popup'); 
 					$(box).fadeOut();
@@ -2588,6 +2709,9 @@ function buildcal(d)
 			{
 				if ( $('#wcal').data('eatCancel') ){$('#wcal').removeData('eatCancel'); return}
 				var box = $('#wcal').data('popup'); 
+				var href = $($(box).data('event')).attr('href');
+				if ( String(href).length > 1 && $.fn.caldav.locks[href] != undefined )
+					$(document).caldav('unlock',href);
 				$(box).fadeOut(); 
 				$('#wcal').removeData('popup'); 
 				$('#wcal').removeData('clicked'); 
@@ -2764,7 +2888,7 @@ function calstyle ()
 	'#calsidebar > ul > li.closed > ul  { height: 0px;   } ' + "\n" +
 	'#calsidebar > ul > li > span:before   { content: ""; display: block; position: absolute; left: 1px; width:0; height:0; border-color: #666 transparent transparent transparent; border-style: solid; border-width: 7px 4px 4px 4px; '+
 		'-webkit-transition-property: all; -webkit-transition-duration: .4s; -moz-transition-property: all; -moz-transition-duration: .4s; -o-transition-property: all; -o-transition-duration: .4s; transition-property: all; transition-duration: .4s; '+
-		'-webkit-transform: translate(0px, 3px) rotate(0deg) ; -moz-transform: translate(0px,-3px) rotate(0deg) ; transform: rotate(0deg) ; } ' + "\n" +
+		'-webkit-transform: translate(0px, 3px) rotate(0deg) ; -moz-transform: translate(0px,3px) rotate(0deg) ; transform: rotate(0deg) ; } ' + "\n" +
 	'#calsidebar > ul > li.closed > span:before { border-color: #666 transparent transparent transparent; -webkit-transform: translate(3px, 1px) rotate(-90deg) ; -moz-transform: translate(3px, 1px) rotate(-90deg) ;  -o-transform: translate(3px, -1px) rotate(-90deg) ; -ms-transform: translate(3px, 1px) rotate(-90deg); transform: translate(3px, 1px) rotate(-90deg) ; } ' + "\n" +
 	'#calsidebar > ul li:hover { background: none; } ' + "\n" +
 	'#calsidebar > ul > li > ul { margin-left: 0em; padding-left: 0; overflow-y: hidden; resize: none; -webkit-transition-property: height; -webkit-transition-duration: .4s; '+
@@ -2796,6 +2920,9 @@ function calstyle ()
 	'.calpopup .value:hover { outline: 1px solid #AAA; resize: both;}' + "\n" +
 	'.calpopup .value:focus { outline: none; -moz-box-shadow: 1px 1px 3px #888; -webkit-box-shadow: 1px 1px 3px #888; box-shadow: 1px 1px 3px #888; resize: none; }' + "\n" +
 	'.calpopup .value:focus:hover { resize:both; }' + "\n" +
+	'.calpopup .alarm { resize: none; outline: none; margin:0; padding:0; padding-right: 2px; padding-left: 4px; min-width: 3em; min-height: 1em; display: block; float: left; margin-top: 6px; margin-bottom: 2px; }' + "\n" +
+	'.calpopup .alarm .value { resize: none; outline: none; margin:0; padding:0; padding-right: .1em; padding-left: .1em; display: inline; float: none; }' + "\n" +
+	'.alarm span { resize: none; outline: none; margin:0; padding:0; padding-right: .1em; padding-left: .1em; }' + "\n" +
 
 	//'.calpopup .label[extra] { outline: 1px solid blue; content: "XX" ; }' + "\n" +
 	//'.calpopup .label.EEND[extra] + .value { color: white; content: ""; }' + "\n" +
@@ -2875,11 +3002,15 @@ function calstyle ()
 		' -webkit-transition-property: all; -webkit-transition-duration: .2s; -moz-transition-property: all; -moz-transition-duration: .2s; transition-property: all; transition-duration: .2s;} ' + "\n" + 
 	
 	'.day .event { -webkit-box-sizing: border-box; -moz-box-sizing: border-box; box-sizing: border-box; width: 100%; max-width: 100%; white-space: nowrap; text-overflow: ellipsis; margin:0; margin-top: 0; padding-left: .7em; font-size: 10pt; vertical-align: top; max-height: 1.1em; overflow: hidden; ' + "\n" +
-		'  min-height: 3px; display: -webkit-box;display: -moz-box;display: box; -webkit-box-flex: 1; -webkit-box-lines: multiple; -moz-box-lines: multiple; box-lines: multiple; -moz-box-flex: 1; box-flex: 1; ' + "\n" +
+		'  min-height: 3px; ' + "\n" +
 		' -webkit-transition-property: all; -webkit-transition-duration: .2s; -moz-transition-property: all; -moz-transition-duration: .2s; transition-property: all; transition-duration: .2s;} ' + "\n" + 
 	
 	'#wcal .event:before                          { content: " "; font-face: times; width: 0px; position: relative; display: block; float: left; height: 1.1em; margin-left: -.7em; border-left: .15em solid; border-right: .15em solid; }' + "\n" +
-	'#wcal .event[transparent=TRANSPARENT]:before { content: " "; font-face: times; width: 0px; position: relative; display: block; float: left; height: 1.1em; margin-left: -.7em; border-left: .15em dotted; border-top: 1px solid; border-right: .15em dotted;  }' + "\n" +
+	'#wcal .event[transparent=TRANSPARENT]:before { content: " "; font-face: times; width: 4px; position: relative; display: block; float: left; height: .15em; margin-left: -.7em; border: none; border-top: .471em double; border-bottom: .471em double;  }' + "\n" +
+	"#wcal .event[status=CANCELLED] { text-decoration: line-through; } \n" +
+	"#wcal .day ul li.event[status=TENTATIVE] { opacity: 0.75; border-left: 3px solid orange; } \n" +
+	if ( settings.showConfirmed )
+		"#wcal .day ul li.event[status=CONFIRMED] { opacity: 0.75; border-left: 3px solid orange; } \n" +
 	'.event:hover { color: white;  -webkit-box-flex: 0; -moz-box-flex: 0; box-flex: 0; min-height: 1em; }' + "\n" +
 	'.week .day ul.eventlist > li.multiday { width: 100%;  }' + "\n" +
 	'.eventstart.event:before { content:none !important;  }' + "\n" +
@@ -4360,7 +4491,7 @@ var styles = {
 			for ( var x in props )
 			{
 				if ( props[x] == null || props[x].length == 0 )
-					rs[i].style.removeProperty(props[x]);
+					rs[i].style.removeProperty(x);
 				else
 					rs[i].style.setProperty( x, String(props[x]), null );
 			}
