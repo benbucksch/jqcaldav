@@ -202,7 +202,7 @@ jQuery.extend ({
 			return this; },
     getCalendars : function( params ) { //$.options ($.extend(true,jQuery.fn.caldav.options,params,{headers:{depth:2}}));
 			$.fn.caldav('spinner',true);
-    $.propfind ($.extend(true,{},jQuery.fn.caldav.options,params,{headers:{depth:2},data:'<?xml version="1.0" encoding="utf-8"?>' + "\n" +
+    $.propfind ($.extend(true,{},jQuery.fn.caldav.options,params,{headers:{Depth:2},data:'<?xml version="1.0" encoding="utf-8"?>' + "\n" +
 '<x0:propfind xmlns:x1="http://calendarserver.org/ns/" xmlns:x0="DAV:" xmlns:x3="http://apple.com/ns/ical/" xmlns:x2="urn:ietf:params:xml:ns:caldav" xmlns:x4="http://boxacle.net/ns/calendar/">' + "\n" +
 '<x0:prop>' + "\n" +
 '<x0:displayname/>' + "\n" +
@@ -437,6 +437,39 @@ jQuery.extend ({
 			return this;
 		},
 
+		syncCollection: function ( cal, start, end )
+		{ 
+			if ( ! $.fn.caldav.calendarData[cal] )
+				return;
+			var params = {url:$.fn.caldav.calendarData[cal].href};
+			if ( ! $.fn.caldav.calendarData[cal].synctoken )
+				var data = '<?xml version="1.0" encoding="utf-8"?>' + "\n" +
+					'<D:sync-collection xmlns:D="DAV:"><D:sync-token/><D:limit><D:nresults>1</D:nresults></D:limit><D:prop><D:getetag/></D:prop></D:sync-collection>';
+			else
+				var data = '<?xml version="1.0" encoding="utf-8"?>' + "\n" +
+					'<D:sync-collection xmlns:D="DAV:"><D:sync-token>'+$.fn.caldav.calendarData[cal].synctoken+'</D:sync-token><D:prop><D:getetag/></D:prop></D:sync-collection>';
+			$.report ($.extend(true,{},$.fn.caldav.options,params,{headers:{depth:1},data:data,
+				complete: function (r,s){ 
+					if ( $.fn.caldav.calendarData[cal].synctoken && $('href',r.responseXML).length > 0 )
+					{
+						var multiget = '<?xml version="1.0" encoding="utf-8"?>' + "\n" +
+							'<x0:calendar-multiget xmlns:x0="urn:ietf:params:xml:ns:caldav" xmlns:x1="DAV:"><x1:prop><x1:calendar-data/><x1:getetag/></x1:prop>';
+						var updates = $('href',r.responseXML);
+						for ( var i=0; i< updates.length; i++ )
+							multiget = multiget + '<x1:href>'+$(updates[i]).text()+'</x1:href>';
+						multiget = multiget + '</x0:calendar-multiget>';
+						$.report ($.extend(true,{},$.fn.caldav.options,params,{headers:{depth:1},data:multiget,
+							complete: function (r,s){
+								$.fn.caldav('spinner',false);
+								if ( cal != undefined ) { r.cal = 0 + cal; }
+								if (s=='success')
+									$(this).caldav( 'parseEvents', r, start, end );
+							}}));
+					}
+					$.fn.caldav.calendarData[cal].synctoken = $('sync-token',r.responseXML).text(); 
+				}}));
+		},
+
 		getToDos: function ( params, cal ) { 
 			$.fn.caldav('spinner',true);
 			$.report ($.extend(true,{},$.fn.caldav.options,params,{headers:{depth:1},data:'<?xml version="1.0" encoding="utf-8"?>' + "\n" +
@@ -448,7 +481,6 @@ jQuery.extend ({
 				'  <x0:filter>'+
 				'    <x0:comp-filter name="VCALENDAR">'+
 				'      <x0:comp-filter name="VTODO">'+
-				//'        <x0:time-range start="'+ $.fn.caldav('formatDate',start) +'" end="'+ $.fn.caldav('formatDate',end) +'"/>'+
 				'      </x0:comp-filter>'+
 				'    </x0:comp-filter>'+
 				'  </x0:filter>'+
@@ -685,7 +717,6 @@ jQuery.extend ({
 		putEvent : function( params , content ) {  	
 			$.fn.caldav('spinner',true);
 			var tmpOptions = $.extend(true,{},jQuery.fn.caldav.options,params);
-			console.log( params.url,  $.fn.caldav.locks );
 			if ( $.fn.caldav.locks[params.url] )
 			{
 				if ( tmpOptions.headers == undefined ) tmpOptions.headers = {};
@@ -731,25 +762,42 @@ jQuery.extend ({
 		delEvent : function( params ) {  	
 			$.fn.caldav('spinner',true);
 			var tmpOptions = $.extend(true,{},jQuery.fn.caldav.options,params);
-			delete tmpOptions.headers;
-		  $.head ($.extend(true,tmpOptions,{contentType:undefined,headers:{},data:null,complete: function (r,s){
-				if ( r.status != 200 && r.status != 207 )
-				{ r.abort(); 
-					$.fn.caldav('spinner',false);
-					return false; }
-				tmpOptions.headers={'If-Match':r.getResponseHeader('ETag')};
-			  $.del ($.extend(true,tmpOptions,{data:null,complete: function (r,s){
-					$.fn.caldav('spinner',false);
-					$.fn.caldav.options.eventDel(r,s);}
-				}))
-			}}));
+			if ( $.fn.caldav.locks[params.url] )
+			{
+				if ( tmpOptions.headers == undefined ) tmpOptions.headers = {};
+				tmpOptions.headers['If']= $.fn.caldav.locks[params.url].token;
+				  $.del ($.extend(true,tmpOptions,{data:null,complete: function (r,s){
+						$.fn.caldav('spinner',false);
+						delete $.fn.caldav.locks[params.url];
+						$.fn.caldav.options.eventDel(r,s);}
+					}));
+			}
+			else
+			{
+				delete tmpOptions.headers;
+			  $.head ($.extend(true,tmpOptions,{contentType:undefined,headers:{},data:null,complete: function (r,s){
+					if ( r.status != 200 && r.status != 207 )
+					{ r.abort(); 
+						$.fn.caldav('spinner',false);
+						return false; }
+					tmpOptions.headers={'If-Match':r.getResponseHeader('ETag')};
+				  $.del ($.extend(true,tmpOptions,{data:null,complete: function (r,s){
+						$.fn.caldav('spinner',false);
+						$.fn.caldav.options.eventDel(r,s);}
+					}))
+				}}));
+			}
 			return this;
 		},	
 		
 		moveEvent : function( params ) {  	
 			$.fn.caldav('spinner',true);
+			if ( $.fn.caldav.locks[params.url] )
+				params.headers['If']= $.fn.caldav.locks[params.url].token;
 		  $.move ($.extend(true,{},jQuery.fn.caldav.options,params,{complete: function (r,s){
 				$.fn.caldav('spinner',false);
+				if ( $.fn.caldav.locks[params.url] )
+					delete $.fn.caldav.locks[params.url];
 				$.fn.caldav.options.eventPut(r,s);}
 			}));
 			return this;
@@ -762,6 +810,8 @@ jQuery.extend ({
 
 		logout : function( ) {  	
 			$.fn.caldav('spinner',true);
+			for ( var i in $.fn.caldav.locks )
+				$.fn.caldav('unlock',i);
 			$.fn.caldav.options.username = 'logout';
 			$.fn.caldav.options.password = 'logout';
 		  var req = $.options ({url:$.fn.caldav.options.url+'logout',username:$.fn.caldav.options.username,password:$.fn.caldav.options.password,

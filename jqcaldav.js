@@ -1,7 +1,7 @@
 // Copyright (c) 2011, Rob Ostensen ( rob@boxacle.net )
 // See README or http://boxacle.net/jqcaldav/ for license
-var cd,hw,fhw,localTimezone,debug=false,alerts=[];
-var settings={twentyFour:true,start:Zero().setUTCHours(6),end:Zero().setUTCHours(22)};
+var cd,hw,fhw,jqcaldavPath,localTimezone,debug=false,alerts=[];
+var settings={twentyFour:true,start:Zero().setUTCHours(6),end:Zero().setUTCHours(22),'update frequency':300};
 var months,weekdays,dropquestion,deletequestion,fieldNames,valueNames,subscriptions;
 settings.start = new Date(Zero().setUTCHours(6));
 settings.end = new Date(Zero().setUTCHours(22));
@@ -10,7 +10,7 @@ function loadTZ ( )
 {
 	if ( abbvr.count < 1 )
 	{
-		$.ajax({url:'tz/abbvr.tz',async:false, dataType:"text",success:function(d){
+		$.ajax({url:jqcaldavPath+'tz/abbvr.tz',async:false, dataType:"text",success:function(d){
 			var t = String(d).split ("\n");
 			abbvr.count=t.length;
 			for (var i=0;i<t.length;i++)
@@ -29,7 +29,7 @@ function getTZ ( d )
 		var d = new Date();
 	var offset = 0 - ( parseInt(d.getTimezoneOffset()/60)*100 + d.getTimezoneOffset()%60 );
 	var ab = d.toLocaleString().replace(/^.*\s/,'');
-	console.log( 'searching ' + abbvr.abbv.length + ' timezones for ' + ab + ' (' + offset + ') found ' + abbvr.abbv.indexOf(ab)  );
+	if ( debug ) console.log( 'searching ' + abbvr.abbv.length + ' timezones for ' + ab + ' (' + offset + ') found ' + abbvr.abbv.indexOf(ab)  );
 	for ( var i = 0; i < abbvr.abbv.length; i++ )
 	{	
 		if ( abbvr.offsets[i] == offset )
@@ -38,7 +38,7 @@ function getTZ ( d )
 	return false;
 }
 
-var defaults={ui:{calendar:"Calendars",todos:"To Do","add":"Add",settings:"Settings",subscribe:"Subscribe",today:"Today",week:"Week",month:"Month",start:"Day Starts",end:"Day Ends",twentyFour:"24 Hour Time",username:'Username',password:'Password','go':'go','New Event':'New Event',"alarm":"alarm","done":"Done","delete":"Delete","name":"name","color":"color","description":"description","url":"url","privileges":"privileges","logout":"Logout","new calendar":"New Calendar","yes":"yes","no":"no","logout error":"Error logging out, please CLOSE or RESTART your browser!","owner":"Owner","subscribed":"Subscribed","lock failed":"failed to acquire lock, may not be able to save changes"},
+var defaults={ui:{calendar:"Calendars",todos:"To Do","add":"Add",settings:"Settings",subscribe:"Subscribe",today:"Today",week:"Week",month:"Month",start:"Day Starts",end:"Day Ends",twentyFour:"24 Hour Time",username:'Username',password:'Password','go':'go','New Event':'New Event',"alarm":"alarm","done":"Done","delete":"Delete","name":"name","color":"color","description":"description","url":"url","privileges":"privileges","logout":"Logout","new calendar":"New Calendar","yes":"yes","no":"no","logout error":"Error logging out, please CLOSE or RESTART your browser!","owner":"Owner","subscribed":"Subscribed","lock failed":"failed to acquire lock, may not be able to save changes",loading:'working'},
 	months:["January","February","March","April","May","June","July","August","September","October","November","December"],
 	weekdays:["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
 	dropquestion:["Do you want to move",["All occurences","This one occurence"]],
@@ -50,7 +50,7 @@ var defaults={ui:{calendar:"Calendars",todos:"To Do","add":"Add",settings:"Setti
 		url:"url",action:"action",repeat:"repeat",trigger:"trigger","last-modified":"last modified","request-status":"request status",},
 	valueNames:{"TRANSPARENT":"transparent","OPAQUE":"opaque","TENTATIVE":"tentative","CONFIRMED":"confirmed","CANCELLED":"cancelled","NEEDS-ACTION":"needs-action",
 		"COMPLETED":"completed","IN-PROCESS":"in-process","DRAFT":"draft","FINAL":"final","CANCELLED":"cancelled","PUBLIC":"public","PRIVATE":"private",
-		"CONFIDENTIAL":"confidential","SOUND":"sound","MESSAGE":"message"},
+		"CONFIDENTIAL":"confidential","AUDIO":"sound","DISPLAY":"message","NONE":"none"},
 	"durations":{"minutes before":"minutes before","hours before":"hours before","days before":"days before","weeks before":"weeks before","minutes after":"minutes after","hours after":"hours after","days after":"days after","weeks after":"weeks after","on date":"on date"},
 	"recurrenceUI":{"YEAR":"year","MONTH":"month","WEEK":"week","DAI":"day","HOUR":"hour","MINUTE":"minute","SECOND":"second","day":"day","time":"time","times":"times","until":"until","every":"every","on":"on"},
 	"privileges":{"all":"all","bind":"bind","unbind":"unbind","unlock":"unlock","read":"read","acl":"acl","free-busy":"free-busy","privileges":"privileges","write":"write","content":"content","properties":"properties","acl":"acl","schedule-send":"schedule-send","invite":"invite","reply":"reply","freebusy":"freebusy","schedule-deliver":"schedule-deliver","invite":"invite","reply":"reply","query-freebusy":"query-freebusy"}};
@@ -61,7 +61,8 @@ var recurrenceUI=defaults.recurrenceUI;
 
 $(document).ready ( function () {
 		var here = $('.jqcaldav:eq(0)');
-		$.ajax({url:String(navigator.language?navigator.language:navigator.userLanguage).toLowerCase()+'.js',async:false, dataType:"json",success:function(d){
+		jqcaldavPath = $('script[src*=jqcaldav]').attr('src').replace(/jqcaldav.js/,'');
+		$.ajax({url:jqcaldavPath+String(navigator.language?navigator.language:navigator.userLanguage).toLowerCase()+'.js',async:false, dataType:"json",success:function(d){
 			if (d.ui != undefined){ui=d.ui;months=d.months;weekdays=d.weekdays;dropquestion=d.dropquestion;
 				deletequestion=d.deletequestion;fieldNames=d.fieldNames;valueNames=d.valueNames;durations=d.durations;
 				recurrenceUI=d.recurrenceUI;deleteCalQuestion=d.deleteCalQuestion;privileges=d.privileges;}
@@ -76,14 +77,16 @@ $(document).ready ( function () {
 			$(here).append('<form id="cal_login" ><div style="max-width: 40%; min-width: 16em;margin: 30%; margin-top:1em; padding: 2em; -moz-border-radius: 1.5em; -webkit-border-radius: 1.5em; border-radius: 1.5em; ' +
 				'-moz-box-shadow: 0px 0px 10px #888; -webkit-box-shadow: 0px 0px 10px #888; box-shadow: 0px 0px 10px #888; "><div style="text-align:center"><span style="width:50%;margin-left: -3em;display: block;float:left;'+
 				'text-align: right; padding-right: 1em;">'+ui.username+'</span><input id="name" size="20" style="float: left;" autofocus /></div><div style="clear: left;text-align:center;"><span style="width:50%;margin-left: -3em;'+
-				'display: block;float:left;text-align: right; padding-right: 1em;">'+ui.password+'</span><input id="pass" size="20" type="password" style="float: left;"/></div><div>&nbsp;</div><input id="pass" size="20" type="button" value="'+ui.go+'" style="float: left;" /><div>&nbsp;</div></div></form>');
+				'display: block;float:left;text-align: right; padding-right: 1em;">'+ui.password+'</span><input id="pass" size="20" type="password" style="float: left;"/></div><div>&nbsp;</div><input id="go" size="20" type="button" value="'+ui.go+'" style="float: left;" /><div>&nbsp;</div></div></form>');
+				$('#cal_login input:eq(0)').focus();
+				$('#cal_login').submit(function(e){console.log('doinging it');doit(e);return false;});
+				$('#cal_login #go').click(function (e){doit(e); return false; });
+				$('#cal_login input').keypress(function (e){if (e.keyCode=='13'){doit(e); return false; }});
 		}
 		if ( debug ) console.log(ui);
-		$('#cal_login input:eq(0)').focus();
-		$('#cal_login').submit(function(e){console.log('doinging it');doit(e);return false;});
-		$('#cal_login input').keypress(function (e){if (e.keyCode=='13'){doit(e); return false; }});
 		loadTZ();
 		localTimezone = getTZ();
+		if ( debug ) console.log('local timezone should be: ' + localTimezone.name);
 		} );
 
 function visible ( e )
@@ -123,7 +126,11 @@ function doit ( e )
 	$.fn.caldav.options.calendars = gotCalendars;
 	$(document).caldav('getCalendars', {});
 	$(window).unload ( logoutClicked ); 
-	timezoneJS.timezone.init();
+	if ( timezoneJS != undefined && timezoneJS.timezone != undefined ) 
+	{
+		timezoneJS.timezone.zoneFileBasePath = jqcaldavPath+'tz';
+		timezoneJS.timezone.init();
+	}
 	e.stopPropagation();
 	return false;
 }
@@ -173,7 +180,6 @@ function gotCalendars ()
 		$('#wcal').animate({scrollTop: ($('#calt tr:first')[0].clientHeight + 1)},250);
 		$('#calpopup').removeData('clicked');
 		resize();
-		
 		s = $('*['+$.fn.caldav.xmlNSfield+'=calendar-subscriptions]:first',$.fn.caldav.calendarXml).text();
 		if ( s.length > 20 )
 		{
@@ -189,19 +195,20 @@ function gotCalendars ()
 				fetchCalendar (nsubscriptions[i].url,nsubscriptions[i].name,nsubscriptions[i].color,nsubscriptions[i].order,nsubscriptions[i].description);
 			}
 		}
+		if ( settings['update frequency'] > 0 )
+			$('#wcal').data('updateInterval',window.setInterval(calendarSync,settings['update frequency']*1000));
 	}
 }
 
-function ctagCheck ()
+function calendarSync ()
 {
 	var cals = $(document).caldav('calendars');
 	// TODO add getctag/sync token periodic check to refresh changed events
 	// http://tools.ietf.org/html/draft-daboo-webdav-sync-05#section-3.1
 	for ( var i=0; i< cals.length; i++)
 	{
-		if ( cals[i].ctag.length > 0 )
-		{
-		}
+		// the dates used here are ONLY for client side so we know when to insert returned events 
+		$(document).caldav('syncCollection',i,$('#wcal').data('firstweek'),$('#wcal').data('lastweek'));
 	}
 }
 
@@ -653,6 +660,8 @@ function selectCalendar (e)
 	$(c).removeClass('selected');
 	var c = $(this);
 	$(c).addClass('selected');
+	settings['selectedCalendar'] = $(c).attr('class').match(/calendar(\d+)/)[1];
+	saveSettings(false);
 }
 
 function toggleCalendar ()
@@ -1182,7 +1191,7 @@ var eventcount = 0;
 function insertEvent ( href, icsObj, c, start, end , current)
 {
 	var desc = '';
-	var now = (new Date()).localTzApply().getTime();
+	var now = (new Date()).getTime();
 	if ( typeof end != "object" &&  typeof start != object && ( end < $('#wcal').data('firstweek' ) || start > $('#wcal').data('lastweek') ) )  
 		return ;
 	if ( icsObj.vcalendar.vevent == undefined && current == undefined )
@@ -1251,21 +1260,25 @@ function insertEvent ( href, icsObj, c, start, end , current)
 			if ( cont ) continue;
 		}
 		/////////// handle alarms
-		if ( cevent.valarm != undefined && estart.getTime() > now - 360000 && estart.getTime() < now + 86400000 * 40 )
+		if ( cevent.valarm != undefined && estart.getTime() > now - 86400000 && estart.getTime() < now + 86400000 * 40 )
 		{
 			var alarms = [];
+			console.log('event has alarms');
 			if ( cevent.valarm.action != undefined )
 				alarms.push(cevent.valarm);
 			else
 				alarms = cevent.valarm;
 			for ( var A in alarms )
 			{
-				console.log ( 'adding alert for ' + cevent.summary.VALUE );
-				if ( alarms[A].trigger != undefined && alarms[A].action == "AUDIO" || alarms[A].action == "DISPLAY" )
+				if ( debug ) console.log ( 'adding alert for ' + cevent.summary.VALUE );
+				if ( alarms[A].trigger != undefined && alarms[A].action.VALUE == "AUDIO" || alarms[A].action.VALUE == "DISPLAY" )
 				{
 					if ( alarms[A].trigger.DURATION != undefined )
 					{
-						var atime = new Date(estart.getTime());
+						if ( alarms[A].trigger.PROP && alarms[A].trigger.PROP.related && alarms[A].trigger.PROP.related == 'END' )
+							var atime = new Date(eend.getTime()).localTzApply();
+						else
+							var atime = new Date(estart.getTime()).localTzApply();
 						atime.addDuration(alarms[A].trigger.DURATION);
 					}
 					else if ( alarms[A].trigger.DATE != undefined )
@@ -1279,6 +1292,8 @@ function insertEvent ( href, icsObj, c, start, end , current)
 						atext = alarms[A].description;
 					else
 						atext = cevent.summary + ' ' + (atime.getTime()-now>86400000?estart.prettyDate():estart.prettyTime());
+					if ( atime.getTime()-now <= 0 )
+						continue;
 					console.log('alert in ' + ( atime.getTime()-now )/1000 + ' seconds: ' + atext ); 
 					alerts.push(window.setTimeout(function(){$('#calalertsound')[0].play();alert(atext);alerts.shift();},atime.getTime()-now));
 				}
@@ -1639,7 +1654,7 @@ function calDrop(e)
 					nics.vcalendar.vevent.dtend = nics.PARENT.newField ( 'dtend', nstart, nics.vcalendar.vevent.dtstart.PROP );
 					nics.PARENT = ics.PARENT;
 					ics.PARENT.push ( nics.vcalendar );
-					var params = { url:src,username:$('#name').val(),password:$('#pass').val()};
+					var params = { url:src};
 					$(document).caldav('putEvent',params,ics.PARENT.toString() ); 
 					insertEvent(src,nics,c,$('#wcal').data('firstweek' ),$('#wcal').data('lastweek'));
 					return ;
@@ -1663,7 +1678,7 @@ function calDrop(e)
 				ics.vcalendar.vevent.dtstart.ORIGDATE = ics.vcalendar.vevent.dtstart;
 				ics.vcalendar.vevent.dtstart.UPDATE ( new Date ( ics.vcalendar.vevent.dtstart.DATE.getTime() + tdiff ) );
 				ics.vcalendar.vevent.dtend.UPDATE ( new Date ( ics.vcalendar.vevent.dtend.DATE.getTime() + tdiff ) );
-				var params = { url:src,username:$('#name').val(),password:$('#pass').val()};
+				var params = { url:src};
 				$(document).caldav('putEvent',params,ics.PARENT.toString() ); 
 				insertEvent(src,ics,c,$('#wcal').data('firstweek' ),$('#wcal').data('lastweek'));
 			}
@@ -1694,7 +1709,7 @@ function calDrop(e)
 							c = 0;
 						var cals = $(document).caldav('calendars');
 						var src  = cals[c].href + guid() ;
-						var params = { url:src,username:$('#name').val(),password:$('#pass').val()};
+						var params = { url:src};
 						$(document).caldav('putNewEvent',params,evt.target.result); 
 						var ic = new iCal ( String  ( evt.target.result ) );
 						insertEvent(src ,ic.ics[0],c,$('#wcal').data('firstweek'),$('#wcal').data('lastweek'));
@@ -1927,6 +1942,7 @@ function eventHover (e)
 				else if ( ! d.PARENT.fields[props[x]].visible )
 					continue;
 				var label = fieldNames[props[x]];
+				used.push(props[x]);
 		}
 		if ( d.vcalendar[type][props[x]] )
 		{
@@ -1963,9 +1979,13 @@ function eventClick(e)
 	eventHover(e);
 	var cp = $($('#wcal').data('popup'));
 	var href = $($(cp).data('event')).attr('href');
-	$(document).caldav('lock',href,600,function(){alert(ui['lock failed'])});
+	var cals = $(document).caldav('calendars');
+	var c = $($(cp).data('event')).attr('class').match(/calendar(\d+)/)[1];
+	if ( cals[c] != undefined ) 
+		$(document).caldav('lock',href,600,function(){alert(ui['lock failed'])});
 	$('#calpopup').clone(true).attr('id','calpopupe').removeClass('left right bottom').appendTo('#calwrap');
 	$('#wcal').data('popup','#calpopupe');
+	$('#calpopupe').data('overflow',0);
 	$('#calpopup').hide();
 	var lh = $('#calpopupe').innerHeight() - $('#calpopupe').height();
 	if ( $('#calpopupe > ul').outerHeight()  + lh * 1.5 + 10 > $('#calpopupe').height() )
@@ -1975,7 +1995,9 @@ function eventClick(e)
 	$('#calpopupe .value').focus(fieldClick);
 	$('#calpopupe .add').click(addField);
 	$('#calpopupe').css('opacity',1);
-	$('#calpopupe').append('<div class="button delete" tabindex="0">'+ui['delete']+'</div>');
+	if ( cals[c] != undefined ) 
+	{
+		$('#calpopupe').append('<div class="button delete" tabindex="0">'+ui['delete']+'</div>');
 	$('#calpopupe').append('<div class="button done" tabindex="0">'+ui.done+'</div>');
 	$('#calpopupe .done').bind ('click keypress',function (e) {
 				if ( e.keyCode > 0 )
@@ -2004,14 +2026,15 @@ function eventClick(e)
 				$('#wcal').removeData('clicked');
 			}
 			);
+		$('#calpopupe .value,.evheader,#calpopupe .action,#calpopupe .length').attr('contentEditable',true);
+		$('#calpopupe .value,.evheader').attr('spellcheck','true');
+		$('#calpopupe .value:first').focus();
+	}
 	draggable ( $('#calpopupe') );
 	$('#calpopupe').show();
-	$('#calpopupe .value,.evheader,#calpopupe .action,#calpopupe .length').attr('contentEditable',true);
-	$('#calpopupe .value,.evheader').attr('spellcheck','true');
 	$('#wcal').data('clicked', e.target);
 	$(document).click( $('#wcal').data('edit_click') ); 
 	$(document).keyup( $('#wcal').data('edit_keyup') ); 
-	$('#calpopupe .value:first').focus();
 	//return false;
 }
 
@@ -2033,8 +2056,7 @@ function fieldClick(e)
 		txt = txt + '</div></div>';
 		var comp = $(txt);
 		$(comp).children().click(function(evt){$(evt.target).parent().parent().next().text($(evt.target).text());
-			$(evt.target).parent().parent().fadeOut(function(){$(this).remove();});
-			popupOverflowAuto();
+			$(evt.target).parent().parent().fadeOut(function(){$(this).remove();popupOverflowAuto();});
 			return false;
 		});
 		$(e.target).bind('keydown',function (e2){ 
@@ -2054,8 +2076,7 @@ function fieldClick(e)
 			{
 				$(this).unbind('blur');
 				$(this).text($(k).text());
-				$(this).prev().fadeOut(function(){$(this).remove();});
-				popupOverflowAuto();
+				$(this).prev().fadeOut(function(){$(this).remove();popupOverflowAuto();});
 				var ret = e2.which==9;	
 				return ret;
 			}	
@@ -2063,7 +2084,7 @@ function fieldClick(e)
 				return k;
 			},false);
 		$(comp).css({top:$(e.target).position().top,left:$(e.target).position().left,'margin-left':'2em'});
-		$(e.target).bind('blur',function(evt){$(evt.target).prev().fadeOut(function(){$(this).remove();});popupOverflowAuto();$(this).unbind(evt);});
+		$(e.target).bind('blur',function(evt){$(evt.target).prev().fadeOut(function(){$(this).remove();popupOverflowAuto();});$(this).unbind(evt);});
 		popupOverflowVisi();
 		$(e.target).before(comp);
 	}
@@ -2092,8 +2113,10 @@ function addField(e)
 				currentFields.push(i);
 	}
 	var type = d.TYPE.toLowerCase();
-	var allfields = d.PARENT.fields;
-	var possibleFields = d.PARENT.components[type].optional;
+	var allfields = $.extend(true,{},d.PARENT.fields);
+	allfields.valarm={max:-1,visible:true};
+	var possibleFields = d.PARENT.components[type].optional.slice();
+	possibleFields.push('valarm');
 	var showFields = [];
 	for ( var j in possibleFields )
 	{
@@ -2116,16 +2139,26 @@ function addField(e)
 	$(this).prev().children('.completion').children().click(function(e)
 		{
 			var txt = $('<li><span class="label">'+$(this).text()+'</span><span class="value" contenteditable="true" spellcheck="true"></span></li>');
-			$('.value',txt).focus(fieldClick);
-			var cp = $(this).closest('li').before(txt);
-			$(cp).prev().children('.value').focus();
+			if ( $(this).text() == ui.alarm )
+			{
+				var plus = $('<span><span class="alarm"><span class="action" contenteditable="true">'+valueNames.AUDIO+'</span><span class="value" contenteditable="true">15</span><span class="length" contenteditable="true" >'+durations['minutes before']+'</span></span></span>').append($('<span class="plus">'+ui.add+'</span>').click(function(){$(this).before('<span class="alarm"><span class="action" contenteditable="true">'+valueNames.AUDIO+'</span><span class="value" contenteditable="true">15</span><span class="length" contenteditable="true" >'+durations['minutes before']+'</span><span class="related" contenteditable="true" >'+valueNames.START+'</span></span>');$('.action,.length,.related',$(this).prev()).bind('click, focus',alarmFieldClick);}));
+				$('.value',txt).replaceWith(plus);
+				$('.action,.length,.related',txt).bind('click, focus',alarmFieldClick);
+				var cp = $(this).closest('li').before(txt);
+			}
+			else
+			{
+				$('.value',txt).focus(fieldClick);
+				var cp = $(this).closest('li').before(txt);
+				$(cp).prev().children('.value').focus();
+			}
 			$(e.target).parent().empty();
 			popupOverflowAuto();
 			return false;
 		});
 	$(e.target).keydown(function (e2){ 
 			e2.spaceSelects = true; 
-			e2.search = true; 
+			e2.search = false; 
 			var k = keyboardSelector(e2);
 			if ( k == 'cancel' )
 			{
@@ -2136,9 +2169,19 @@ function addField(e)
 			if ( $(k).length == 1 )
 			{
 				var txt = $('<li><span class="label">'+$(k).text()+'</span><span class="value" contenteditable="true" spellcheck="true"></span></li>');
-				$('.value',txt).focus(fieldClick);
-				var cp = $(this).closest('li').before(txt);
-				$(cp).prev().children('.value').focus();
+				if ( $(this).text() == ui.alarm )
+				{
+					var plus = $('<span></span>').append($('<span class="plus">'+ui.add+'</span>').click(function(){$(this).before('<span class="alarm"><span class="action" contenteditable="true">'+valueNames.AUDIO+'</span><span class="value" contenteditable="true">15</span><span class="length" contenteditable="true" >'+durations['minutes before']+'</span><span class="related" contenteditable="true" >'+valueNames.START+'</span></span>');}));
+					$('.value',txt).replaceWith(plus);
+					var cp = $(this).closest('li').before(txt);
+					$('.action,.length,.related',cp).bind('click, focus',alarmFieldClick);
+				}
+				else
+				{
+					$('.value',txt).focus(fieldClick);
+					var cp = $(this).closest('li').before(txt);
+					$(cp).prev().children('.value').focus();
+				}
 				$(k).parent().empty();
 				popupOverflowAuto();
 				return false;
@@ -2159,36 +2202,157 @@ function printAlarm(a)
 	else
 		alarms = a;
 	console.log( alarms.length + ' alarms' );
+	var ret  = $('<span><span>');
 	for ( var A in alarms )
 	{
-		if ( alarms[A].trigger != undefined && alarms[A].action == "AUDIO" || alarms[A].action == "DISPLAY" )
+		if ( alarms[A].trigger != undefined && alarms[A].action.VALUE == "AUDIO" || alarms[A].action.VALUE == "DISPLAY" )
 		{
 			if ( alarms[A].trigger.DURATION != undefined )
 			{
 				var atime = alarms[A].trigger.DURATION;
-				var type = 'dur';
+				if ( atime.minutes > 0 )
+					var avalue = atime.minutes,type='minutes';
+				if ( atime.hours > 0 )
+					var avalue = atime.hours,type='hours';
+				if ( atime.days > 0 )
+					var avalue = atime.days,type='days';
+				if ( atime.weeks > 0 )
+					var avalue = atime.weeks,type='weeks';
+				if ( atime.negative )
+					var type = type + ' before';
+				else
+					var type = type + ' after';
 			}
 			else if ( alarms[A].trigger.DATE != undefined )
 			{
-				var atime = alarms[A].trigger.DATE;
-				var type = 'date';
+				var avalue = alarms[A].trigger.DATE.prettyDate();
+				var type = 'on date';
 			}
 			else 
 				continue ;
 			var atext = '';
 			if ( alarms[A].description != undefined )
 				atext = alarms[A].description;
+			var related = '';
+			if ( alarms[A].trigger.PROP && alarms[A].trigger.PROP.related && alarms[A].trigger.PROP.related != undefined )
+				related = valueNames[alarms[A].trigger.PROP.related];
+			$(ret).append('<span class="alarm"><span class="action" contenteditable="true" data-value="'+alarms[A].action.VALUE+'" >'+valueNames[alarms[A].action.VALUE]+
+					'</span><span class="value" contenteditable="true" >'+avalue+'</span><span class="length" contenteditable="true" >'+durations[type]+'</span>'+
+					'<span class="related" contenteditable="true" >'+related+'</span></span>');
 		}
 	}
-	var ret = $('<span class="alarm"><span class="action">sound</span><span class="value">15</span><span class="length">minutes</span></span>');
-	$('.action,.length',ret).bind('click, focus',alarmFieldClick);
+	var plus = $('<span class="plus">'+ui.add+'</span>').click(function(){ var n = $('<span class="alarm"><span class="action" contenteditable="true" >'+valueNames.AUDIO+'</span><span class="value" contenteditable="true" >15</span><span class="length" contenteditable="true" >'+durations['minutes before']+'</span><span class="related" contenteditable="true" >'+valueNames.START+'</span></span>');$('.action,.length,.related',n).bind('click, focus',alarmFieldClick);$(this).before(n);});
+	$(ret).append(plus);
+	$('.action,.length,.related',ret).bind('click, focus',alarmFieldClick);
 	return ret;
+}
+
+function alarmEdited ( valarm , data, event ) 
+{
+	var alarms = [],add=false;
+	var edited = false;
+	if ( valarm != undefined && valarm.action != undefined )
+		alarms.push(valarm);
+	else if ( valarm != undefined && valarm.length > 1 )
+		alarms = valarm;
+	else
+		add = true;
+	var a = $('span > span.alarm',data);
+	for ( var i=0; i < a.length; i++ )
+	{
+		if ( $('.action',a[i]).text() == valueNames['NONE'] )
+		{
+			if ( alarms[i] != undefined )
+				alarms[i] = undefined ;
+			continue;
+		}
+		if ( alarms[i] == undefined )
+		{
+			alarms[i] = {BEGIN:true,UPDATED:true};
+			add = true;
+		}
+		var value = $('.value',a[i]).text();
+		var action = $('.action',a[i]).text();
+		var related = $('.related',a[i]).text();
+		var length = $('.length',a[i]).text();
+		for ( var j in valueNames ) 
+			if ( valueNames[j] == action )
+				break;
+		action = j;
+		for ( var j in durations ) 
+			if ( durations[j] == length )
+				break;
+		length = j;
+		for ( var j in valueNames ) 
+			if ( valueNames[j] == related )
+				break;
+		related = j;
+		if ( alarms[i].action == undefined )
+		{
+			alarms[i].action = event.PARENT.newField('action',action);
+			alarms[i].action.PARENT = alarms[i]; 
+			edited = true;
+		}
+		else if ( alarms[i].action.VALUE != action )
+		{
+			alarms[i].action.UPDATE(action);
+			edited = true;
+		}
+		if ( length == 'on date' )
+		{
+			if ( alarms[i].trigger == undefined || alarms[i].trigger.DURATION != undefined )
+			{
+				alarms[i].trigger = event.PARENT.newField('trigger',Zero().parsePrettyDate(value),{VALUE:'DATE-TIME',RELATED:undefined});
+				alarms[i].trigger.PARENT = alarms[i]; 
+				edited = true;
+			}
+			else
+			{
+				alarms[i].trigger.UPDATE(Zero().parsePrettyDate(value));
+				edited = true;
+			}
+		}
+		else
+		{
+			var dur = parseDuration(value+' '+length);
+			console.log(dur);
+			if ( alarms[i].trigger == undefined || alarms[i].trigger.DATE != undefined )
+			{
+				alarms[i].trigger = event.PARENT.newField('trigger',dur);
+				alarms[i].trigger.PARENT = alarms[i]; 
+				edited = true;
+			}
+			else if ( alarms[i].trigger.DURATION != dur )  
+			{
+				alarms[i].trigger.UPDATE(dur);
+				edited = true;
+			}
+			if ( alarms[i].trigger.PROP != undefined )
+			{
+				if ( ! alarms[i].trigger.PROP.related || alarms[i].trigger.PROP.related != related )
+				{
+					alarms[i].trigger.PROP.related = related;
+					edited = true;
+				}
+			}
+		}
+	}
+	if ( add )
+	{
+		edited = true;
+		if ( alarms.length == 1 )
+			event.vcalendar[event.TYPE].valarm = alarms[0];
+		else
+			event.vcalendar[event.TYPE].valarm = alarms;
+	}
+	return edited;
 }
 
 function alarmFieldClick(e)
 {
+	console.log( 'boo' );
 	var f = {length:['minutes before','hours before','days before','weeks before','minutes after','hours after','days after','weeks after','on date'],
-					action:['SOUND','MESSAGE']};
+					action:['AUDIO','DISPLAY','NONE'],related:['START','END']};
 	var options = f[$(e.target).attr('class')]; 
 	if ($(e.target).attr('class') == 'length' ) 
 		var list = durations;
@@ -2201,13 +2365,19 @@ function alarmFieldClick(e)
 	txt = txt + '</div></div>';
 	var comp = $(txt);
 	$(comp).children().click(function(evt){$(evt.target).parent().parent().next().text($(evt.target).text());
-		$(evt.target).parent().parent().fadeOut(function(){$(this).remove();});
-		popupOverflowAuto();
+		var z = undefined;
+		for ( var i in durations ) if ( $(evt.target).text() == durations[i] ) z = i;
+		var ics =$($($('#wcal').data('popup')).data('event')).data('ics');
+		if ( z == 'on date' )
+			$(evt.target).parent().parent().prev().text(ics.vcalendar[ics.TYPE].ESTART.DATE.prettyDate()); 
+		else if ( z != undefined )
+			$(evt.target).parent().parent().prev().text(z.match(/(weeks|days|hours)/)?1:15);
+		$(evt.target).parent().parent().fadeOut(function(){$(this).remove();popupOverflowAuto();});
 		return false;
 	});
 	$(e.target).bind('keydown',function (e2){ 
 		e2.spaceSelects = true; 
-		e2.search = true; 
+		e2.search = false; 
 		e2.removeOnEscape = true; 
 		var k = keyboardSelector(e2);
 		if ( k == 'cancel' )
@@ -2222,8 +2392,7 @@ function alarmFieldClick(e)
 		{
 			$(this).unbind('blur');
 			$(this).text($(k).text());
-			$(this).prev().fadeOut(function(){$(this).remove();});
-			popupOverflowAuto();
+			$(this).prev().fadeOut(function(){$(this).remove();popupOverflowAuto();});
 			var ret = e2.which==9;	
 			return ret;
 		}	
@@ -2231,7 +2400,7 @@ function alarmFieldClick(e)
 			return k;
 		},false);
 	$(comp).css({top:$(e.target).position().top,left:$(e.target).position().left,'margin-left':'2em'});
-	$(e.target).bind('blur',function(evt){$(evt.target).prev().fadeOut(function(){$(this).remove();});popupOverflowAuto();$(this).unbind(evt);});
+	$(e.target).bind('blur',function(evt){$(evt.target).prev().fadeOut(function(){$(this).remove();popupOverflowAuto();});$(this).unbind(evt);});
 	popupOverflowVisi();
 	$(e.target).before(comp);
 }
@@ -2280,8 +2449,10 @@ function eventEdited (e)
 	else
 		var datefields = {from:'dtstart',to:'dtend',due:'due',completed:'completed'};
 	if ( d.vcalendar.vevent != undefined )
-		var props = d.PARENT.components.vevent.required.concat(d.PARENT.components.vevent.optional), missing= new Array (),type = 'vevent';
-		//var props = {summary:'summary',from:'dtstart',to:'dtend',category:'category',location:'location',url:'url',note:'description'}, missing= new Array (),type = 'vevent';
+	{
+		var props = d.PARENT.components.vevent.required.concat(d.PARENT.components.vevent.optional);
+		var missing= new Array (),type = 'vevent';
+	}	
 	else if ( d.vcalendar.vtodo != undefined )
 		var props = {summary:'summary',due:'due',completed:'completed',category:'category',location:'location',url:'url',note:'description'}, missing= new Array (),type = 'vtodo';
 	for ( var x in props )
@@ -2303,6 +2474,15 @@ function eventEdited (e)
 			edited=true;
 		}
 	}
+	// handle alarms
+	if ( d.vcalendar[type].valarm != undefined || $('span:contains('+ui.alarm+')').length > 0 )
+	{
+		if ( d.vcalendar[type].valarm == undefined )
+			d.vcalendar[type].valarm = {BEGIN:true,UPDATED:true};
+		var ale = alarmEdited(d.vcalendar[type].valarm, $('li > span:contains('+ui.alarm+')',cp).parent(),d);
+		if (ale)
+			edited = true;
+	}
 
 	if ( edited )
 	{
@@ -2313,14 +2493,12 @@ function eventEdited (e)
 		if ( href != '+&New Event' )
 		{
 			$('[href="'+$(evt).attr('src')+'"]').fadeOut('fast',function (){$(evt).remove();  } );
-			//var params = { url:cals[c].url.replace(/(.*?\.[a-zA-Z]+)\/.*/,'$1'+href),username:$('#name').val(),password:$('#pass').val()};
-			var params = { url:href,username:$('#name').val(),password:$('#pass').val()};
-			$(document).caldav('putEvent',params,d.PARENT.printiCal (  )); 
+			$(document).caldav('putEvent',{url:href},d.PARENT.printiCal (  )); 
 		}
 		else
 		{
 			href = $(document).caldav('calendars')[c].href + d.vcalendar.vevent.uid.VALUE + '.ics'; 
-			var params = { url:cals[c].url.replace(/(.*?\.[a-zA-Z]+)\/.*/,'$1'+href),username:$('#name').val(),password:$('#pass').val()};
+			var params = { url:cals[c].url.replace(/(.*?\.[a-zA-Z]+)\/.*/,'$1'+href)};
 			$(document).caldav('putNewEvent',params,d.PARENT.printiCal (  )); 
 		}
 		if ( d.TYPE == 'vevent' )
@@ -2328,6 +2506,9 @@ function eventEdited (e)
 		if ( d.TYPE == 'vtodo' )
 			insertTodo(href,d,c);
 	}
+	else
+		if ( $(evt).attr('href') != '+&New Event' )
+			$(document).caldav('unlock',$(evt).attr('href') );
 	$('#calpopupe').hide();
 	$('#wcal').removeData('popup');
 	$('#wcal').removeData('clicked');
@@ -2352,13 +2533,13 @@ function eventDeleted (e)
 		return false;
 	if ( d.TYPE =='vtodo' )
 	{
-		var params = { url:cals[c].url.replace(/(.*?\.[a-zA-Z]+)\/.*/,'$1'+src),username:$('#name').val(),password:$('#pass').val()};
+		var params = { url:src};
 		$(document).caldav('delEvent',params); 
 		$(t).remove();
 	}
 	else if ( d.vcalendar.vevent.rrule == undefined  && d.vcalendar.vevent['recurrence-id'] == undefined )
 	{
-		var params = { url:cals[c].url.replace(/(.*?\.[a-zA-Z]+)\/.*/,'$1'+src),username:$('#name').val(),password:$('#pass').val()};
+		var params = { url:src};
 		$(document).caldav('delEvent',params); 
 		$(t).remove();
 	}
@@ -2383,7 +2564,7 @@ function eventDeleted (e)
 	}
 	else if ( e.all == true )
 	{
-		var params = { url:cals[c].url.replace(/(.*?\.[a-zA-Z]+)\/.*/,'$1'+src),username:$('#name').val(),password:$('#pass').val()};
+		var params = { url:src};
 		$(document).caldav('delEvent',params); 
 		$('[href="'+$(t).attr('href')+'"]').fadeOut('fast',function (){$(this).remove();  } );
 	}
@@ -2403,7 +2584,7 @@ function eventDeleted (e)
 		}
 		var href = $(t).attr('href');
 		$(t).fadeOut('fast',function (){$(t).remove();  } );
-		var params = { url:cals[c].url.replace(/(.*?\.[a-zA-Z]+)\/.*/,'$1'+href),username:$('#name').val(),password:$('#pass').val()};
+		var params = { url:href};
 		$(document).caldav('putEvent',params,d.PARENT.printiCal (  )); 
 		// add exdate
 	}
@@ -2436,12 +2617,17 @@ function eventSort( e )
 
 function popupOverflowVisi()
 {
+	var c = Number($($('#wcal').data('popup')).data('overflow')) + 1;
+	$($('#wcal').data('popup')).data('overflow',c);
 	$($('#wcal').data('popup')).css({overflow:'visible'});
 }
 
 function popupOverflowAuto()
 {
-	$($('#wcal').data('popup')).css({overflow:'auto'});
+	var c = Number($($('#wcal').data('popup')).data('overflow')) - 1;
+	$($('#wcal').data('popup')).data('overflow',c);
+	if ( c == 0 )
+		$($('#wcal').data('popup')).css({overflow:'auto'});
 }
 
 function scrollCal (d) 
@@ -2563,6 +2749,8 @@ function buildcal(d)
 		}
 	}
 	var selectedcal = 0; // TODO restore selected calendar from last login
+	if ( settings['selectedCalendar'] != undefined )
+		selectedcal = settings['selectedCalendar'];
 	$('input:eq('+selectedcal+')',sideul).parent().addClass('selected');
 	$('input',sideul).change(toggleCalendar);
 	$('li > span',sideul).click (function (e){
@@ -2922,6 +3110,7 @@ function calstyle ()
 	'.calpopup .value:focus:hover { resize:both; }' + "\n" +
 	'.calpopup .alarm { resize: none; outline: none; margin:0; padding:0; padding-right: 2px; padding-left: 4px; min-width: 3em; min-height: 1em; display: block; float: left; margin-top: 6px; margin-bottom: 2px; }' + "\n" +
 	'.calpopup .alarm .value { resize: none; outline: none; margin:0; padding:0; padding-right: .1em; padding-left: .1em; display: inline; float: none; }' + "\n" +
+	'.calpopup .alarm .plus { display: block; float: left; padding-right: 2px; padding-left: 4px; } ' + "\n" +
 	'.alarm span { resize: none; outline: none; margin:0; padding:0; padding-right: .1em; padding-left: .1em; }' + "\n" +
 
 	//'.calpopup .label[extra] { outline: 1px solid blue; content: "XX" ; }' + "\n" +
@@ -3189,6 +3378,8 @@ function updateTimeline()
 function currentTimeIndicator()
 {
 	var d = new Date ();
+	var dy = new Date ();
+	//dy.localTzApply();
 	var h = ( d.getHours() ) * 100;
 	if ( h > settings.end.getLongMinutes() || h < settings.start.getLongMinutes() && $('#calcurrenttime').length > 0)
 	{
@@ -3196,15 +3387,16 @@ function currentTimeIndicator()
 		return ;
 	}
 	if ( $('#calcurrenttime').length == 0 )
-		$('#day_' + d.DayString() + ' .header' ).append('<div id="calcurrenttime"></div>');
+		$('#day_' + dy.DayString() + ' .header' ).append('<div id="calcurrenttime"></div>');
 	var p = $('#calcurrenttime').closest('.day');
-	if ( $(p).attr('id') != 'day_' + d.DayString() )
-		$(p).detach().appendTo('#day_' + d.DayString() + ' .header' );
+	if ( $(p).attr('id') != 'day_' + dy.DayString() )
+		$(p).detach().appendTo('#day_' + dy.DayString() + ' .header' );
 	h = h + ( d.getMinutes()/60) * 100;
 	var percent = ((h)-settings.start.getLongMinutes())/(settings.end.getLongMinutes()-settings.start.getLongMinutes());
 	var offset = $('.eventlist',p).outerHeight() - $('.eventlist',p).innerHeight();
 	$('#calcurrenttime').css('top',offset+$('.eventlist',p).innerHeight()*percent);
 }
+
 var subStart=null,subEnd=null;
 function buildweek(d,get)
 {
@@ -3282,7 +3474,7 @@ var iCal = function ( text ) {
 		vtodo:{required:['dtstamp','uid'],optional:['dtstart','class','completed','created','description','geo','last-modified','location','organizer','percent-complete','priority','sequence','status','summary','url','recurrence-id','attach','attendee','categories','comment','contact','exdate','request-status','related-to','resources','rdate','rrule','request-status']},
 		vjournal:{required:['dtstamp','uid'],optional:['dtstart','class','created','description','last-modified','organizer','sequence','status','summary','url','recurrence-id','attach','attendee','categories','comment','contact','exdate','request-status','related-to','resources','rdate','rrule','request-status']},
 		vfreebusy:{required:['dtstamp','uid'],optional:['contact','dtstart','dtend','organizer','url','attendee','comment','freebusy','request-status']},
-		valarm:{required:['action','trigger'],optional:['discription','duration','repeat','attach','summary','attach','attendee']},
+		valarm:{required:['action','trigger'],optional:['description','duration','repeat','attach','summary',,'attendee']},
 		vtimezone:{required:['tzid','dtstart','tzoffsetto','tzoffsetfrom'],optional:['last-modified','tzurl','standard','daylight','tzname','comment','rdate']},
 		daylight:{required:['dtstart','tzoffsetto','tzoffsetfrom'],optional:['last-modified','tzurl','tzname','comment','rdate','rrule']},
 		standard:{required:['dtstart','tzoffsetto','tzoffsetfrom'],optional:['last-modified','tzurl','tzname','comment','rdate','rrule']}
@@ -3328,7 +3520,7 @@ var iCal = function ( text ) {
 		exdate:{max:-1,visible:false,type:'date'},
 		action:{max:1,visible:false,type:'text'},
 		repeat:{max:1,visible:false,type:'integer'},
-		trigger:{max:-1,visible:false,type:'trigger'},
+		trigger:{max:1,visible:false,type:'trigger'},
 		created:{max:1,visible:false,type:'date'},
 		dtstamp:{max:1,visible:false,type:'date'},
 		'last-modified':{max:1,visible:false,type:'date'},
@@ -3463,7 +3655,22 @@ var iCal = function ( text ) {
 					if ( i == 'vtimezone' || timezone )
 						line += this.print(ics[i],true);
 					else
-						line += this.print(ics[i],false);
+					{
+						if ( ics[i] instanceof Array )
+						{
+							for ( var j=0; j<ics[i].length; j++ )
+							{
+								line += this.print(ics[i][j],false);
+								if ( j+1 < ics[i].length )
+								{
+									line += 'END:' + i.toUpperCase() + "\n";
+									line += 'BEGIN:' + i.toUpperCase() + "\n";
+								}
+							}
+						}
+						else
+							line += this.print(ics[i],false);
+					}
 					var end = 'END:' + i.toUpperCase() + "\n";
 					if ( i != 'vcalendar' )
 						line += end;
@@ -3577,6 +3784,16 @@ var iCal = function ( text ) {
 		};
 		this.SETDURATION = function (t,p)
 		{
+			if ( t.valid == undefined )
+			{
+				var v = t;
+				var d = parseDuration(t);
+			}
+			else
+			{
+				var v = printDuration(t);
+				var d = t;
+			}
 			if ( arguments.length > 1 )
 				var props = arguments[1];
 			if ( this.VALUES )
@@ -3595,14 +3812,14 @@ var iCal = function ( text ) {
 				}
 				if ( p && this.VALUES.indexOf(p) ) 
 				{
-					this.DURATIONS[this.VALUES.indexOf(p)] = parseDuration(t);
-					this.VALUES[this.VALUES.indexOf(p)] = t;
+					this.DURATIONS[this.VALUES.indexOf(p)] = d;
+					this.VALUES[this.VALUES.indexOf(p)] = v;
 					this.PROPS[this.VALUES.indexOf(p)] = props;
 				}
 				else
 				{
-					this.DURATIONS.push(parseDuration(t));
-					this.VALUES.push(t);
+					this.DURATIONS.push(d);
+					this.VALUES.push(v);
 					this.PROPS.push(props);
 				}
 			}
@@ -3612,8 +3829,8 @@ var iCal = function ( text ) {
 					for ( var i in valueNames )
 						if ( t == valueNames[i] )
 							t = i;
-				this.DURATION=parseDuration(t);
-				this.VALUE=t;
+				this.DURATION=d;
+				this.VALUE=v;
 				if ( props != undefined ) 
 					this.PROP = props;
 			}
@@ -3621,11 +3838,14 @@ var iCal = function ( text ) {
 		this.TRIGGER = function (s)
 		{
 			var dRX = /^([0-9]{4})([0-9]{2})([0-9]{2})([Tt]([0-2][0-9])([0-6][0-9])([0-9]{2}))?([Zz])?$/;
-			if ( dRX.test ( s ) )
+			if ( s instanceof Date || dRX.test ( s ) )
+			{
 				this.SETDATE.apply(this,arguments);
+			}
 			else
+			{
 				this.SETDURATION.apply(this,arguments);
-
+			}
 		};
 		this.SETRECURRENCE = function (s)
 		{ 
@@ -3703,9 +3923,8 @@ var iCal = function ( text ) {
 					var t = this.VALUES[arguments[0]]; 
 				else 
 					var t = this.VALUE; 
-				if ( valueNames[t] )
-					t = valueNames[t];
-				return t.replace(/\\n/g,"\n");},
+				return t;},
+			trigger:function(){ if ( this.DATE ) return this.PRINT.date.apply(this,arguments);return this.PRINT.duration.apply(this,arguments);},
 			recurrence:function(){if ( arguments[0] !== true ) var p = true; else var p = false; return this.RECURRENCE.toString(p);},
 			props:function(){
 				var line = '';
@@ -4200,6 +4419,10 @@ Date.prototype.prettyDate = function(short){
       + this.getUTCFullYear()+' '
 			+ (short===true?'':this.prettyTime()) };
 
+function emptyDuration ()
+{
+	return {years:0,months:0,weeks:0,days:0,hours:0,minutes:0,seconds:0,negative:false,valid:false};
+}
 function parseDuration(dur)
 {
 	var years = /([1-9][0-9]*)[\s\t.,=_;@:-]*years?/i;
@@ -4209,7 +4432,7 @@ function parseDuration(dur)
 	var hours = /([.1-9][.0-9]*)((?=:)[0-9]{2})?[\s\t.,=_;@-]*h(ours?)?/i;
 	var minutes = /([1-9][0-9]*)[\s\t.,=_;@:-]*m(inutes?)?/i;
 	var seconds = /([1-9][0-9]*)[\s\t.,=_;@:-]*s(econds?)?/i;
-	var neg = /^-P?/;
+	var neg = /(^-P?|before)/;
 	var validDuration = /([-+])?P([0-9]+W)?([0-9]+D)?(T([0-9]+H)?([0-9]+M)?([0-9]+S)?)?/;
 	var s = String(dur),y,m,w,d,h,M,S,n;
 	if ( s.match ( validDuration ) )
@@ -4224,20 +4447,44 @@ function parseDuration(dur)
 	else 
 		var n = false;
 	if ( s.match ( years ) )
-		var y = s.match ( years )[1]+0;
+		var y = Number ( s.match ( years )[1]);
 	if ( s.match ( months ) )
-		var m = s.match ( months )[1]+0;
+		var m = Number ( s.match ( months )[1]);
 	if ( s.match ( weeks ) )
-		var w = s.match ( weeks )[1]+0;
+		var w = Number ( s.match ( weeks )[1]);
 	if ( s.match ( days ) )
-		var d = s.match ( days )[1]+0;
+		var d = Number ( s.match ( days )[1]);
 	if ( s.match ( hours ) )
-		var h = s.match ( hours )[1]+0;
+		var h = Number ( s.match ( hours )[1]);
 	if ( s.match ( minutes ) )
-		var M = s.match ( minutes )[1]+0;
+		var M = Number ( s.match ( minutes )[1]);
 	if ( s.match ( seconds ) )
-		var S = s.match ( seconds )[1]+0;
+		var S = Number ( s.match ( seconds )[1]);
 	return {years:y,months:m,weeks:w,days:d,hours:h,minutes:M,seconds:S,negative:n,valid:false};
+}
+
+function printDuration(dur)
+{
+	if ( dur.valid == undefined )
+		return dur;
+	var ret = '';
+	if ( dur.negative == true )
+		ret = '-';
+	ret = ret + 'P';
+	if ( dur.weeks && dur.weeks != 0 )
+		ret = ret + dur.weeks + 'W';
+	if ( dur.days && dur.days != 0 )
+		ret = ret + dur.days + 'D';
+	var time = '';
+	if ( dur.hours && dur.hours != 0 )
+		time = time + dur.hours + 'H';
+	if ( dur.minutes && dur.minutes != 0 )
+		time = time + dur.minutes + 'M';
+	if ( dur.seconds && dur.seconds != 0 )
+		time = time + dur.seconds + 'S';
+	if ( time.length > 0 )
+		ret = ret + 'T' + time;
+	return ret;
 }
 
 Date.prototype.addDuration  = function( duration )
@@ -4345,7 +4592,7 @@ function Zero (d)
 	return d;
 }
 
-Date.prototype.localTzApply = function(){ var adj = localTimezone.offset * 60/100 * 60; this.setTime( this.getTime() + adj *1000); return this; };
+Date.prototype.localTzApply = function(){ var adj = localTimezone.offset * 60/100 * 60; this.setTime( this.getTime() - adj *1000); return this; };
 Date.prototype.getLongMinutes = function(){return this.getUTCHours() * 100 + this.getUTCMinutes() * (100/60);};
 Date.prototype.Zero = function (){ Zero(this); return this; };
 Date.prototype.WeekStart = new Number(1);
@@ -4403,7 +4650,6 @@ function dateAdd ( d, field, amount )
 
 Date.prototype.add = function ( field, amount ){ this.setTime( dateAdd( this, field, amount ).getTime() ); return this; };
 
-timezoneJS.timezone.zoneFileBasePath = 'tz';
 
 ///////////////////////////////////////////////////////////////////////
 //                StyleSheet Convenience Class

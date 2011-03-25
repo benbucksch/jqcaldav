@@ -95,6 +95,8 @@ NFT,Norfolk Time,+1130
 NPT,Nepal Time,+545
 NST,Newfoundland Standard Time,-330
 NT,Newfoundland Time,-330
+NZST,Pacific/Auckland,+1200
+NZDT,Pacific/Auckland,+1300
 OMST,Omsk Time,+600
 PDT,Pacific Daylight Time (North America),-700
 PETT,Kamchatka Time,+1200
