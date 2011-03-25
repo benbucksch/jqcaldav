@@ -38,7 +38,7 @@ function getTZ ( d )
 	return false;
 }
 
-var defaults={ui:{calendar:"Calendars",todos:"To Do","add":"Add",settings:"Settings",subscribe:"Subscribe",today:"Today",week:"Week",month:"Month",start:"Day Starts",end:"Day Ends",twentyFour:"24 Hour Time",username:'Username',password:'Password','go':'go','New Event':'New Event',"alarm":"alarm","done":"Done","delete":"Delete","name":"name","color":"color","description":"description","url":"url","privileges":"privileges","logout":"Logout","new calendar":"New Calendar","yes":"yes","no":"no","logout error":"Error logging out, please CLOSE or RESTART your browser!","owner":"Owner","subscribed":"Subscribed","lock failed":"failed to acquire lock, may not be able to save changes",loading:'working'},
+var defaults={ui:{calendar:"Calendars",todos:"To Do","add":"Add",settings:"Settings",subscribe:"Subscribe",today:"Today",week:"Week",month:"Month",start:"Day Starts",end:"Day Ends",twentyFour:"24 Hour Time",username:'Username',password:'Password','go':'go','New Event':'New Event',"alarm":"alarm","done":"Done","delete":"Delete","name":"name","color":"color","description":"description","url":"url","privileges":"privileges","logout":"Logout","new calendar":"New Calendar","yes":"yes","no":"no","logout error":"Error logging out, please CLOSE or RESTART your browser!","owner":"Owner","subscribed":"Subscribed","lock failed":"failed to acquire lock, may not be able to save changes",loading:'working','update frequency':'update frequency'},
 	months:["January","February","March","April","May","June","July","August","September","October","November","December"],
 	weekdays:["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
 	dropquestion:["Do you want to move",["All occurences","This one occurence"]],
@@ -122,7 +122,7 @@ function doit ( e )
 	if ( $('#wcal').length > 0 )
 		$('#calwrap').remove();
 	var loading = $('<div id="caldavloading1" style="display:none;position:fixed;left:100%;top:100%;margin-top:-1em;margin-left:-4em;text-align: center; width:4em; background-color:black;color:white;-moz-border-top-left-radius:.5em;-webkit-border-top-left-radius:.5em;border-top-left-radius:.5em;opacity:.5;z-index:100;" data-loading="0" ><span>'+ui.loading+'</span></div>').appendTo(document.body);
-	cd = $(document).caldav ( { url: $('.jqcaldav:first').data('caldavurl'), username:$('.jqcaldav:eq(0)').data('username'), password:$('.jqcaldav:eq(0)').data('password'), events: addEvents, todos: addToDos,eventPut: eventPut, eventDel: eventDel, deletedCalendar: deletedCalendar, logout: logout, loading: $('#caldavloading1')} );
+	cd = $(document).caldav ( { url: $('.jqcaldav:first').data('caldavurl'), username:$('.jqcaldav:eq(0)').data('username'), password:$('.jqcaldav:eq(0)').data('password'), events: addEvents, todos: addToDos,eventPut: eventPut, eventDel: eventDel, deletedCalendar: deletedCalendar, logout: logout, loading: $('#caldavloading1')}, loginFailed );
 	$.fn.caldav.options.calendars = gotCalendars;
 	$(document).caldav('getCalendars', {});
 	$(window).unload ( logoutClicked ); 
@@ -135,6 +135,12 @@ function doit ( e )
 	return false;
 }
 
+function loginFailed (r,s)
+{
+	r.abort();
+	$('#name,#pass').css('background-color', 'red').animate({'background-color': '#FFF'}, 300);
+}
+
 function logoutClicked ()
 {
 	if ( $('#calwrap').length > 0 || $.fn.caldav.options.username )
@@ -143,6 +149,7 @@ function logoutClicked ()
 
 function logout ()
 {
+	window.clearInterval($('#wcal').data('updateInterval'));
 	for ( var i in alerts )
 		window.clearTimeout(alerts[i]);
 	$('#calwrap').remove();
@@ -285,8 +292,8 @@ function calSettings (e)
 {
 	var ul = $('<ul></ul>');
 	$(ul).append ('<li><span></span><span class="header">'+ui.settings+'</span></li>');
-	var props  = {"start":"Day Starts","end":"Day Ends","twentyFour":"24 Hour Time"} ;
-	var ptypes = {'start':'time'      ,'end':'time'    ,'twentyFour':'bool'        } ;
+	var props  = {"start":"Day Starts","end":"Day Ends","twentyFour":"24 Hour Time",'update frequency':'update frequency'} ;
+	var ptypes = {'start':'time'      ,'end':'time'    ,'twentyFour':'bool'        ,'update frequency':'number'} ;
 	for ( var i in props )
 		$(ul).append ('<li><span class="label">'+ui[i]+'</span><span class="value data'+ptypes[i]+'" tabindex="0" contenteditable="true" >'+printValue(settings[i],ptypes[i])+'</span></li>');
 	$('.value',ul).click(calFieldClick);
@@ -402,7 +409,7 @@ function calFieldClick(e)
 {
 	var cp = $($('#wcal').data('popup'));
 	var label = $(e.target).prev().text();
-	var props  = {'start':'Day Starts','end':'Day Ends','twentyFour':'24 Hour Time'} ;
+	var props  = {'start':'Day Starts','end':'Day Ends','twentyFour':'24 Hour Time','update frequency':'update frequency'} ;
 	var propOptions  = {'twentyFour':['yes','no']} ;
 	for ( var i in props )
 		if ( ui[i] == label )
@@ -1263,7 +1270,6 @@ function insertEvent ( href, icsObj, c, start, end , current)
 		if ( cevent.valarm != undefined && estart.getTime() > now - 86400000 && estart.getTime() < now + 86400000 * 40 )
 		{
 			var alarms = [];
-			console.log('event has alarms');
 			if ( cevent.valarm.action != undefined )
 				alarms.push(cevent.valarm);
 			else
@@ -1294,7 +1300,7 @@ function insertEvent ( href, icsObj, c, start, end , current)
 						atext = cevent.summary + ' ' + (atime.getTime()-now>86400000?estart.prettyDate():estart.prettyTime());
 					if ( atime.getTime()-now <= 0 )
 						continue;
-					console.log('alert in ' + ( atime.getTime()-now )/1000 + ' seconds: ' + atext ); 
+					if (debug)console.log('alert in ' + ( atime.getTime()-now )/1000 + ' seconds: ' + atext ); 
 					alerts.push(window.setTimeout(function(){$('#calalertsound')[0].play();alert(atext);alerts.shift();},atime.getTime()-now));
 				}
 			}

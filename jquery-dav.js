@@ -186,11 +186,6 @@ jQuery.extend ({
 			$.fn.caldav.coalesceEvents = new Array ();
 			$.fn.caldav.locks = {};
 			var t = document.createElementNS('test','node');
-			//if ( t.nodeName && ! t.nodeName.match(/:/) )
-			//	$.fn.caldav.xmlNSfield = 'nodeName';
-			//else if ( t.baseName && ! t.baseName.match(/:/) )
-			//	$.fn.caldav.xmlNSfield = 'baseName';
-			//else if ( t.localName && ! t.localName.match(/:/) )
 				$.fn.caldav.xmlNSfield = 'localName';
 			if ( $( this.options.loading ).length < 1 )
 			{
@@ -200,7 +195,7 @@ jQuery.extend ({
 			}
 			$(this.options.loading).data('loading',0);
 			return this; },
-    getCalendars : function( params ) { //$.options ($.extend(true,jQuery.fn.caldav.options,params,{headers:{depth:2}}));
+    getCalendars : function( params, callback ) { 
 			$.fn.caldav('spinner',true);
     $.propfind ($.extend(true,{},jQuery.fn.caldav.options,params,{headers:{Depth:2},data:'<?xml version="1.0" encoding="utf-8"?>' + "\n" +
 '<x0:propfind xmlns:x1="http://calendarserver.org/ns/" xmlns:x0="DAV:" xmlns:x3="http://apple.com/ns/ical/" xmlns:x2="urn:ietf:params:xml:ns:caldav" xmlns:x4="http://boxacle.net/ns/calendar/">' + "\n" +
@@ -221,7 +216,7 @@ jQuery.extend ({
 '<x0:owner/>' + "\n" +
 '<x0:supported-privilege-set/>' + "\n" +
 '<x0:current-user-privilege-set/>' + "\n" +
-//'<x0:principal-collection-set/>' + "\n" +
+'<x0:principal-collection-set/>' + "\n" +
 '</x0:prop>' + "\n" +
 '</x0:propfind>' 
  ,complete: function (r,s){
@@ -231,8 +226,14 @@ jQuery.extend ({
 			if ( r.responseXML.firstChild.baseName )
 					$.fn.caldav.xmlNSfield = 'baseName';
 			$(this).caldav('parseCalendars',r);
-		} 
-	}})); return this; },
+		}
+		else
+		{
+			if ( typeof(callback) == 'function' )
+		    callback(r,s);
+			return false;
+		}
+		}})); return this; },
 
 		parseCalendars : function (r ) { 
 
@@ -673,7 +674,6 @@ jQuery.extend ({
 				'<x0:mkcalendar xmlns:x0="urn:ietf:params:xml:ns:caldav" xmlns:x1="DAV:" '+ns+'>'+
 				'  <x1:set>'+
 				'    <x1:prop>'+
-				//'      <x1:displayname></x1:displayname>'+
 					str +
 				'      <x0:supported-calendar-component-set><x0:comp name="VEVENT"/><x0:comp name="VTODO"/><x0:comp name="VJOURNAL"/></x0:supported-calendar-component-set>'+
 				'    </x1:prop>'+
@@ -863,10 +863,9 @@ jQuery.extend ({
 		},
 
 		formatDate : function( ds ) {  	
-// based on ISODateString from mozilla web developer docs
- function pad(n){return n<10 ? '0'+n : n}// 20070516T060000Z
- var d = new Date(ds);
- return d.getUTCFullYear() + '' 
+	 function pad(n){return n<10 ? '0'+n : n}
+		 var d = new Date(ds);
+		 return d.getUTCFullYear() + '' 
       + pad(d.getUTCMonth()+1) + '' 
       + pad(d.getUTCDate())+'T'
       + pad(d.getUTCHours()) + ''
