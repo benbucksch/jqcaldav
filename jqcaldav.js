@@ -122,7 +122,7 @@ function doit ( e )
 	if ( $('#wcal').length > 0 )
 		$('#calwrap').remove();
 	var loading = $('<div id="caldavloading1" style="display:none;position:fixed;left:100%;top:100%;margin-top:-1em;margin-left:-4em;text-align: center; width:4em; background-color:black;color:white;-moz-border-top-left-radius:.5em;-webkit-border-top-left-radius:.5em;border-top-left-radius:.5em;opacity:.5;z-index:100;" data-loading="0" ><span>'+ui.loading+'</span></div>').appendTo(document.body);
-	cd = $(document).caldav ( { url: $('.jqcaldav:first').data('caldavurl'), username:$('.jqcaldav:eq(0)').data('username'), password:$('.jqcaldav:eq(0)').data('password'), events: addEvents, todos: addToDos,eventPut: eventPut, eventDel: eventDel, deletedCalendar: deletedCalendar, logout: logout, loading: $('#caldavloading1')}, loginFailed );
+	cd = $(document).caldav ( { url: $('.jqcaldav:first').data('caldavurl'), username:$('.jqcaldav:eq(0)').data('username'), password:$('.jqcaldav:eq(0)').data('password'), events: addEvents, todos: addToDos,eventPut: eventPut, eventDel: removeEvent, deletedCalendar: deletedCalendar, logout: logout, loading: $('#caldavloading1')}, loginFailed );
 	$.fn.caldav.options.calendars = gotCalendars;
 	$(document).caldav('getCalendars', {});
 	$(window).unload ( logoutClicked ); 
@@ -161,7 +161,8 @@ function gotCalendars ()
 {
 	if ( $('#wcal').length < 1 )
 	{
-		var s = $('*['+$.fn.caldav.xmlNSfield+'=calendar-settings]:first',$.fn.caldav.calendarXml).text();
+		var ph = $('response > href:contains('+$.fn.caldav.data.principalHome+')',$.fn.caldav.calendarXml).first().parent();
+		var s = $('*['+$.fn.caldav.xmlNSfield+'=calendar-settings]:first',ph).text();
 		if ( s.length > 20 )
 		{
 			$.extend(true,settings,JSON.parse( s ));
@@ -187,10 +188,10 @@ function gotCalendars ()
 		$('#wcal').animate({scrollTop: ($('#calt tr:first')[0].clientHeight + 1)},250);
 		$('#calpopup').removeData('clicked');
 		resize();
-		s = $('*['+$.fn.caldav.xmlNSfield+'=calendar-subscriptions]:first',$.fn.caldav.calendarXml).text();
+		s = $('*['+$.fn.caldav.xmlNSfield+'=calendar-subscriptions]:first',ph).text();
 		if ( s.length > 20 )
 		{
-			nsubscriptions = JSON.parse( s );
+			var nsubscriptions = JSON.parse( s );
 			for ( var i in nsubscriptions )
 			{	
 				if ( nsubscriptions[i] == undefined  )
@@ -203,7 +204,10 @@ function gotCalendars ()
 			}
 		}
 		if ( settings['update frequency'] > 0 )
+		{
+			calendarSync();
 			$('#wcal').data('updateInterval',window.setInterval(calendarSync,settings['update frequency']*1000));
+		}
 	}
 }
 
@@ -224,15 +228,6 @@ function eventPut(r,s)
 	if ( s != 'success' )
 	{
 		alert ('failed to save event to server');
-		console.log(r);
-	}
-}
-
-function eventDel(r,s)
-{
-	if ( s != 'success' )
-	{
-		alert ('failed to delete event on server');
 		console.log(r);
 	}
 }
@@ -326,8 +321,8 @@ function saveSettings (dialog)
 {
 	if ( dialog )
 	{
-		var props  = {'start':'Day Starts','end':'Day Ends','twentyFour':'24 Hour Time'} ;
-		var ptypes = {'start':'time'      ,'end':'time'    ,'twentyFour':'bool'        } ;
+		var props  = {'start':'Day Starts','end':'Day Ends','twentyFour':'24 Hour Time','update frequency':'update frequency'} ;
+		var ptypes = {'start':'time'      ,'end':'time'    ,'twentyFour':'bool'        ,'update frequency':'number'} ;
 		for ( var i in props )
 		{
 			settings[i] = getValue( $('#caldialog li span:contains('+ui[i]+') + span'), ptypes[i] );
@@ -347,7 +342,7 @@ function saveSettings (dialog)
 			break ;
 		}
 	}
-	$(document).caldav('updateCollection', {url:url},url,t);
+	$(document).caldav('updateCollection', {url:$.fn.caldav.data.principalHome},$.fn.caldav.data.principalHome,t);
 	return true;
 }
 
@@ -1063,7 +1058,7 @@ function completePrincipal(e)
 				$(e.target).prev().children('.completion').html(text);
 				$(e.target).prev().children('.completion').children().first().addClass('selected');
 				$(e.target).prev().children('.completion').children().click(function(a){$(e.target).text(a.target.textContent);
-					$(e.target).attr('href',$.map($(e.target).data('matches'),function(v,i){if(v.name==$(a.target).text())return true; else return false;})[0].href);
+					$(e.target).attr('data-principal',$(a.target).attr('href'));
 					$(a.target).parent().empty();
 					a.stopPropagation();
 					a.preventDefault();
@@ -1810,7 +1805,7 @@ function newevent (e)
 
 	var ics = new iCal();
 	ics = ics.ics[0];
-	ics.vcalendar['v'+type].uid = {VALUE:guid()};
+	ics.vcalendar['v'+type].uid = ics.PARENT.newField('UID',guid());
 	$(pop).data('ics',ics);
 	$(pop).attr('href', '+&New Event');
 	$(pop).empty();
@@ -1988,7 +1983,7 @@ function eventClick(e)
 	var cals = $(document).caldav('calendars');
 	var c = $($(cp).data('event')).attr('class').match(/calendar(\d+)/)[1];
 	if ( cals[c] != undefined ) 
-		$(document).caldav('lock',href,600,function(){alert(ui['lock failed'])});
+		$(document).caldav('lock',href,600,function(){});
 	$('#calpopup').clone(true).attr('id','calpopupe').removeClass('left right bottom').appendTo('#calwrap');
 	$('#wcal').data('popup','#calpopupe');
 	$('#calpopupe').data('overflow',0);
@@ -2503,8 +2498,8 @@ function eventEdited (e)
 		}
 		else
 		{
-			href = $(document).caldav('calendars')[c].href + d.vcalendar.vevent.uid.VALUE + '.ics'; 
-			var params = { url:cals[c].url.replace(/(.*?\.[a-zA-Z]+)\/.*/,'$1'+href)};
+			href = $(document).caldav('calendars')[c].href + d.vcalendar.vevent.uid + '.ics'; 
+			var params = { url:href};
 			$(document).caldav('putNewEvent',params,d.PARENT.printiCal (  )); 
 		}
 		if ( d.TYPE == 'vevent' )
@@ -2519,6 +2514,11 @@ function eventEdited (e)
 	$('#wcal').removeData('popup');
 	$('#wcal').removeData('clicked');
 	return true;
+}
+
+function removeEvent (href)
+{
+	$('[href="'+href+'"]').fadeOut('fast',function (){$(this).remove();  } );
 }
 
 function eventDeleted (e)
@@ -2541,13 +2541,13 @@ function eventDeleted (e)
 	{
 		var params = { url:src};
 		$(document).caldav('delEvent',params); 
-		$(t).remove();
+		//$(t).remove();
 	}
 	else if ( d.vcalendar.vevent.rrule == undefined  && d.vcalendar.vevent['recurrence-id'] == undefined )
 	{
 		var params = { url:src};
 		$(document).caldav('delEvent',params); 
-		$(t).remove();
+		//$(t).remove();
 	}
 	else if ( e.all == undefined )
 	{
