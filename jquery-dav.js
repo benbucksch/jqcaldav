@@ -290,7 +290,7 @@ jQuery.extend ({
 			if ( $.fn.caldav.calendarXml == undefined )
 				$.fn.caldav.calendarXml = $(r.responseXML);
 			else
-				$($.fn.caldav.calendarXml).append($("response",r.responseXML));
+				$($.fn.caldav.calendarXml).append($("response",r.responseXML).clone());
 			return this;
 		},
   
@@ -319,17 +319,18 @@ jQuery.extend ({
 						{
 							$.fn.caldav('spinner',true);
 							$.propfind ($.extend(true,{},$.fn.caldav.options,{url:$.fn.caldav.data.principalCollection,headers:{Depth:1},data:'<?xml version="1.0" encoding="utf-8" ?>\n' +
-								'<propfind xmlns="DAV:"><prop><current-user-principal/></prop></propfind>',
+								'<propfind xmlns="DAV:"><prop><current-user-principal/><displayname/></prop></propfind>',
 								complete: function (r,s)
 								{
 									$.fn.caldav('spinner',false);
 									var results = $('response',r.responseXML);
+									$.fn.caldav.data.myPrincipal = $.trim($('current-user-principal > href:eq(0)',r.responseXML).text());
 									for ( var i = 0; i < results.length; i++ )
-										if ( $('href',results[i]).text() != $.fn.caldav.data.principalCollection )
-											break;
-									if ( i == results.length )
-										return ;
-									$.fn.caldav.data.myPrincipal = $.trim($('href',results[i]).text());
+									{
+										$.fn.caldav.principals.push({
+											href:$('response > href',results[i]).text()
+										});
+									}
 									if ( $.fn.caldav.data.myPrincipal.match(/\//) ) 
 										$.fn.caldav('getMyPrincipalData',callback);
 								}

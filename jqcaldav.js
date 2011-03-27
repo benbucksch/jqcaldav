@@ -2722,7 +2722,7 @@ function buildcal(d)
 	var cals = $(document).caldav('calendars');
 	for (var i=0;i<cals.length;i++)
 	{
-		if ( cals[i].principalName == '' )
+		if ( cals[i].principalName == undefined || cals[i].principalName == '' )
 			continue;
 		var cparent = $('li:contains('+cals[i].principalName+') > ul',sideul);
 		if ( ! cparent.length )
