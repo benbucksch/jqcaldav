@@ -1,7 +1,7 @@
 // Copyright (c) 2011, Rob Ostensen ( rob@boxacle.net )
 // See README or http://boxacle.net/jqcaldav/ for license
 var cd,hw,fhw,jqcaldavPath,localTimezone,debug=false,alerts=[];
-var settings={twentyFour:true,start:Zero().setUTCHours(6),end:Zero().setUTCHours(22),'update frequency':300};
+var settings={twentyFour:true,start:Zero().setUTCHours(6),end:Zero().setUTCHours(22),'update frequency':300,weekStart:0};
 var months,weekdays,dropquestion,deletequestion,fieldNames,valueNames,subscriptions;
 settings.start = new Date(Zero().setUTCHours(6));
 settings.end = new Date(Zero().setUTCHours(22));
@@ -287,8 +287,8 @@ function calSettings (e)
 {
 	var ul = $('<ul></ul>');
 	$(ul).append ('<li><span></span><span class="header">'+ui.settings+'</span></li>');
-	var props  = {"start":"Day Starts","end":"Day Ends","twentyFour":"24 Hour Time",'update frequency':'update frequency'} ;
-	var ptypes = {'start':'time'      ,'end':'time'    ,'twentyFour':'bool'        ,'update frequency':'number'} ;
+	var props  = {"start":"Day Starts","end":"Day Ends","twentyFour":"24 Hour Time",'update frequency':'update frequency','weekStart':'Week Starts on'} ;
+	var ptypes = {'start':'time'      ,'end':'time'    ,'twentyFour':'bool'        ,'update frequency':'number'          ,'weekStart':'day'} ;
 	for ( var i in props )
 		$(ul).append ('<li><span class="label">'+ui[i]+'</span><span class="value data'+ptypes[i]+'" tabindex="0" contenteditable="true" >'+printValue(settings[i],ptypes[i])+'</span></li>');
 	$('.value',ul).click(calFieldClick);
@@ -321,8 +321,8 @@ function saveSettings (dialog)
 {
 	if ( dialog )
 	{
-		var props  = {'start':'Day Starts','end':'Day Ends','twentyFour':'24 Hour Time','update frequency':'update frequency'} ;
-		var ptypes = {'start':'time'      ,'end':'time'    ,'twentyFour':'bool'        ,'update frequency':'number'} ;
+		var props  = {'start':'Day Starts','end':'Day Ends','twentyFour':'24 Hour Time','update frequency':'update frequency','weekStart':'Week Starts on'} ;
+		var ptypes = {'start':'time'      ,'end':'time'    ,'twentyFour':'bool'        ,'update frequency':'number'          ,'weekStart':'day'} ;
 		for ( var i in props )
 		{
 			settings[i] = getValue( $('#caldialog li span:contains('+ui[i]+') + span'), ptypes[i] );
@@ -356,6 +356,8 @@ function printValue( val , type )
 			return val;
 		case 'number':
 			return val;
+		case 'day':
+			return weekdays[val];
 		case 'time':
 			return  val.prettyTime();
 		case 'date':
@@ -374,6 +376,8 @@ function getValue( ele , type )
 			return $(ele).text();
 		case 'number':
 			return Number($(ele).text());
+		case 'day':
+			return weekdays.indexOf ($(ele).text());
 		case 'time':
 			return  Zero().parsePrettyTime($(ele).text()) ;
 		case 'date':
@@ -404,8 +408,9 @@ function calFieldClick(e)
 {
 	var cp = $($('#wcal').data('popup'));
 	var label = $(e.target).prev().text();
-	var props  = {'start':'Day Starts','end':'Day Ends','twentyFour':'24 Hour Time','update frequency':'update frequency'} ;
-	var propOptions  = {'twentyFour':['yes','no']} ;
+	var props  = {'start':'Day Starts','end':'Day Ends','twentyFour':'24 Hour Time','update frequency':'update frequency','weekStart':'Week Starts on'} ;
+	var propOptions  = {'twentyFour':[ui['yes'],ui['no']]} ;
+	propOptions.weekStart = weekdays;
 	for ( var i in props )
 		if ( ui[i] == label )
 			break;
@@ -415,7 +420,7 @@ function calFieldClick(e)
 		var currentValue = $(e.target).text();
 		var txt = '<div class="completionWrapper"><div class="completion">';
 		for ( var j = 0; j < options.length; j++ )
-			txt = txt + '<div'+ (ui[options[j]]==currentValue?' class="selected" ':'') +'>'+ui[options[j]]+'</div>';
+			txt = txt + '<div'+ (options[j]==currentValue?' class="selected" ':'') +'>'+options[j]+'</div>';
 		txt = txt + '</div></div>';
 		var comp = $(txt);
 		$(comp).children().click(function(evt){$(evt.target).parent().parent().next().text($(evt.target).text());
@@ -2829,9 +2834,13 @@ function buildcal(d)
 	var calh = $('<table id="calh"></table>');
 	var days = $('<thead class="days"></thead>');
 	var tr = $('<tr></tr>');
+	var day = settings.weekStart;
 	for ( var i=0;i<7;i++)
 	{ 
-		$(tr).append('<td>' + weekdays[i] + '</td>');
+		$(tr).append('<td>' + weekdays[day] + '</td>');
+		day++;
+		if ( day > 6 )
+			day = 0;
 	}
 	$(days).append(tr);
 	$(calh).append(days);
@@ -3408,7 +3417,7 @@ function currentTimeIndicator()
 var subStart=null,subEnd=null;
 function buildweek(d,get)
 {
-	var start = new Date(d.getFullYear(),d.getMonth(),(d.getDate()-d.getDay())), y = new Date(d.getFullYear(),0,1);
+	var start = new Date(d.getFullYear(),d.getMonth(),(d.getDate()-d.getDay()+settings.weekStart)), y = new Date(d.getFullYear(),0,1);
 	var weeknum = (start.getTime() - y.getTime())/1000;
 	weeknum = weeknum / 604800;
 	weeknum = Number(weeknum+1).toFixed(0); // TODO fix calculation if year starts after thursday
