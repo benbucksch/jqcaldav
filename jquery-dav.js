@@ -310,7 +310,10 @@ jQuery.extend ({
 							$.fn.caldav.xmlNSfield = 'baseName';
 	          if ( jQuery.fn.caldav.data == undefined )
 		          jQuery.fn.caldav.data = {};
-						$.fn.caldav.data.principalCollection = $.trim($('response > href:eq(0)',r.responseXML).text());
+						if ( $('principal-collection-set > href',r.responseXML).length > 0 )
+							$.fn.caldav.data.principalCollection = $.trim($('principal-collection-set > href',r.responseXML).text());
+						else
+							$.fn.caldav.data.principalCollection = $.trim($('response > href:eq(0)',r.responseXML).text());
 						$.fn.caldav.data.myPrincipal = $.trim($('response > href:eq(1)',r.responseXML).text());
 						if ( ! $.fn.caldav.data.myPrincipal.match(/\//) ) 
 						{
