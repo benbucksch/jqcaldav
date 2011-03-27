@@ -300,7 +300,7 @@ jQuery.extend ({
 	//		$.propfind ($.extend(true,{},$.fn.caldav.options,{url:'/davical/htdocs/caldav.php/',headers:{Depth:1},data:'<?xml version="1.0" encoding="utf-8" ?>\n' +
 //'<propfind xmlns="DAV"><prop><principal-collection-set/><current-user-principal/></prop></propfind>',
 			$.propfind ($.extend(true,{},$.fn.caldav.options,{headers:{Depth:0},data:'<?xml version="1.0" encoding="utf-8" ?>\n' +
-				'<propfind xmlns="DAV"><prop><principal-collection-set/><current-user-principal/></prop></propfind>',
+				'<propfind xmlns="DAV:"><prop><principal-collection-set/><current-user-principal/></prop></propfind>',
 				complete: function (r,s)
 				{
 					$.fn.caldav('spinner',false);
