@@ -316,7 +316,7 @@ jQuery.extend ({
 						{
 							$.fn.caldav('spinner',true);
 							$.propfind ($.extend(true,{},$.fn.caldav.options,{url:$.fn.caldav.data.principalCollection,headers:{Depth:1},data:'<?xml version="1.0" encoding="utf-8" ?>\n' +
-								'<propfind xmlns="DAV"><prop><current-user-principal/></prop></propfind>',
+								'<propfind xmlns="DAV:"><prop><current-user-principal/></prop></propfind>',
 								complete: function (r,s)
 								{
 									$.fn.caldav('spinner',false);
