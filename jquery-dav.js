@@ -1,5 +1,5 @@
 // Copyright (c) 2011, Rob Ostensen ( rob@boxacle.net )
-// See README or http://boxacle.net/jqcaldav/ for license
+// See README or http://boxacle.net/jqcaldav/ for license 
 jQuery.extend ({
     options : function( origSettings ) { 
 		var s = jQuery.extend(true, {}, jQuery.ajaxSettings,{type:'OPTIONS'},origSettings);
