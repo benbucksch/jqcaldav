@@ -271,7 +271,7 @@ jQuery.extend ({
 				s = $.fn.caldav.calendarData.length;
 			for (var i=0;i<rcalendars.length;i++)
 			{
-				var cuprincipal = $("owner > href",rcalendars[i]).text();
+				var cuprincipal = $.trim($("owner > href",rcalendars[i]).text());
 				$.fn.caldav.calendarData[s+i] = { xml: $(rcalendars[i]).clone(true),
 				displayName: $("displayname",rcalendars[i]).text(),
 				href: $("> href",rcalendars[i]).text(),
@@ -291,7 +291,7 @@ jQuery.extend ({
 				$.fn.caldav.calendarXml = $(r.responseXML);
 			else
 				$($.fn.caldav.calendarXml).append($("response",r.responseXML).clone());
-			$.fn.caldav.calendarData.sort (function(a,b){ console.log ('comparing ' + a.principal+ ' to ' + b.principal ); if ( a.principal != $.fn.caldav.data.myPrincipal) return 1; else return 0; } );
+			$.fn.caldav.calendarData.sort (function(a,b){ console.log ('comparing ' + a.principal+ ' to ' + b.principal ); if ( a.principal != $.fn.caldav.data.myPrincipal) return 1; else if ( a.principal == $.fn.caldav.data.myPrincipal) return -1; else return 0; } );
 			return this;
 		},
   
