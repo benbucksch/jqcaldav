@@ -227,7 +227,7 @@ jQuery.extend ({
 
     getCalendarData : function( params, callback ) { 
 			$.fn.caldav('spinner',true);
-	    $.propfind ($.extend(true,{},jQuery.fn.caldav.options,params,{headers:{Depth:0},data:'<?xml version="1.0" encoding="utf-8"?>' + "\n" +
+	    $.propfind ($.extend(true,{},jQuery.fn.caldav.options,params,{headers:{Depth:1},data:'<?xml version="1.0" encoding="utf-8"?>' + "\n" +
 			'<x0:propfind xmlns:x1="http://calendarserver.org/ns/" xmlns:x0="DAV:" xmlns:x3="http://apple.com/ns/ical/" xmlns:x2="urn:ietf:params:xml:ns:caldav" xmlns:x4="http://boxacle.net/ns/calendar/">' + "\n" +
 			'<x0:prop>' + "\n" +
 			'<x0:displayname/>' + "\n" +
@@ -335,7 +335,8 @@ jQuery.extend ({
 											href:href,
 											name:$('displayname',results[i]).text()
 										});
-										$.fn.caldav.principalMap[href] = $.fn.caldav.principals.length-1;
+										var m = $.fn.caldav.principals.length-1;
+										$.fn.caldav.principalMap[href] = m;
 										if ( i + 1 == results.length ) 
 											$.fn.caldav('getPrincipalData',href,callback);
 										else
@@ -379,6 +380,12 @@ jQuery.extend ({
 							name:$.trim($("["+$.fn.caldav.xmlNSfield+"=displayname]",results[i]).text()),
 							email:$.trim($("href:contains('mailto:')",results[i]).text()).replace(/^mailto:/i,'')
 						};
+						var addresses = $('calendar-user-address-set > href',results[i]);
+						for ( var j = 0; j < addresses.length; j++ )
+						{
+							if ( $.fn.caldav.principalMap[$(addresses[j]).text()] == undefined )
+								$.fn.caldav.principalMap[$(addresses[j]).text()] = $.fn.caldav.principalMap[href];
+						}
 					}
 					//$.fn.caldav.principalMap[$.trim($('response > href',r.responseXML).text())] = $.fn.caldav.principals[$.fn.caldav.principals.length-1];
 					if ( typeof(callback) == 'function' )
