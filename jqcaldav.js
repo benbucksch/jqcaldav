@@ -1,6 +1,6 @@
 // Copyright (c) 2011, Rob Ostensen ( rob@boxacle.net )
 // See README or http://boxacle.net/jqcaldav/ for license
-var cd,hw,fhw,jqcaldavPath,localTimezone,debug=false,alerts=[];
+var cd,hw,fhw,jqcaldavPath,localTimezone,debug=false,alerts=[],timezoneInit = false;
 var settings={twentyFour:true,start:Zero().setUTCHours(6),end:Zero().setUTCHours(22),'update frequency':300,weekStart:0};
 var months,weekdays,dropquestion,deletequestion,fieldNames,valueNames,subscriptions;
 settings.start = new Date(Zero().setUTCHours(6));
@@ -126,8 +126,9 @@ function doit ( e )
 	$.fn.caldav.options.calendars = gotCalendars;
 	$(document).caldav('getCalendars', {});
 	$(window).unload ( logoutClicked ); 
-	if ( timezoneJS && timezoneJS != undefined && timezoneJS.timezone != undefined ) 
+	if ( timezoneJS && timezoneJS != undefined && timezoneJS.timezone != undefined && timezoneInit == false ) 
 	{
+		timezoneInit = true;
 		timezoneJS.timezone.zoneFileBasePath = jqcaldavPath+'tz';
 		timezoneJS.timezone.init();
 	}
