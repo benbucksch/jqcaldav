@@ -126,7 +126,7 @@ function doit ( e )
 	$.fn.caldav.options.calendars = gotCalendars;
 	$(document).caldav('getCalendars', {});
 	$(window).unload ( logoutClicked ); 
-	if ( timezoneJS != undefined && timezoneJS.timezone != undefined ) 
+	if ( timezoneJS && timezoneJS != undefined && timezoneJS.timezone != undefined ) 
 	{
 		timezoneJS.timezone.zoneFileBasePath = jqcaldavPath+'tz';
 		timezoneJS.timezone.init();
@@ -1266,6 +1266,10 @@ function insertEvent ( href, icsObj, c, start, end , current)
 			}
 			if ( cont ) continue;
 		}
+		if ( cevent.summary && cevent.summary.VALUE != undefined )
+			var summary = cevent.summary.VALUE;
+		else
+			var summary = '';
 		/////////// handle alarms
 		if ( cevent.valarm != undefined && estart.getTime() > now - 86400000 && estart.getTime() < now + 86400000 * 40 )
 		{
@@ -1276,7 +1280,7 @@ function insertEvent ( href, icsObj, c, start, end , current)
 				alarms = cevent.valarm;
 			for ( var A in alarms )
 			{
-				if ( debug ) console.log ( 'adding alert for ' + cevent.summary.VALUE );
+				if ( debug ) console.log ( 'adding alert for ' + summary );
 				if ( alarms[A].trigger != undefined && alarms[A].action.VALUE == "AUDIO" || alarms[A].action.VALUE == "DISPLAY" )
 				{
 					if ( alarms[A].trigger.DURATION != undefined )
@@ -1297,7 +1301,7 @@ function insertEvent ( href, icsObj, c, start, end , current)
 					if ( alarms[A].description != undefined )
 						atext = alarms[A].description;
 					else
-						atext = cevent.summary + ' ' + (atime.getTime()-now>86400000?estart.prettyDate():estart.prettyTime());
+						atext = summary + ' ' + (atime.getTime()-now>86400000?estart.prettyDate():estart.prettyTime());
 					if ( atime.getTime()-now <= 0 )
 						continue;
 					if (debug)console.log('alert in ' + ( atime.getTime()-now )/1000 + ' seconds: ' + atext ); 
@@ -1315,7 +1319,7 @@ function insertEvent ( href, icsObj, c, start, end , current)
 			else
 				var time = 0; 
 
-			desc += cevent.summary.VALUE; 
+			desc += summary; 
 			var transp = cevent.transp!=undefined?cevent.transp.VALUE:'TRANSPARENT';
 			var status = cevent.status!=undefined?'status="'+cevent.status.VALUE+'"':'';
 			var duration = 0+parseInt(tdiff/900000)*15;
@@ -1375,7 +1379,7 @@ function insertEvent ( href, icsObj, c, start, end , current)
 		else 
 		{
 			var time = '0.'+ estart.DayString() ; 
-			desc += cevent.summary.VALUE; 
+			desc += summary; 
 			var transp = cevent.transp!=undefined?cevent.transp.VALUE:'OPAQUE';
 			var entry = new Array;
 			var currentevent = eventcount;
@@ -1943,7 +1947,7 @@ function eventHover (e)
 					continue;
 				if ( props[x] == 'dtend' && x != 'to' && x != 'until' )
 					continue;
-				if ( ! d.PARENT.fields[props[x]] )
+				if ( ! d.PARENT.fields[props[x]] && props[x] != 'summary' )
 					continue;
 				else if ( ! d.PARENT.fields[props[x]].visible )
 					continue;
@@ -1957,6 +1961,8 @@ function eventHover (e)
 			else
 				$(ul).append('<li><span class="label '+props[x]+'" '+extra+' >'+label+'</span><span class="value" data-value="'+d.vcalendar[type][props[x]] +'" >'+d.vcalendar[type][props[x]] +'</span></li>');
 		}
+		else if ( props[x] == 'summary' )
+			$(ul).append('<li><span class="label '+props[x]+'" '+extra+' >'+label+'</span><span class="value" data-value="" ></span></li>');
 	}
 	var off = $(e.target).offset();
 	var popoff = {width: 280, height: 330 };
@@ -2056,7 +2062,7 @@ function fieldClick(e)
 	{
 		var options = d.PARENT.fields[i].values[d.TYPE];
 		var currentValue = $(e.target).text();
-		var txt = '<div class="completionWrapper"><div class="completion">';
+		var txt = '<div class="completionWrapper"><div class="completion"><div class="remove" text="'+ui.delete+'"></div>';
 		for ( var j = 0; j < options.length; j++ )
 			txt = txt + '<div'+ (valueNames[options[j]]==currentValue?' class="selected" ':'') +'>'+valueNames[options[j]]+'</div>';
 		txt = txt + '</div></div>';
@@ -2474,8 +2480,14 @@ function eventEdited (e)
 				continue ;
 			if ( d.vcalendar[type][props[x]] == $(element).text() )
 				continue ;
+			if ( $(element).text() == '' )
+				if ( d.PARENT.components.vevent.required.indexOf ( props[x] ) > -1 )
+					continue ;
+				else
+					delete d.vcalendar[type][props[x]];
+			else
+				d.vcalendar[type][props[x]].UPDATE ( $(element).text(), $(element).data('value')  );
 			if ( debug ) console.log ( 'modified prop ' + props[x] + ' with display name ' + label + ' from type ' + type + "\n  from " + d.vcalendar[type][props[x]] + "\n    to " + $(element).text() );
-			d.vcalendar[type][props[x]].UPDATE ( $(element).text(), $(element).data('value')  );
 			mod += props[x];
 			edited=true;
 		}
@@ -3269,6 +3281,8 @@ function calstyle ()
 	'.completion:hover div.selected { background: none; } ' + "\n" +
 	'.completion div.selected { background: #AAA; } ' + "\n" +
 	'.completion div.highlighted { background: #BBA; } ' + "\n" +
+	'.completion div.remove { height: 1em; } ' + "\n" +
+	'.completion div.remove:after { content: attr(text); color: #787878; } ' + "\n" +
 	
 
 	'.timeline { margin: 0 ; padding:0; width: 1em; position: absolute; bottom: 1px; height: 100%;   } ' + "\n" +

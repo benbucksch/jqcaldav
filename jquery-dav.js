@@ -291,6 +291,7 @@ jQuery.extend ({
 				$.fn.caldav.calendarXml = $(r.responseXML);
 			else
 				$($.fn.caldav.calendarXml).append($("response",r.responseXML).clone());
+			$.fn.caldav.calendarData.sort (function(a,b){ console.log ('comparing ' + a.principal+ ' to ' + b.principal ); if ( a.principal != $.fn.caldav.data.myPrincipal) return 1; else return 0; } );
 			return this;
 		},
   
