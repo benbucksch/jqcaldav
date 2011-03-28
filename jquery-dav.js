@@ -315,9 +315,9 @@ jQuery.extend ({
 							$.fn.caldav.data.principalCollection = $.trim($('principal-collection-set > href',r.responseXML).text());
 						else
 							$.fn.caldav.data.principalCollection = $.trim($('response > href:eq(0)',r.responseXML).text());
-						$.fn.caldav.data.myPrincipal = $.trim($('response > href:eq(1)',r.responseXML).text());
-						if ( ! $.fn.caldav.data.myPrincipal.match(/\//) ) 
-						{
+						$.fn.caldav.data.myPrincipal = $.trim($('current-user-principal > href:eq(0)',r.responseXML).text());
+						//if ( ! $.fn.caldav.data.myPrincipal.match(/\//) ) 
+						//{
 							$.fn.caldav('spinner',true);
 							$.propfind ($.extend(true,{},$.fn.caldav.options,{url:$.fn.caldav.data.principalCollection,headers:{Depth:1},data:'<?xml version="1.0" encoding="utf-8" ?>\n' +
 								'<propfind xmlns="DAV:"><prop><current-user-principal/><displayname/></prop></propfind>',
@@ -341,9 +341,9 @@ jQuery.extend ({
 									}
 								}
 							}));
-						}
-						else
-							$.fn.caldav('getPrincipalData',$.fn.caldav.data.myPrincipal,callback);
+						//}
+						//else
+						//	$.fn.caldav('getPrincipalData',$.fn.caldav.data.myPrincipal,callback);
 					}
 				}
 			}));
