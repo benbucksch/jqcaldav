@@ -356,20 +356,28 @@ jQuery.extend ({
 				complete: function (r,s)
 				{
 					$.fn.caldav('spinner',false);
-					var ph = $('response > href:contains('+$.fn.caldav.data.myPrincipal+')',r.responseXML).filter(function(i){if ($(this).text()==$.fn.caldav.data.myPrincipal)return true; else return false;});
+					var ph = $('calendar-user-address-set > href:contains('+$.fn.caldav.data.myPrincipal+')',r.responseXML).filter(function(i){if ($(this).text()==$.fn.caldav.data.myPrincipal)return true; else return false;});
 					if ( $(ph).length > 0 )
 					{
-						var me= $(ph).parent();
+						var me= $(ph).parent().parent();
 						jQuery.fn.caldav.data.principalDisplayName = $.trim($("["+$.fn.caldav.xmlNSfield+"=displayname]",me).text());
 						jQuery.fn.caldav.data.principalHome        = $.trim($("["+$.fn.caldav.xmlNSfield+"=calendar-home-set]:first",me).text());
 					}
-					var href = $('response > href:first',r.responseXML).text();
-					$.fn.caldav.principals[$.fn.caldav.principalMap[href]] ={
-						href:href,
-						calendar:$.trim($("["+$.fn.caldav.xmlNSfield+"=calendar-home-set]:first",r.responseXML).text()),
-						name:$.trim($("["+$.fn.caldav.xmlNSfield+"=displayname]",r.responseXML).text()),
-						email:$.trim($("href:contains('mailto:')",r.responseXML).text()).replace(/^mailto:/i,'')
-					};
+					var results = $('response',r.responseXML);
+					for ( var i = 0; i < results.length; i++ )
+					{
+						var href = $('> href:first',results[i]).text();
+						if ( $.fn.caldav.principalMap[href] == undefined )
+						{
+							$.fn.caldav.principalMap[href] = $.fn.caldav.principals.length;
+						}
+						$.fn.caldav.principals[$.fn.caldav.principalMap[href]] ={
+							href:href,
+							calendar:$.trim($("["+$.fn.caldav.xmlNSfield+"=calendar-home-set]:first",results[i]).text()),
+							name:$.trim($("["+$.fn.caldav.xmlNSfield+"=displayname]",results[i]).text()),
+							email:$.trim($("href:contains('mailto:')",results[i]).text()).replace(/^mailto:/i,'')
+						};
+					}
 					//$.fn.caldav.principalMap[$.trim($('response > href',r.responseXML).text())] = $.fn.caldav.principals[$.fn.caldav.principals.length-1];
 					if ( typeof(callback) == 'function' )
 						callback(r,s);
