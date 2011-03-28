@@ -227,7 +227,7 @@ jQuery.extend ({
 
     getCalendarData : function( params, callback ) { 
 			$.fn.caldav('spinner',true);
-	    $.propfind ($.extend(true,{},jQuery.fn.caldav.options,params,{headers:{Depth:1},data:'<?xml version="1.0" encoding="utf-8"?>' + "\n" +
+	    $.propfind ($.extend(true,{},jQuery.fn.caldav.options,params,{headers:{Depth:0},data:'<?xml version="1.0" encoding="utf-8"?>' + "\n" +
 			'<x0:propfind xmlns:x1="http://calendarserver.org/ns/" xmlns:x0="DAV:" xmlns:x3="http://apple.com/ns/ical/" xmlns:x2="urn:ietf:params:xml:ns:caldav" xmlns:x4="http://boxacle.net/ns/calendar/">' + "\n" +
 			'<x0:prop>' + "\n" +
 			'<x0:displayname/>' + "\n" +
@@ -284,7 +284,7 @@ jQuery.extend ({
 				color: $(rcalendars[i]).find("["+$.fn.caldav.xmlNSfield+"=calendar-color]").text().replace (/(#......)../,'$1'),
 				order: $(rcalendars[i]).find("["+$.fn.caldav.xmlNSfield+"=calendar-order]").text(),};
 				if ( $.fn.caldav.principalMap[cuprincipal] != undefined )
-					$.fn.caldav.calendarData[s+i].principalName = $.fn.caldav.principalMap[cuprincipal].name;
+					$.fn.caldav.calendarData[s+i].principalName = $.fn.caldav.principals[$.fn.caldav.principalMap[cuprincipal]].name;
 			}
 			//$.fn.caldav.calendarXML = $.extend(true,$.fn.caldav.calendarXml,$("response",r.responseXML));
 			if ( $.fn.caldav.calendarXml == undefined )
@@ -329,11 +329,13 @@ jQuery.extend ({
 									for ( var i = 0; i < results.length; i++ )
 									{
 										var href = $('href:first',results[i]).text();
+										if ( $.fn.caldav.principalMap[href] != undefined )
+											continue ;
 										$.fn.caldav.principals.push({
 											href:href,
 											name:$('displayname',results[i]).text()
 										});
-										$.fn.caldav.principalMap[href] = $.fn.caldav.principals[$.fn.caldav.principals.length-1];
+										$.fn.caldav.principalMap[href] = $.fn.caldav.principals.length-1;
 										if ( i + 1 == results.length ) 
 											$.fn.caldav('getPrincipalData',href,callback);
 										else
@@ -400,15 +402,16 @@ jQuery.extend ({
 						var results = $('response',r.responseXML);
 						for ( var i = 0; i < results.length; i++ )
 						{
-							if ($.fn.caldav.principalMap[$.trim($('> href:first',results[i]).text())] != undefined )
+							var href = $.trim($(results[i]).children('href:first').text());
+							if ($.fn.caldav.principalMap[href] != undefined )
 								continue;
 							$.fn.caldav.principals.push({
-								href:$(results[i]).children('href:first').text(),
+								href:href,
 								calendar:$.trim($("["+$.fn.caldav.xmlNSfield+"=calendar-home-set]:first",r.responseXML).text()),
 								name:$.trim($("["+$.fn.caldav.xmlNSfield+"=displayname]",results[i]).text()),
 								email:$.trim($("href:contains('mailto:')",results[i]).text()).replace(/^mailto:/i,'')
 							});
-							$.fn.caldav.principalMap[$.trim($('> href:first',results[i]).text())] = $.fn.caldav.principals[$.fn.caldav.principals.length-1];
+							$.fn.caldav.principalMap[href] = $.fn.caldav.principals.length-1;
 						}
 						if ( typeof(callback) == 'function' )
 							callback(r,s);
