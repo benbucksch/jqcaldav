@@ -314,8 +314,8 @@ jQuery.extend ({
 						if ( $('principal-collection-set > href',r.responseXML).length > 0 )
 							$.fn.caldav.data.principalCollection = $.trim($('principal-collection-set > href',r.responseXML).text());
 						else
-							$.fn.caldav.data.principalCollection = $.trim($('response > href:eq(0)',r.responseXML).text());
-						$.fn.caldav.data.myPrincipal = $.trim($('current-user-principal > href:eq(0)',r.responseXML).text());
+							$.fn.caldav.data.principalCollection = $.trim($('response > href:first',r.responseXML).text());
+						$.fn.caldav.data.myPrincipal = $.trim($('current-user-principal > href:first',r.responseXML).text());
 						//if ( ! $.fn.caldav.data.myPrincipal.match(/\//) ) 
 						//{
 							$.fn.caldav('spinner',true);
@@ -325,12 +325,10 @@ jQuery.extend ({
 								{
 									$.fn.caldav('spinner',false);
 									var results = $('response',r.responseXML);
-									$.fn.caldav.data.myPrincipal = $.trim($('current-user-principal > href:eq(0)',r.responseXML).text());
-									if ( $('> href:contains('+$.fn.caldav.data.myPrincipal+')',results).length == 0 )
-										$.fn.caldav('getPrincipalData',$.fn.caldav.data.myPrincipal);
+									$.fn.caldav.data.myPrincipal = $.trim($('current-user-principal > href:first',r.responseXML).text());
 									for ( var i = 0; i < results.length; i++ )
 									{
-										var href = $('href:eq(0)',results[i]).text();
+										var href = $('href:first',results[i]).text();
 										$.fn.caldav.principals.push({
 											href:href,
 											name:$('displayname',results[i]).text()
@@ -358,13 +356,14 @@ jQuery.extend ({
 				complete: function (r,s)
 				{
 					$.fn.caldav('spinner',false);
-					if ( $('response > href:contains('+$.fn.caldav.data.myPrincipal+')',r.responseXML).length > 0 )
+					var ph = $('response > href:contains('+$.fn.caldav.data.myPrincipal+')',r.responseXML).filter(function(i){if ($(this).text()==$.fn.caldav.data.myPrincipal)return true; else return false;});
+					if ( $(ph).length > 0 )
 					{
-						var me= $('response > href:contains('+$.fn.caldav.data.myPrincipal+')',r.responseXML).parent();
+						var me= $(ph).parent();
 						jQuery.fn.caldav.data.principalDisplayName = $.trim($("["+$.fn.caldav.xmlNSfield+"=displayname]",me).text());
 						jQuery.fn.caldav.data.principalHome        = $.trim($("["+$.fn.caldav.xmlNSfield+"=calendar-home-set]:first",me).text());
 					}
-					var href = $('response > href',r.responseXML).text();
+					var href = $('response > href:first',r.responseXML).text();
 					$.fn.caldav.principals[$.fn.caldav.principalMap[href]] ={
 						href:href,
 						calendar:$.trim($("["+$.fn.caldav.xmlNSfield+"=calendar-home-set]:first",r.responseXML).text()),
@@ -393,15 +392,15 @@ jQuery.extend ({
 						var results = $('response',r.responseXML);
 						for ( var i = 0; i < results.length; i++ )
 						{
-							if ($.fn.caldav.principalMap[$.trim($('> href',results[i]).text())] != undefined )
+							if ($.fn.caldav.principalMap[$.trim($('> href:first',results[i]).text())] != undefined )
 								continue;
 							$.fn.caldav.principals.push({
-								href:$(results[i]).children('href:eq(0)').text(),
+								href:$(results[i]).children('href:first').text(),
 								calendar:$.trim($("["+$.fn.caldav.xmlNSfield+"=calendar-home-set]:first",r.responseXML).text()),
 								name:$.trim($("["+$.fn.caldav.xmlNSfield+"=displayname]",results[i]).text()),
 								email:$.trim($("href:contains('mailto:')",results[i]).text()).replace(/^mailto:/i,'')
 							});
-							$.fn.caldav.principalMap[$.trim($('> href',results[i]).text())] = $.fn.caldav.principals[$.fn.caldav.principals.length-1];
+							$.fn.caldav.principalMap[$.trim($('> href:first',results[i]).text())] = $.fn.caldav.principals[$.fn.caldav.principals.length-1];
 						}
 						if ( typeof(callback) == 'function' )
 							callback(r,s);

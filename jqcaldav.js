@@ -4295,6 +4295,7 @@ var recurrence = function ( text )
 			s.setUTCSeconds(0);
 			s.setMilliseconds(0);
 			var order = { 'BYMONTH':'m', 'BYWEEKNO':'w', 'BYYEARDAY':'Y', 'BYMONTHDAY':'m', 'BYDAY':'D', 'BYSETPOS':'p' };
+			var Set = { 'BYMONTH':'setUTCMonth', 'BYWEEKNO':'setWeek', 'BYYEARDAY':'setDayOfYear', 'BYMONTHDAY':'setUTCDate', 'BYDAY':'setDayOfWeek', 'BYHOUR':'setUTCHours', 'BYMINUTE':'setUTCMinutes', 'BYSECOND':'setUTCSeconds', 'BYSETPOS':'p' };
 		}
 		if ( ! s instanceof Date )
 			return false ;
