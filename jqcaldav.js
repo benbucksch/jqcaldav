@@ -2062,7 +2062,7 @@ function fieldClick(e)
 	{
 		var options = d.PARENT.fields[i].values[d.TYPE];
 		var currentValue = $(e.target).text();
-		var txt = '<div class="completionWrapper"><div class="completion"><div class="remove" text="'+ui.delete+'"></div>';
+		var txt = '<div class="completionWrapper"><div class="completion"><div class="remove" text="'+ui['delete']+'"></div>';
 		for ( var j = 0; j < options.length; j++ )
 			txt = txt + '<div'+ (valueNames[options[j]]==currentValue?' class="selected" ':'') +'>'+valueNames[options[j]]+'</div>';
 		txt = txt + '</div></div>';
