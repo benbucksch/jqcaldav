@@ -326,6 +326,8 @@ jQuery.extend ({
 									$.fn.caldav('spinner',false);
 									var results = $('response',r.responseXML);
 									$.fn.caldav.data.myPrincipal = $.trim($('current-user-principal > href:eq(0)',r.responseXML).text());
+									if ( $('> href:contains('+$.fn.caldav.data.myPrincipal+')',results).length == 0 )
+										$.fn.caldav('getPrincipalData',$.fn.caldav.data.myPrincipal);
 									for ( var i = 0; i < results.length; i++ )
 									{
 										var href = $('href:eq(0)',results[i]).text();
@@ -356,9 +358,9 @@ jQuery.extend ({
 				complete: function (r,s)
 				{
 					$.fn.caldav('spinner',false);
-					if ( $('response > href:contains('+url+')',r.responseXML).length > 0 )
+					if ( $('response > href:contains('+$.fn.caldav.data.myPrincipal+')',r.responseXML).length > 0 )
 					{
-						var me= $('response > href:contains('+url+')',r.responseXML).parent();
+						var me= $('response > href:contains('+$.fn.caldav.data.myPrincipal+')',r.responseXML).parent();
 						jQuery.fn.caldav.data.principalDisplayName = $.trim($("["+$.fn.caldav.xmlNSfield+"=displayname]",me).text());
 						jQuery.fn.caldav.data.principalHome        = $.trim($("["+$.fn.caldav.xmlNSfield+"=calendar-home-set]:first",me).text());
 					}
