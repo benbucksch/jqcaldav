@@ -72,12 +72,13 @@ $(document).ready ( function () {
 				{ui=defaults.ui; months=defaults.months; weekdays=defaults.weekdays; dropquestion=defaults.dropquestion;
 				deletequestion=defaults.deletequestion; fieldNames=defaults.fieldNames; valueNames= defaults.valueNames; recurrenceUI=defaults.recurrenceUI;}
 		});
+		if ( $('.jqcaldav:eq(0)').data('debug') == 'true' ) debug = true;
 		if ( $('.jqcaldav:eq(0)').data('wait') != 'true' ) 
 		{
 			$(here).append('<form id="cal_login" ><div style="max-width: 40%; min-width: 16em;margin: 30%; margin-top:1em; padding: 2em; -moz-border-radius: 1.5em; -webkit-border-radius: 1.5em; border-radius: 1.5em; ' +
-				'-moz-box-shadow: 0px 0px 10px #888; -webkit-box-shadow: 0px 0px 10px #888; box-shadow: 0px 0px 10px #888; "><div style="text-align:center"><span style="width:50%;margin-left: -3em;display: block;float:left;'+
+				'-moz-box-shadow: 0px 0px 10px #888; -webkit-box-shadow: 0px 0px 10px #888; box-shadow: 0px 0px 10px #888; "><div id="cal_login_wrapper"><div style="text-align:center"><span style="width:50%;margin-left: -3em;display: block;float:left;'+
 				'text-align: right; padding-right: 1em;">'+ui.username+'</span><input id="name" size="20" style="float: left;" autofocus /></div><div style="clear: left;text-align:center;"><span style="width:50%;margin-left: -3em;'+
-				'display: block;float:left;text-align: right; padding-right: 1em;">'+ui.password+'</span><input id="pass" size="20" type="password" style="float: left;"/></div><div>&nbsp;</div><input id="go" size="20" type="button" value="'+ui.go+'" style="float: left;" /><div>&nbsp;</div></div></form>');
+				'display: block;float:left;text-align: right; padding-right: 1em;">'+ui.password+'</span><input id="pass" size="20" type="password" style="float: left;"/></div><div><input id="go" size="20" type="button" value="'+ui.go+'" style="float: left;" /></div><div>&nbsp;</div></div></div></form>');
 				$('#cal_login input:eq(0)').focus();
 				$('#cal_login').submit(function(e){console.log('doinging it');doit(e);return false;});
 				$('#cal_login #go').click(function (e){doit(e); return false; });
@@ -121,17 +122,22 @@ function doit ( e )
 	}
 	if ( $('#wcal').length > 0 )
 		$('#calwrap').remove();
+	$('#cal_login').fadeOut(99);
 	var loading = $('<div id="caldavloading1" style="display:none;position:fixed;left:100%;top:100%;margin-top:-1em;margin-left:-4em;text-align: center; width:4em; background-color:black;color:white;-moz-border-top-left-radius:.5em;-webkit-border-top-left-radius:.5em;border-top-left-radius:.5em;opacity:.5;z-index:100;" data-loading="0" ><span>'+ui.loading+'</span></div>').appendTo(document.body);
-	cd = $(document).caldav ( { url: $('.jqcaldav:first').data('caldavurl'), username:$('.jqcaldav:eq(0)').data('username'), password:$('.jqcaldav:eq(0)').data('password'), events: addEvents, todos: addToDos,eventPut: eventPut, eventDel: removeEvent, deletedCalendar: deletedCalendar, logout: logout, loading: $('#caldavloading1')}, loginFailed );
-	$.fn.caldav.options.calendars = gotCalendars;
-	$(document).caldav('getCalendars', {});
-	$(window).unload ( logoutClicked ); 
-	if ( timezoneJS && timezoneJS != undefined && timezoneJS.timezone != undefined && timezoneInit == false ) 
+	window.setTimeout(function()
 	{
-		timezoneInit = true;
-		timezoneJS.timezone.zoneFileBasePath = jqcaldavPath+'tz';
-		timezoneJS.timezone.init();
-	}
+		cd = $(document).caldav ( { url: $('.jqcaldav:first').data('caldavurl'), username:$('.jqcaldav:eq(0)').data('username'), password:$('.jqcaldav:eq(0)').data('password'), events: addEvents, todos: addToDos,eventPut: eventPut, eventDel: removeEvent, deletedCalendar: deletedCalendar, logout: logout, loading: $('#caldavloading1')}, loginFailed );
+		$.fn.caldav.options.calendars = gotCalendars;
+		$(document).caldav('getCalendars', {});
+
+		$(window).unload ( logoutClicked ); 
+		if ( timezoneJS && timezoneJS != undefined && timezoneJS.timezone != undefined && timezoneInit == false ) 
+		{
+			timezoneInit = true;
+			timezoneJS.timezone.zoneFileBasePath = jqcaldavPath+'tz';
+			timezoneJS.timezone.init();
+		}
+	},100);
 	e.stopPropagation();
 	return false;
 }
@@ -154,6 +160,7 @@ function logout ()
 	for ( var i in alerts )
 		window.clearTimeout(alerts[i]);
 	$('#calwrap').remove();
+	$('#cal_login').fadeIn();
 	$('#name').val('');
 	$('#pass').val('');
 }
