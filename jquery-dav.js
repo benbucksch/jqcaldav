@@ -203,10 +203,20 @@ jQuery.extend ({
     getCalendars : function( ) { 
 			$.fn.caldav('findMyPrincipal', function () {
 				$.fn.caldav('findDelagatedPrincipals', function () {
-					$.fn.caldav.starting = $.fn.caldav.principals.length;
-					for ( var i = 0; i < $.fn.caldav.principals.length; i ++ )
+					var p = $.fn.caldav.principals;
+					var c = []; 
+					for ( var i=0; i < p.length; i++ )
 					{
-						if ( String($.fn.caldav.principals[i].href).length < 3 )
+						if ( c.indexOf ( p[i].calendar ) == -1 ) 
+							c.push(p[i].calendar);
+					}
+					$.fn.caldav.starting = c.length;
+					if ( debug ) 
+						if ( c.length == 0 )
+							alert ( 'no calendars found' );
+					for ( var i = 0; i < c.length; i ++ )
+					{
+						if ( String(c[i]).length < 3 )
 						{
 							$.fn.caldav.starting--;
 							if ( $.fn.caldav.starting == 0 )
@@ -214,7 +224,7 @@ jQuery.extend ({
 									$.fn.caldav.options.calendars($.fn.caldav.calendarData);
 							continue;
 						}
-						$.fn.caldav('getCalendarData',{url:$.fn.caldav.principals[i].href}, function () {
+						$.fn.caldav('getCalendarData',{url:c[i]}, function () {
 							$.fn.caldav.starting--;
 							if ( $.fn.caldav.starting == 0 )
 								if ( $.fn.caldav.options.calendars )
@@ -231,8 +241,6 @@ jQuery.extend ({
 			'<x0:propfind xmlns:x1="http://calendarserver.org/ns/" xmlns:x0="DAV:" xmlns:x3="http://apple.com/ns/ical/" xmlns:x2="urn:ietf:params:xml:ns:caldav" xmlns:x4="http://boxacle.net/ns/calendar/">' + "\n" +
 			'<x0:prop>' + "\n" +
 			'<x0:displayname/>' + "\n" +
-			'<x0:principal-URL/>' + "\n" +
-			'<x1:getctag/>' + "\n" +
 			'<x2:calendar-description/>' + "\n" +
 			'<x2:calendar-home-set/>' + "\n" +
 			'<x2:calendar-user-address-set/>' + "\n" +
@@ -272,6 +280,8 @@ jQuery.extend ({
 			for (var i=0;i<rcalendars.length;i++)
 			{
 				var cuprincipal = $.trim($("owner > href",rcalendars[i]).text());
+				if ( $.fn.caldav.principals[$.fn.caldav.principalMap[$("> href",rcalendars[i]).text()]].loaded == true )
+					continue;
 				$.fn.caldav.calendarData[s+i] = { xml: $(rcalendars[i]).clone(true),
 				displayName: $("displayname",rcalendars[i]).text(),
 				href: $("> href",rcalendars[i]).text(),
@@ -285,6 +295,7 @@ jQuery.extend ({
 				order: $(rcalendars[i]).find("["+$.fn.caldav.xmlNSfield+"=calendar-order]").text(),};
 				if ( $.fn.caldav.principalMap[cuprincipal] != undefined )
 					$.fn.caldav.calendarData[s+i].principalName = $.fn.caldav.principals[$.fn.caldav.principalMap[cuprincipal]].name;
+				$.fn.caldav.principals[$.fn.caldav.principalMap[$("> href",rcalendars[i]).text()]].loaded = true;
 			}
 			//$.fn.caldav.calendarXML = $.extend(true,$.fn.caldav.calendarXml,$("response",r.responseXML));
 			if ( $.fn.caldav.calendarXml == undefined )
@@ -396,7 +407,7 @@ jQuery.extend ({
 
 		findDelagatedPrincipals: function (callback){
 			$.fn.caldav('spinner',true);
-			$.report ($.extend(true,{},$.fn.caldav.options,{url:$.fn.caldav.data.principalHome,data:'<?xml version="1.0" encoding="utf-8" ?>\n' +
+			$.report ($.extend(true,{},$.fn.caldav.options,{url:$.fn.caldav.data.myPrincipal,data:'<?xml version="1.0" encoding="utf-8" ?>\n' +
 '<expand-property xmlns="DAV:">' +
 ' <property name="calendar-proxy-write-for" xmlns="http://calendarserver.org/ns/"><property name="displayname"/><property name="principal-URL"/><property name="calendar-user-address-set" xmlns="urn:ietf:params:xml:ns:caldav"/></property>' +
 ' <property name="calendar-proxy-read-for" xmlns="http://calendarserver.org/ns/"><property name="displayname"/><property name="principal-URL"/><property name="calendar-user-address-set" xmlns="urn:ietf:params:xml:ns:caldav"/></property>' +
