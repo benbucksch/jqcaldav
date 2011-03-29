@@ -207,7 +207,7 @@ jQuery.extend ({
 					var c = []; 
 					for ( var i=0; i < p.length; i++ )
 					{
-						if ( c.indexOf ( p[i].calendar ) == -1 ) 
+						if ( p[i].calendar != '' && c.indexOf ( p[i].calendar ) == -1 ) 
 							c.push(p[i].calendar);
 					}
 					$.fn.caldav.starting = c.length;
