@@ -314,6 +314,7 @@ jQuery.extend ({
 					$.fn.caldav('spinner',false);
 					if (s=='success')
 				  {
+						$.fn.caldav.requestcount = 0;
 						if ( r.responseXML.firstChild.baseName )
 							$.fn.caldav.xmlNSfield = 'baseName';
 	          if ( jQuery.fn.caldav.data == undefined )
@@ -333,6 +334,11 @@ jQuery.extend ({
 									$.fn.caldav('spinner',false);
 									var results = $('response',r.responseXML);
 									$.fn.caldav.data.myPrincipal = $.trim($('current-user-principal > href:first',r.responseXML).text());
+									if ( $('href:first:contains('+$.fn.caldav.data.myPrincipal+')',r.responseXML).length == 0 )
+									{
+										$.fn.caldav.requestcount++;
+										$.fn.caldav('getPrincipalData',$.fn.caldav.data.myPrincipal);
+									}
 									for ( var i = 0; i < results.length; i++ )
 									{
 										var href = $('href:first',results[i]).text();
@@ -344,16 +350,18 @@ jQuery.extend ({
 										});
 										var m = $.fn.caldav.principals.length-1;
 										$.fn.caldav.principalMap[href] = m;
-										if ( i + 1 == results.length ) 
-											$.fn.caldav('getPrincipalData',href,callback);
-										else
-											$.fn.caldav('getPrincipalData',href);
+										$.fn.caldav.requestcount++;
+										$.fn.caldav('getPrincipalData',href,callback);
 									}
 								}
 							}));
 						//}
 						//else
 						//	$.fn.caldav('getPrincipalData',$.fn.caldav.data.myPrincipal,callback);
+					}
+					else
+					{
+						alert ( 'failed to perform initial propfind' );
 					}
 				}
 			}));
@@ -395,7 +403,8 @@ jQuery.extend ({
 						}
 					}
 					//$.fn.caldav.principalMap[$.trim($('response > href',r.responseXML).text())] = $.fn.caldav.principals[$.fn.caldav.principals.length-1];
-					if ( typeof(callback) == 'function' )
+					$.fn.caldav.requestcount--;
+					if ( $.fn.caldav.requestcount == 0 && typeof(callback) == 'function' )
 						callback(r,s);
 				}
 			}));

@@ -254,6 +254,7 @@ var resize_delay=0,resize_time=50;
 function resize ()
 {
 	$('#calsidebar, #caltodo').css({height: window.innerHeight });
+	$('#callist').css({height:window.innerHeight- ( $('.sidetitle').height() + $('.calfooter').height() ) } );
 	//$('#wcal,#calh,#calheader').css({width: $('#calwrap').width() - ( $('#calsidebar').width() +1 + $('#caltodo').width() +7 )} );
 	$('#wcal').css({height: ( window.innerHeight - ( $('#wcal')[0].offsetTop + 2) ) });
 	$('.timeline').css({height: ( window.innerHeight - ( $('#wcal')[0].offsetTop + 2) ) });
@@ -3097,8 +3098,9 @@ function calstyle ()
 		'border-right: 1px solid #AAA; overflow: hidden; margin-right: -1px; }' + "\n" +
 	'#calsidebar * { resize: none; } ' + "\n" +
 	'#calsidebar > .sidetitle { font-size: 200%; font-weight: lighter; border: none !important; border-bottom:1px solid #AAA !important; text-align: center; padding:1px 0 14pt 0; margin:0;}' + "\n" +
-	'#calsidebar > ul { position: relative; display: block; margin-left: 0; padding: 0px; list-style-type: none; overflow-x: hidden; overflow-y: auto; height: 100%; } ' + "\n" +
-	'#calsidebar > ul > li { margin-left: 0; padding-left: 0;  padding-bottom: .5em; -webkit-transition-property: all; -webkit-transition-duration: 1.4s;  -moz-transition-property: all; -moz-transition-duration: 1.4s; transition-property: all; transition-duration: 1.4s;  } ' + "\n" +
+	'#calsidebar > ul { position: relative; display: block; margin: 0; padding: 0px; list-style-type: none; overflow-x: hidden; overflow-y: scroll; padding-top: 1em; margin-right: -1.2em; height: 100%; } ' + "\n" +
+	'#calsidebar > ul > li { margin-left: 0; padding: 0;  padding-bottom: .5em; -webkit-transition-property: all; -webkit-transition-duration: 1.4s;  -moz-transition-property: all; -moz-transition-duration: 1.4s; transition-property: all; transition-duration: 1.4s;  } ' + "\n" +
+	'#calsidebar > ul > li:last-child { margin-bottom: 2em; } ' + "\n" +
 	'#calsidebar > ul > li > span:hover:after { content: "edit"; position: absolute: right: 0; float: right; display: block; width: 3.5em; } ' + "\n" +
 	'#calsidebar > ul > li > span { color: #666; margin:0;padding:0;padding-left: 12px; display: block; width: 100%; position: relative; font-size: 9pt; letter-spacing: -0.01em; text-transform: uppercase; '+
 		'-webkit-transition-property: all; -webkit-transition-duration: .4s; -moz-transition-property: all; -moz-transition-duration: .4s; transition-property: all; transition-duration: .4s; } ' + "\n" +
