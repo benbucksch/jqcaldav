@@ -38,7 +38,7 @@ function getTZ ( d )
 	return false;
 }
 
-var defaults={ui:{calendar:"Calendars",todos:"To Do","add":"Add",settings:"Settings",subscribe:"Subscribe",today:"Today",week:"Week",month:"Month",start:"Day Starts",end:"Day Ends",twentyFour:"24 Hour Time",username:'Username',password:'Password','go':'go','New Event':'New Event',"alarm":"alarm","done":"Done","delete":"Delete","name":"name","color":"color","description":"description","url":"url","privileges":"privileges","logout":"Logout","new calendar":"New Calendar","yes":"yes","no":"no","logout error":"Error logging out, please CLOSE or RESTART your browser!","owner":"Owner","subscribed":"Subscribed","lock failed":"failed to acquire lock, may not be able to save changes",loading:'working','update frequency':'update frequency'},
+var defaults={ui:{calendar:"Calendars",todos:"To Do","add":"Add",settings:"Settings",subscribe:"Subscribe",today:"Today",week:"Week",month:"Month",start:"Day Starts",end:"Day Ends",twentyFour:"24 Hour Time",username:'Username',password:'Password','go':'go','New Event':'New Event','New Todo':'New Todo','New Journal':'New Journal',"alarm":"alarm","done":"Done","delete":"Delete","name":"name","color":"color","description":"description","url":"url","privileges":"privileges","logout":"Logout","new calendar":"New Calendar","yes":"yes","no":"no","logout error":"Error logging out, please CLOSE or RESTART your browser!","owner":"Owner","subscribed":"Subscribed","lock failed":"failed to acquire lock, may not be able to save changes",loading:'working','update frequency':'update frequency'},
 	months:["January","February","March","April","May","June","July","August","September","October","November","December"],
 	weekdays:["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
 	dropquestion:["Do you want to move",["All occurences","This one occurence"]],
@@ -63,9 +63,20 @@ $(document).ready ( function () {
 		var here = $('.jqcaldav:eq(0)');
 		jqcaldavPath = $('script[src*=jqcaldav]').attr('src').replace(/jqcaldav.js/,'');
 		$.ajax({url:jqcaldavPath+String(navigator.language?navigator.language:navigator.userLanguage).toLowerCase()+'.js',async:false, dataType:"json",success:function(d){
-			if (d.ui != undefined){ui=d.ui;months=d.months;weekdays=d.weekdays;dropquestion=d.dropquestion;
-				deletequestion=d.deletequestion;fieldNames=d.fieldNames;valueNames=d.valueNames;durations=d.durations;
-				recurrenceUI=d.recurrenceUI;deleteCalQuestion=d.deleteCalQuestion;privileges=d.privileges;}
+			if (d.ui != undefined)
+			{
+				ui = $.extend(true, ui,d.ui);
+				months = $.extend(true, months,d.months);
+				weekdays = $.extend(true, weekdays,d.weekdays);
+				dropquestion = $.extend(true, dropquestion,d.dropquestion);
+				deletequestion = $.extend(true, deletequestion,d.deletequestion);
+				fieldNames = $.extend(true, fieldNames,d.fieldNames);
+				valueNames = $.extend(true, valueNames,d.valueNames);
+				durations = $.extend(true, durations,d.durations);
+				recurrenceUI = $.extend(true, recurrenceUI,d.recurrenceUI);
+				deleteCalQuestion = $.extend(true, deleteCalQuestion,d.deleteCalQuestion);
+				privileges = $.extend(true, privileges,d.privileges);
+			}
 			else
 				{ui=defaults.ui; months=defaults.months; weekdays=defaults.weekdays; dropquestion=defaults.dropquestion;
 				deletequestion=defaults.deletequestion; fieldNames=defaults.fieldNames; valueNames= defaults.valueNames;recurrenceUI=d.recurrenceUI;}},error:function()
@@ -1811,7 +1822,7 @@ function newevent (e)
 	else
 		c=0;
 	var type;
-	if ( $(e.target).closest('td') )
+	if ( $(e.target).closest('td').length > 0 )
 	{
 		var d = (new Date()).parseDate($(e.target).closest('td').attr('id').match(/day_(\d+)/)[1]);
 		type = 'event';
@@ -1821,7 +1832,7 @@ function newevent (e)
 		type = 'todo';
 	}
 
-	var ics = new iCal();
+	var ics = new iCal('v'+type);
 	ics = ics.ics[0];
 	ics.vcalendar['v'+type].uid = ics.PARENT.newField('UID',guid());
 	$(pop).data('ics',ics);
@@ -1840,12 +1851,14 @@ function newevent (e)
 			}
 			);
 	var ul = $('<ul></ul>');
-	$(ul).append('<li><span class="label">'+fieldNames.summary+'</span><span class="value">'+ui['New Event']+'</span></li>');
-	
-	d.setUTCHours((new Date()).getHours());
-	$(ul).append('<li><span class="label">'+fieldNames.dtstart+'</span><span class="value">'+d.prettyDate() +'</span></li>');
-	d.setUTCHours(d.getUTCHours()+1);
-	$(ul).append('<li><span class="label">'+fieldNames.dtend+'</span><span class="value">'+d.prettyDate() +'</span></li>');
+	$(ul).append('<li><span class="label">'+fieldNames.summary+'</span><span class="value">'+ui[ics.vcalendar['v'+type].summary.VALUE]+'</span></li>');
+	if ( type == 'event' ) 
+	{
+		d.setUTCHours((new Date()).getHours());
+		$(ul).append('<li><span class="label">'+fieldNames.dtstart+'</span><span class="value">'+d.prettyDate() +'</span></li>');
+		d.setUTCHours(d.getUTCHours()+1);
+		$(ul).append('<li><span class="label">'+fieldNames.dtend+'</span><span class="value">'+d.prettyDate() +'</span></li>');
+	}
 	$(pop).append(ul);
 	var off = $(e.target).offset();
 	var popoff = {width: 280, height: 330 };
@@ -2162,7 +2175,7 @@ function addField(e)
 			var txt = $('<li><span class="label">'+$(this).text()+'</span><span class="value" contenteditable="true" spellcheck="true"></span></li>');
 			if ( $(this).text() == ui.alarm )
 			{
-				var plus = $('<span><span class="alarm"><span class="action" contenteditable="true">'+valueNames.AUDIO+'</span><span class="value" contenteditable="true">15</span><span class="length" contenteditable="true" >'+durations['minutes before']+'</span></span></span>').append($('<span class="plus">'+ui.add+'</span>').click(function(){$(this).before('<span class="alarm"><span class="action" contenteditable="true">'+valueNames.AUDIO+'</span><span class="value" contenteditable="true">15</span><span class="length" contenteditable="true" >'+durations['minutes before']+'</span><span class="related" contenteditable="true" >'+valueNames.START+'</span></span>');$('.action,.length,.related',$(this).prev()).bind('click, focus',alarmFieldClick);}));
+				var plus = $('<span><span class="alarm"><span class="action" contenteditable="true">'+valueNames.AUDIO+'</span><span class="value" contenteditable="true">15</span><span class="length" contenteditable="true" >'+durations['minutes before']+'</span><span class="related" contenteditable="true" >'+valueNames.START+'</span></span></span>').append($('<span class="plus">'+ui.add+'</span>').click(function(){$(this).before('<span class="alarm"><span class="action" contenteditable="true">'+valueNames.AUDIO+'</span><span class="value" contenteditable="true">15</span><span class="length" contenteditable="true" >'+durations['minutes before']+'</span><span class="related" contenteditable="true" >'+valueNames.START+'</span></span>');$('.action,.length,.related',$(this).prev()).bind('click, focus',alarmFieldClick);}));
 				$('.value',txt).replaceWith(plus);
 				$('.action,.length,.related',txt).bind('click, focus',alarmFieldClick);
 				var cp = $(this).closest('li').before(txt);
@@ -2529,7 +2542,7 @@ function eventEdited (e)
 		}
 		else
 		{
-			href = $(document).caldav('calendars')[c].href + d.vcalendar.vevent.uid + '.ics'; 
+			href = $(document).caldav('calendars')[c].href + d.vcalendar[type].uid + '.ics'; 
 			var params = { url:href};
 			$(document).caldav('putNewEvent',params,d.PARENT.printiCal (  )); 
 		}
@@ -2804,6 +2817,11 @@ function buildcal(d)
 		{	$('li.selected',$(this).parent()).toggleClass('selected');$(this).parent('li').toggleClass('open');$(this).parent('li').toggleClass('closed');}});
 	$(sidebar).append(sideul);
 	$(sidebar).append('<div class="calfooter group" tabindex="2"><div id="addcalendar" class="button" >'+ui.add+'</div><div id="calsettings" class="button" >'+ui.settings+'</div><div id="calsubscribe" class="button" >'+ui.subscribe+'</div></div>');
+	if ( startTranslating != undefined && typeof ( startTranslating ) == "function" )
+	{
+		$('.calfooter',sidebar).append('<div id="caltranslate" class="button" >translate</div>');
+		$('#caltranslate',sidebar).click(startTranslating);
+	}
 	$('#addcalendar',sidebar).click(addCalendar); 
 	$('#calsettings',sidebar).click(calSettings); 
 	$('#calsubscribe',sidebar).click(subscribeCalendar); 
@@ -3154,7 +3172,7 @@ function calstyle ()
 	'.calpopup .value:focus:hover { resize:both; }' + "\n" +
 	'.calpopup .alarm { resize: none; outline: none; margin:0; padding:0; padding-right: 2px; padding-left: 4px; min-width: 3em; min-height: 1em; display: block; float: left; margin-top: 6px; margin-bottom: 2px; }' + "\n" +
 	'.calpopup .alarm .value { resize: none; outline: none; margin:0; padding:0; padding-right: .1em; padding-left: .1em; display: inline; float: none; }' + "\n" +
-	'.calpopup .alarm .plus { display: block; float: left; padding-right: 2px; padding-left: 4px; } ' + "\n" +
+	'.calpopup .alarm + .plus { display: block; float: left; padding-right: 2px; padding-left: 4px; margin-top: 6px; margin-bottom: 2px; text-decoration: underline; color: #00A; } ' + "\n" +
 	'.alarm span { resize: none; outline: none; margin:0; padding:0; padding-right: .1em; padding-left: .1em; }' + "\n" +
 
 	//'.calpopup .label[extra] { outline: 1px solid blue; content: "XX" ; }' + "\n" +
@@ -3330,7 +3348,8 @@ function calstyle ()
 	".color13 { background-color: #0000FF; } .color14 { background-color: #00FF00; } .color15 { background-color: #FF0000; } .color16 { background-color: #00FFFF; } .color17 { background-color: #FF00FF; } .color18 { background-color: #FFFF00; } \n" + 
 	".color19 { background-color: #4444FF; } .color20 { background-color: #44FF44; } .color21 { background-color: #FF4444; } .color22 { background-color: #44FFFF; } .color23 { background-color: #FF44FF; } .color24 { background-color: #FFFF44; } \n" + 
 	".color25 { background-color: #8888FF; } .color26 { background-color: #88FF88; } .color27 { background-color: #FF8888; } .color28 { background-color: #88FFFF; } .color29 { background-color: #FF88FF; } .color30 { background-color: #FFFF88; } \n" + 
-
+	"#translator .label { width: 10em; } \n" +
+	"#translator .missing { outline: 2px dashed red; } \n" +
 	
 	'#caldrop { position: absolute; top: 0; left: 0; text-align: right; margin: 0; padding: 0; background: white; border-bottom: 1px solid red; width: 30%; height: 1em;  z-index: 99; }' + "\n" +
 	"#caldavloading1 span { -webkit-text-fill-color: transparent; display: block; width: 200%; margin-left: -50%; background-position: -3.5em 0; \n"+
@@ -3512,7 +3531,9 @@ function guid()
 
 var iCal = function ( text ) {
 	this.prototype = Array.prototype;
-	this.icsTemplate = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//jqCalDav\nCALSCALE:GREGORIAN\nBEGIN:VEVENT\nSUMMARY:New Event\nDTEND;VALUE=DATE:19700101\nTRANSP:TRANSPARENT\nDTSTART;VALUE=DATE:19700101\nDTSTAMP:19700101T000000Z\nSEQUENCE:0\nEND:VEVENT\nEND:VCALENDAR";
+	this.icsTemplateVevent = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//jqCalDav\nCALSCALE:GREGORIAN\nBEGIN:VEVENT\nSUMMARY:"+ui['New Event']+"\nDTEND;VALUE=DATE:19700101\nTRANSP:TRANSPARENT\nDTSTART;VALUE=DATE:19700101\nDTSTAMP:19700101T000000Z\nSEQUENCE:0\nEND:VEVENT\nEND:VCALENDAR";
+	this.icsTemplateVtodo = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//jqCalDav\nCALSCALE:GREGORIAN\nBEGIN:VTODO\nSUMMARY:"+ui['New Todo']+"\nDTEND;VA\nTRANSP:TRANSPARENT\nDTSTAMP:19700101T000000Z\nSEQUENCE:0\nDUE;VALUE=DATE:19700101\nSTATUS:NEEDS-ACTION\nEND:VTODO\nEND:VCALENDAR";
+	this.icsTemplateVjournal = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//jqCalDav\nCALSCALE:GREGORIAN\nBEGIN:VJOURNAL\nSUMMARY:"+ui['New Journal']+"\nDTSTAMP:19700101T000000Z\nSEQUENCE:0\nEND:VJOURNAL\nEND:VCALENDAR";
 
 	this.components = { 
 		vcalendar:{required:['version','prodid',['vevent','vtodo','vjournal','vfreebusy']],optional:['calscale','method','vtimezone']},
@@ -4093,8 +4114,12 @@ var iCal = function ( text ) {
 		return a;
 	}
 
-	if ( ! text )
-		text = this.icsTemplate ;
+	if ( ! text || text == 'vevent' )
+		text = this.icsTemplateVevent ;
+	else if ( text == 'vtodo' ) 
+		text = this.icsTemplateVtodo ;
+	else if ( text == 'vjournal' ) 
+		text = this.icsTemplateVjournal ;
 	this.ics = this.parseiCal( text );
 	this.length = this.ics.length;
 
