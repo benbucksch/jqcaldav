@@ -254,12 +254,6 @@ jQuery.extend ({
 					return ret; 
 				}
 			);
-			for ( var i = 0; i < $.fn.caldav.calendarData.length; i++ )
-			{
-				console.log ( $.fn.caldav.calendarData[i].href + ' was '+ 
-					$.fn.caldav.principals[$.fn.caldav.principalMap[$.fn.caldav.calendarData[i].href]].cal + ', changing to ' + i ); 
-				$.fn.caldav.principals[$.fn.caldav.principalMap[$.fn.caldav.calendarData[i].href]].cal = i;
-			}
 		},
 
     getCalendarData : function( params, callback ) { 
