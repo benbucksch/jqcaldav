@@ -169,7 +169,7 @@ function gotCalendars ()
 {
 	if ( $('#wcal').length < 1 )
 	{
-		var ph = $('response > href:contains('+$.fn.caldav.data.principalHome+')',$.fn.caldav.calendarXml).first().parent();
+		var ph = $.fn.caldav.principalData[$.fn.caldav.principals[$.fn.caldav.principalMap[$.fn.caldav.data.myPrincipal]].cal].xml;
 		var s = $('*['+$.fn.caldav.xmlNSfield+'=calendar-settings]:first',ph).text();
 		if ( s.length > 20 )
 		{
@@ -2254,7 +2254,7 @@ function printAlarm(a)
 			var atext = '';
 			if ( alarms[A].description != undefined )
 				atext = alarms[A].description;
-			var related = '';
+			var related = valueNames.START;
 			if ( alarms[A].trigger.PROP && alarms[A].trigger.PROP.related && alarms[A].trigger.PROP.related != undefined )
 				related = valueNames[alarms[A].trigger.PROP.related];
 			$(ret).append('<span class="alarm"><span class="action" contenteditable="true" data-value="'+alarms[A].action.VALUE+'" >'+valueNames[alarms[A].action.VALUE]+
@@ -2355,6 +2355,11 @@ function alarmEdited ( valarm , data, event )
 					alarms[i].trigger.PROP.related = related;
 					edited = true;
 				}
+			}
+			else
+			{
+					alarms[i].trigger.PROP= {'related': related};
+					edited = true;
 			}
 		}
 	}
