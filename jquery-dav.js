@@ -345,7 +345,7 @@ jQuery.extend ({
 				order: $(rcalendars[i]).find("["+$.fn.caldav.xmlNSfield+"=calendar-order]").text(),};
 				if ( $.fn.caldav.principalMap[cuprincipal] != undefined )
 					$.fn.caldav.calendarData[s+i].principalName = $.fn.caldav.principals[$.fn.caldav.principalMap[cuprincipal]].name;
-				$.fn.caldav.principals[$.fn.caldav.principalMap[href]].cal = s+i;
+				//$.fn.caldav.principals[$.fn.caldav.principalMap[href]].cal = s+i;
 			}
 			if ( $.fn.caldav.calendarXml == undefined )
 				$.fn.caldav.calendarXml = $(r.responseXML.documentElement).clone();
