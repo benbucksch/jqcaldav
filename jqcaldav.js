@@ -169,7 +169,7 @@ function gotCalendars ()
 {
 	if ( $('#wcal').length < 1 )
 	{
-		var ph = $.fn.caldav.principalData[$.fn.caldav.principals[$.fn.caldav.principalMap[$.fn.caldav.data.myPrincipal]].cal].xml;
+		var ph = $.fn.caldav.collectionData[$.fn.caldav.principals[$.fn.caldav.principalMap[$.fn.caldav.data.myPrincipal]].cal].xml;
 		var s = $('*['+$.fn.caldav.xmlNSfield+'=calendar-settings]:first',ph).text();
 		if ( s.length > 20 )
 		{

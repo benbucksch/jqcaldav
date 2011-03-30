@@ -187,7 +187,7 @@ jQuery.extend ({
 			$.fn.caldav.principals = new Array ;
 			$.fn.caldav.principalMap = new Object ;
 			$.fn.caldav.calendarData = new Array ;
-			$.fn.caldav.principalData = new Array ;
+			$.fn.caldav.collectionData = new Array ;
 			$.fn.caldav.locks = {};
 			$.fn.caldav.xmlNSfield = 'localName';
 			if ( document.documentElement.baseName ) // ie just has to be different
@@ -293,16 +293,16 @@ jQuery.extend ({
 
 
 		parseCalendars : function (r, callback ) { 
-			var pcalendars = $("response resourcetype > ["+$.fn.caldav.xmlNSfield+"=principal],",r.responseXML).closest('response'); 
+			var pcalendars = $("response resourcetype > ["+$.fn.caldav.xmlNSfield+"=collection],",r.responseXML).closest('response'); 
 			var rcalendars = $("response resourcetype > ["+$.fn.caldav.xmlNSfield+"=calendar],",r.responseXML).closest('response'); 
 			var baseurl = jQuery.fn.caldav.options.url.replace(/(\/\/[.a-zA-Z0-9-])\/.*$/, '$1');
 			var s =0;
-			if ( $.fn.caldav.principalData && $.fn.caldav.principalData.length > 0 )
-				s = $.fn.caldav.principalData.length;
+			if ( $.fn.caldav.collectionData && $.fn.caldav.collectionData.length > 0 )
+				s = $.fn.caldav.collectionData.length;
 			for (var i=0;i<pcalendars.length;i++)
 			{
 				var cuprincipal = $.trim($("owner > href",pcalendars[i]).text());
-				$.fn.caldav.principalData[s+i] = { xml: $(pcalendars[i]).clone(true),
+				$.fn.caldav.collectionData[s+i] = { xml: $(pcalendars[i]).clone(true),
 				displayName: $("displayname",pcalendars[i]).text(),
 				href: $("> href",pcalendars[i]).text(),
 		 		url: ($("> href",pcalendars[i]).text().match(/^\//) ?
@@ -315,7 +315,7 @@ jQuery.extend ({
 				color: $(pcalendars[i]).find("["+$.fn.caldav.xmlNSfield+"=calendar-color]").text().replace (/(#......)../,'$1'),
 				order: $(pcalendars[i]).find("["+$.fn.caldav.xmlNSfield+"=calendar-order]").text(),};
 				if ( $.fn.caldav.principalMap[cuprincipal] != undefined )
-					$.fn.caldav.principalData[s+i].principalName = $.fn.caldav.principals[$.fn.caldav.principalMap[cuprincipal]].name;
+					$.fn.caldav.collectionData[s+i].principalName = $.fn.caldav.principals[$.fn.caldav.principalMap[cuprincipal]].name;
 				$.fn.caldav.principals[$.fn.caldav.principalMap[cuprincipal]].cal = s+i;
 			}
 			var s =0;
