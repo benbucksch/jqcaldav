@@ -302,9 +302,10 @@ jQuery.extend ({
 			for (var i=0;i<pcalendars.length;i++)
 			{
 				var cuprincipal = $.trim($("owner > href",pcalendars[i]).text());
+				href = $("> href",pcalendars[i]).text();
 				$.fn.caldav.collectionData[s+i] = { xml: $(pcalendars[i]).clone(true),
 				displayName: $("displayname",pcalendars[i]).text(),
-				href: $("> href",pcalendars[i]).text(),
+				href: href, 
 		 		url: ($("> href",pcalendars[i]).text().match(/^\//) ?
 		 				baseurl.replace(/^(https?:\/\/[^\/]+).*$/,'$1') + $("> href",pcalendars[i]).text() : 	baseurl + $("> href",pcalendars[i]).text()),
 				mailto: $("href:contains('mailto:')",pcalendars[i]).text().replace(/^mailto:/i,''),
@@ -316,7 +317,8 @@ jQuery.extend ({
 				order: $(pcalendars[i]).find("["+$.fn.caldav.xmlNSfield+"=calendar-order]").text(),};
 				if ( $.fn.caldav.principalMap[cuprincipal] != undefined )
 					$.fn.caldav.collectionData[s+i].principalName = $.fn.caldav.principals[$.fn.caldav.principalMap[cuprincipal]].name;
-				$.fn.caldav.principals[$.fn.caldav.principalMap[cuprincipal]].cal = s+i;
+				if ( href != '' )
+					$.fn.caldav.principals[$.fn.caldav.principalMap[href]].cal = s+i;
 			}
 			var s =0;
 			if ( $.fn.caldav.calendarData && $.fn.caldav.calendarData.length > 0 )
