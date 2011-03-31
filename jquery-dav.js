@@ -90,6 +90,21 @@ jQuery.extend ({
 									 }
 						);
 			},
+    mkcol : function( origSettings ) { 
+		var s = jQuery.extend(true, {}, jQuery.ajaxSettings,{contentType:'text/xml',type:'MKCOL'},origSettings);
+				return jQuery.ajax ( { beforeSend: function (r){var h = s.headers;for (var i in h)r.setRequestHeader(i,h[i])},
+									 cache: s.cache,
+									 contentType: s.contentType,
+                   data: s.data,
+									 password: encodeURIComponent(s.password),
+									 username: encodeURIComponent(s.username),
+									 type: 'MKCOL',
+                   url: s.url,
+									 success: s.success,
+									 complete: s.complete,
+									 }
+						);
+			},
     mkcalendar : function( origSettings ) { 
 		var s = jQuery.extend(true, {}, jQuery.ajaxSettings,{contentType:'text/xml',type:'MKCALENDAR'},origSettings);
 				return jQuery.ajax ( { beforeSend: function (r){var h = s.headers;for (var i in h)r.setRequestHeader(i,h[i])},
@@ -319,7 +334,6 @@ jQuery.extend ({
 					$.fn.caldav.collectionData[s+i].principalName = $.fn.caldav.principals[$.fn.caldav.principalMap[cuprincipal]].name;
 				if ( href != '' )
 				{
-					console.log(href,$.fn.caldav.principalMap[href],$.fn.caldav.principals[$.fn.caldav.principalMap[href]]);
 					if ( $.fn.caldav.principalMap[href] != undefined ) 
 						$.fn.caldav.principals[$.fn.caldav.principalMap[href]].cal = s+i;
 				}
@@ -361,12 +375,13 @@ jQuery.extend ({
 	//		$.propfind ($.extend(true,{},$.fn.caldav.options,{url:'/davical/htdocs/caldav.php/',headers:{Depth:1},data:'<?xml version="1.0" encoding="utf-8" ?>\n' +
 //'<propfind xmlns="DAV"><prop><principal-collection-set/><current-user-principal/></prop></propfind>',
 			$.propfind ($.extend(true,{},$.fn.caldav.options,{headers:{Depth:0},data:'<?xml version="1.0" encoding="utf-8" ?>\n' +
-				'<propfind xmlns="DAV:"><prop><principal-collection-set/><current-user-principal/></prop></propfind>',
+				'<propfind xmlns="DAV:"><prop><principal-collection-set/><current-user-principal/><calendar-description xmlns="urn:ietf:params:xml:ns:caldav" /></prop></propfind>',
 				complete: function (r,s)
 				{
 					$.fn.caldav('spinner',false);
 					if (s=='success')
 				  {
+						$.fn.caldav.serverSupports = r.getResponseHeader('Dav');
 						$.fn.caldav.requestcount = 0;
 						if ( r.responseXML.firstChild.baseName )
 							$.fn.caldav.xmlNSfield = 'baseName';
@@ -381,7 +396,7 @@ jQuery.extend ({
 						//{
 							$.fn.caldav('spinner',true);
 							$.propfind ($.extend(true,{},$.fn.caldav.options,{url:$.fn.caldav.data.principalCollection,headers:{Depth:1},data:'<?xml version="1.0" encoding="utf-8" ?>\n' +
-								'<propfind xmlns="DAV:"><prop><current-user-principal/><displayname/></prop></propfind>',
+								'<propfind xmlns="DAV:"><prop><current-user-principal/><displayname/><calendar-description xmlns="urn:ietf:params:xml:ns:caldav" /></prop></propfind>',
 								complete: function (r,s)
 								{
 									$.fn.caldav('spinner',false);
@@ -399,7 +414,8 @@ jQuery.extend ({
 											continue ;
 										$.fn.caldav.principals.push({
 											href:href,
-											name:$('displayname',results[i]).text()
+											name:$.trim($("["+$.fn.caldav.xmlNSfield+"=displayname]",results[i]).text()),
+											desc:$.trim($("["+$.fn.caldav.xmlNSfield+"=calendar-description]",results[i]).text())
 										});
 										var m = $.fn.caldav.principals.length-1;
 										$.fn.caldav.principalMap[href] = m;
@@ -426,7 +442,7 @@ jQuery.extend ({
 		getPrincipalData: function (url,callback){
 			$.fn.caldav('spinner',true);
 			$.propfind ($.extend(true,{},$.fn.caldav.options,{url:url,headers:{Depth:1},data:'<?xml version="1.0" encoding="utf-8" ?>\n' +
-				'<D:propfind xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav"><D:prop><D:displayname/><C:calendar-home-set/><C:calendar-user-address-set/></D:prop></D:propfind>',
+				'<D:propfind xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav"><D:prop><D:displayname/><C:calendar-home-set/><C:calendar-user-address-set/><C:calendar-description/></D:prop></D:propfind>',
 				complete: function (r,s)
 				{
 					$.fn.caldav('spinner',false);
@@ -450,6 +466,7 @@ jQuery.extend ({
 							href:href,
 							calendar:calendar,
 							name:$.trim($("["+$.fn.caldav.xmlNSfield+"=displayname]",results[i]).text()),
+							desc:$.trim($("["+$.fn.caldav.xmlNSfield+"=calendar-description]",results[i]).text()),
 							email:$.trim($("href:contains('mailto:')",results[i]).text()).replace(/^mailto:/i,'')
 						};
 						var addresses = $('calendar-user-address-set > href',results[i]);
@@ -911,21 +928,46 @@ jQuery.extend ({
 				else
 					n = 0;
 			}
-			$.mkcalendar ($.extend(true,{},$.fn.caldav.options,params,{data:'<?xml version="1.0" encoding="utf-8"?>' + "\n" +
-				'<x0:mkcalendar xmlns:x0="urn:ietf:params:xml:ns:caldav" xmlns:x1="DAV:" '+ns+'>'+
-				'  <x1:set>'+
-				'    <x1:prop>'+
-					str +
-				'      <x0:supported-calendar-component-set><x0:comp name="VEVENT"/><x0:comp name="VTODO"/><x0:comp name="VJOURNAL"/></x0:supported-calendar-component-set>'+
-				'    </x1:prop>'+
-				'  </x1:set>'+
-				'</x0:mkcalendar>'
-				,complete: function (r,s){
-					$.fn.caldav('spinner',false);
-					if (s=='success')
-						$(this).caldav('madeCalendar',r);
-				}
-			}));
+			if ( /extended-mkcol/.test ( $.fn.caldav.serverSupports ) )
+			{
+				$.mkcol ($.extend(true,{},$.fn.caldav.options,params,{data:'<?xml version="1.0" encoding="utf-8"?>' + "\n" +
+					'<x1:mkcol xmlns:x0="urn:ietf:params:xml:ns:caldav" xmlns:x1="DAV:" '+ns+'>'+
+					"	<x1:set>\n"+
+					"		<x1:prop>\n"+
+					"    	<x1:resourcetype>\n"+
+					"   	 	<x1:collection/>\n"+
+					"   	 	<x0:calendar/>\n"+
+					"    	</x1:resourcetype>\n"+
+						str +
+					'      <x0:supported-calendar-component-set><x0:comp name="VEVENT"/><x0:comp name="VTODO"/><x0:comp name="VJOURNAL"/></x0:supported-calendar-component-set>'+
+					"    </x1:prop>\n"+
+					"  </x1:set>\n"+
+					'</x1:mkcol>'
+					,complete: function (r,s){
+						$.fn.caldav('spinner',false);
+						if (s=='success')
+							$(this).caldav('madeCalendar',r);
+					}
+				}));
+			}
+			else
+			{
+				$.mkcalendar ($.extend(true,{},$.fn.caldav.options,params,{data:'<?xml version="1.0" encoding="utf-8"?>' + "\n" +
+					'<x0:mkcalendar xmlns:x0="urn:ietf:params:xml:ns:caldav" xmlns:x1="DAV:" '+ns+'>'+
+					'  <x1:set>'+
+					'    <x1:prop>'+
+						str +
+					'      <x0:supported-calendar-component-set><x0:comp name="VEVENT"/><x0:comp name="VTODO"/><x0:comp name="VJOURNAL"/></x0:supported-calendar-component-set>'+
+					'    </x1:prop>'+
+					'  </x1:set>'+
+					'</x0:mkcalendar>'
+					,complete: function (r,s){
+						$.fn.caldav('spinner',false);
+						if (s=='success')
+							$(this).caldav('madeCalendar',r);
+					}
+				}));
+			}
 			return this;
 		},
 
