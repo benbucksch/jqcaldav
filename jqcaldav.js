@@ -1197,15 +1197,33 @@ function addSubscribedEvents( c, start, end )
 	if ( c < 0 )
 	{
 		for ( var s in scals )
-			for ( var e in scals[s].events.ics )
-				if ( scals[s].events.ics[e].TYPE == 'vevent' &&
-						( scals[s].events.ics[e].vcalendar.vevent.dtstart.DATE > start && 
-							scals[s].events.ics[e].vcalendar.vevent.dtstart.DATE < end ) )
-					insertEvent(scals[s]['src']+'_event-'+e,scals[s].events.ics[e],s,start,end);
+		{
+			for ( var e in scals[s].events.recurrence )
+				if ( e.TYPE == 'vevent' )
+					insertEvent(scals[s]['src']+'_event-'+e.vevent.uid,e,s,start,end);
+			var d = new Date(start).YM();
+			while ( d <= end )
+			{
+				console.log ( d );
+				for ( var e in scals[s].events.index[d.YM()] )
+				{
+					var evt = scals[s].events.index[d.YM()][e];
+					if ( evt.TYPE == 'vevent' )
+					{
+						console.log ( 'adding event ' , e );
+						$('#wcal').queue(function (){insertEvent(scals[s]['src']+'_event-'+e,evt,s,start,end); $(this).dequeue();});
+					}
+				}
+				d.add('m',1);
+			}
+		}
 	}
 	else
 	{
 		s = c;
+		for ( var e in scals[s].events.recurrence )
+			if ( e.TYPE == 'vevent' )
+				insertEvent(scals[s]['src']+'_event-'+e.vevent.uid,e,s,start,end);
 		for ( var e in scals[s].events.ics )
 			if ( scals[s].events.ics[e].TYPE == 'vevent' && 
 					( scals[s].events.ics[e].vcalendar.vevent.dtstart.DATE > start && 
@@ -4122,12 +4140,24 @@ var iCal = function ( text ) {
 		text = this.icsTemplateVjournal ;
 	this.ics = this.parseiCal( text );
 	this.length = this.ics.length;
-
+	this.index = {};
+	this.recurrence = [];
 	for ( var i in this.ics )
 	{
 		this.ics[i]['PARENT'] = this;
 		this.ics[i]['INDEX'] = i;
 		this.ics[i]['DELETE'] = function () { this.PARENT.length--; delete this.PARENT.ics[this.INDEX]; };
+		if ( this.ics[i].TYPE == 'vevent' )
+		{
+			if ( this.ics[i].vcalendar.vevent.rrule != undefined )
+				this.recurrence.push(this.ics[i]);
+			else
+			{
+				if ( this.index[this.ics[i].vcalendar.vevent.dtstart.DATE.YM()] == undefined )
+					this.index[this.ics[i].vcalendar.vevent.dtstart.DATE.YM()] = [];
+				this.index[this.ics[i].vcalendar.vevent.dtstart.DATE.YM()].push(this.ics[i]);
+			}
+		}
 	}
 
 	return this;
@@ -4664,10 +4694,12 @@ function Zero (d)
 	return d;
 }
 
+Date.prototype.YM = function (){ var d = Zero(); d.setUTCMonth(this.getUTCMonth()); d.setUTCFullYear(this.getUTCFullYear()); return d; };
+Date.prototype.YW = function (){ var d = Zero(); d.setUTCMonth(this.getUTCMonth()); d.setUTCFullYear(this.getUTCFullYear()); d.setUTCDate(this.setUTCDate());d.setUTCDate(this.getUTCDate()); d.setDayOfWeek(this.WeekStart); return d; };
 Date.prototype.localTzApply = function(){ var adj = localTimezone.offset * 60/100 * 60; this.setTime( this.getTime() - adj *1000); return this; };
 Date.prototype.getLongMinutes = function(){return this.getUTCHours() * 100 + this.getUTCMinutes() * (100/60);};
 Date.prototype.Zero = function (){ Zero(this); return this; };
-Date.prototype.WeekStart = new Number(1);
+Date.prototype.WeekStart = new Number(0);
 Date.prototype.setWeekStart = function ( Day ) { this.WeekStart = new Number(Day); return this; };
 Date.prototype.getWeekStart = function ( ) { return this.WeekStart; };
 Date.prototype.getWeek = function ( ) { var w = 0, t = new Date(this);t.setUTCDate(1); t.setUTCMonth(0); if (t.getDay()<this.WeekStart)w--;while (t<this&&w<53) {t.setUTCDate(t.getUTCDate()+7);w++;}  return w; };
