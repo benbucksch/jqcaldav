@@ -35,12 +35,29 @@ function showTranslation ( lang )
 		var ul2 = $('<ul section="'+i+'"></ul>');
 		for ( var j in defaults[i] )
 		{
-			if ( languages[lang] != undefined && languages[lang][i] != undefined && languages[lang][i][j] )
-				var li2 = $('<li entry="'+ j +'"><span class="label">'+ j +'</span><span class="default value">'+ defaults[i][j] +'</span><span class="value '+lang+'" contenteditable="true" >'+ languages[lang][i][j] +'</span></li>');
+			if ( typeof ( defaults[i][j] ) != 'string' )
+			{
+				var li2 = $('<li entry="'+j+'"></li>');
+				var ul3 = $('<ul section="'+j+'"></ul>');
+				for ( var k in defaults[i][j] )
+				{
+					if ( languages[lang] != undefined && languages[lang][i] != undefined && languages[lang][i][j] != undefined && languages[lang][i][j][k] )
+						var li3 = $('<li entry="'+ k +'"><span class="label">'+ k +'</span><span class="default value">'+ defaults[i][j][k] +'</span><span class="value '+lang+'" contenteditable="true" >'+ languages[lang][i][j][k] +'</span></li>');
+					else
+						var li3 = $('<li entry="'+ k +'"><span class="label">'+ k +'</span><span class="default value">'+ defaults[i][j][k] +'</span><span class="value '+lang+' missing" contenteditable="true" >'+ defaults[i][j][k] +'</span></li>');
+					$(ul3).append(li3);
+				}
+				$(li2).append(ul3);
+				$(ul2).append(li2);
+			}
 			else
-				var li2 = $('<li entry="'+ j +'"><span class="label">'+ j +'</span><span class="default value">'+ defaults[i][j] +'</span><span class="value '+lang+' missing" contenteditable="true" >'+ defaults[i][j] +'</span></li>');
-
-			$(ul2).append(li2);
+			{
+				if ( languages[lang] != undefined && languages[lang][i] != undefined && languages[lang][i][j] )
+					var li2 = $('<li entry="'+ j +'"><span class="label">'+ j +'</span><span class="default value">'+ defaults[i][j] +'</span><span class="value '+lang+'" contenteditable="true" >'+ languages[lang][i][j] +'</span></li>');
+				else
+					var li2 = $('<li entry="'+ j +'"><span class="label">'+ j +'</span><span class="default value">'+ defaults[i][j] +'</span><span class="value '+lang+' missing" contenteditable="true" >'+ defaults[i][j] +'</span></li>');
+				$(ul2).append(li2);
+			}
 		}
 		$(li).append(ul2);
 		$(ul).append(li);
@@ -72,7 +89,14 @@ function saveTranslation ()
 		newlang[i] = {};
 		for ( var j in defaults[i] )
 		{ 
-			newlang[i][j] = $('#translator ul[section="'+i+'"] li[entry="'+j+'"] .value.'+lang).text();
+			if ( typeof ( defaults[i][j] ) != 'string' )
+			{
+				 newlang[i][j] = {};
+				for ( var k in defaults[i][j] )
+					newlang[i][j][k] = $('#translator ul[section="'+i+'"] li[entry="'+j+'"] li[entry="'+k+'"] .value.'+lang+':first').text();
+			}
+			else
+				newlang[i][j] = $('#translator ul[section="'+i+'"] li[entry="'+j+'"] .value.'+lang+':first' ).text();
 		}
 	}
 	languages[lang] = newlang;
