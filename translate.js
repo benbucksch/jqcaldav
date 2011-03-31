@@ -107,7 +107,7 @@ function saveTranslation ()
 	$('#translator .save').click(function (e)
 		{
 			var txt = $('#translatedText').text(); 
-			$.put({url:jqcaldavPath+ lang + '.js' ,data:txt,
+			$.put({url:jqcaldavPath+ lang + '.js' ,username:$.fn.caldav.options.username,password:$.fn.caldav.options.password,data:txt,
 				complete:function(r,s)
 				{
 					if ( s == 'success' )
