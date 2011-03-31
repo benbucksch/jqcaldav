@@ -362,7 +362,7 @@ function saveSettings (dialog)
 			break ;
 		}
 	}
-	$(document).caldav('updateCollection', {url:$.fn.caldav.data.myPrincipal},$.fn.caldav.data.myPrincipal,t);
+	$(document).caldav('updateCollection', {url:$.fn.caldav.principals[$.fn.caldav.principalMap[$.fn.caldav.data.myPrincipal]].calendar},$.fn.caldav.principals[$.fn.caldav.principalMap[$.fn.caldav.data.myPrincipal]].calendar,t);
 	return true;
 }
 
