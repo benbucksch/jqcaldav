@@ -3725,11 +3725,10 @@ function currentTimeIndicator()
 var subStart=null,subEnd=null;
 function buildweek(d,get)
 {
-	var start = new Date(d.getFullYear(),d.getMonth(),(d.getDate()-d.getDay()+settings.weekStart)), y = new Date(d.getFullYear(),0,1);
+	var start = new Date(d.getUTCFullYear(),d.getUTCMonth(),(d.getUTCDate()-d.getUTCDay()+settings.weekStart)), y = new Date(d.getUTCFullYear(),0,1);
 	var weeknum = (start.getTime() - y.getTime())/1000;
 	weeknum = weeknum / 604800;
 	weeknum = Number(weeknum+1).toFixed(0); // TODO fix calculation if year starts after thursday
-	//var week = $('<tr class="week week'+weeknum+'"><div class="weeknum"> week'+weeknum+'</div></tr>');
 	var week = $('<tr class="week week'+weeknum+'"></tr>');
 	$(week).append('<td class="weeknum" weeknum="'+weeknum+'"></td>');
 	$(week).children().append($(fhw).clone(true));
@@ -3753,7 +3752,7 @@ function buildweek(d,get)
 	var cals = $(document).caldav('calendars');
 	for ( var i=0;i<cals.length;i++)
 	{
-		$(document).caldav('getEvents', { url:cals[i].url,username:$('#user').val(),password:$('#pass').val()},start,end,i);
+		$(document).caldav('getEvents', { url:cals[i].href,username:$.fn.caldav.options.username,password:$.fn.caldav.options.password},start,end,i);
 	}
 	if ( subStart != null )
 	{
