@@ -3,6 +3,8 @@
 var cd,hw,fhw,jqcaldavPath,localTimezone,debug=false,alerts=[],timezoneInit = false;
 var settings={twentyFour:true,start:Zero().setUTCHours(6),end:Zero().setUTCHours(22),'update frequency':300,weekStart:0};
 var months,weekdays,dropquestion,deletequestion,fieldNames,valueNames,subscriptions;
+var perf=[[],[],[],[],[],[]];
+var globalEvents = {href:{}};
 settings.start = new Date(Zero().setUTCHours(6));
 settings.end = new Date(Zero().setUTCHours(22));
 var abbvr={abbv:[],names:[],offsets:[],count:0};
@@ -38,7 +40,7 @@ function getTZ ( d )
 	return false;
 }
 
-var defaults={ui:{calendar:"Calendars",todos:"To Do","add":"Add",settings:"Settings",subscribe:"Subscribe",today:"Today",week:"Week",month:"Month",start:"Day Starts",end:"Day Ends",twentyFour:"24 Hour Time",username:'Username',password:'Password','go':'go','New Event':'New Event','New Todo':'New Todo','New Journal':'New Journal',"alarm":"alarm","done":"Done","delete":"Delete","name":"name","color":"color","description":"description","url":"url","privileges":"privileges","logout":"Logout","new calendar":"New Calendar","yes":"yes","no":"no","logout error":"Error logging out, please CLOSE or RESTART your browser!","owner":"Owner","subscribed":"Subscribed","lock failed":"failed to acquire lock, may not be able to save changes",loading:'working','update frequency':'update frequency'},
+var defaults={ui:{calendar:"Calendars",todos:"To Do","show":"Show","sort":"Sort","add":"Add",settings:"Settings",subscribe:"Subscribe",today:"Today",week:"Week",month:"Month",start:"Day Starts",end:"Day Ends",twentyFour:"24 Hour Time",username:'Username',password:'Password','go':'go','New Event':'New Event','New Todo':'New Todo','New Journal':'New Journal',"alarm":"alarm","done":"Done","delete":"Delete","name":"name","color":"color","description":"description","url":"url","privileges":"privileges","logout":"Logout","new calendar":"New Calendar","yes":"yes","no":"no","logout error":"Error logging out, please CLOSE or RESTART your browser!","owner":"Owner","subscribed":"Subscribed","lock failed":"failed to acquire lock, may not be able to save changes",loading:'working','update frequency':'update frequency'},
 	months:["January","February","March","April","May","June","July","August","September","October","November","December"],
 	weekdays:["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
 	dropquestion:["Do you want to move",["All occurences","This one occurence"]],
@@ -137,7 +139,10 @@ function doit ( e )
 	var loading = $('<div id="caldavloading1" style="display:none;position:fixed;left:100%;top:100%;margin-top:-1em;margin-left:-4em;text-align: center; width:4em; background-color:black;color:white;-moz-border-top-left-radius:.5em;-webkit-border-top-left-radius:.5em;border-top-left-radius:.5em;opacity:.5;z-index:100;" data-loading="0" ><span>'+ui.loading+'</span></div>').appendTo(document.body);
 	window.setTimeout(function()
 	{
-		cd = $(document).caldav ( { url: $('.jqcaldav:first').data('caldavurl'), username:$('.jqcaldav:eq(0)').data('username'), password:$('.jqcaldav:eq(0)').data('password'), events: addEvents, todos: addToDos,eventPut: eventPut, eventDel: removeEvent, deletedCalendar: deletedCalendar, logout: logout, loading: $('#caldavloading1')}, loginFailed );
+		var fd = $('.jqcaldav:first').data('fulldiscovery');
+		if ( fd != 'true' )
+			fd = false;
+		cd = $(document).caldav ( { url: $('.jqcaldav:first').data('caldavurl'),fullDiscovery:fd, username:$('.jqcaldav:eq(0)').data('username'), password:$('.jqcaldav:eq(0)').data('password'), events: addEvents, todos: addToDos,eventPut: eventPut, eventDel: removeEvent, deletedCalendar: deletedCalendar, logout: logout, loading: $('#caldavloading1')}, loginFailed );
 		$.fn.caldav.options.calendars = gotCalendars;
 		$(document).caldav('getCalendars', {});
 
@@ -1323,6 +1328,16 @@ function keyboardSelector (e)
 	return true;
 }
 
+function showSortTodos ( e )
+{
+	if ( $(e.target).text() == ui.show )
+	{
+	}
+	else if ( $(e.target).text() == ui.sort )
+	{
+	}
+}
+
 function addEvents ( e ,c, start, end )
 {
 	var dRX = /([0-9]{4})([0-9]{2})([0-9]{2})([Tt]([0-2][0-9])([0-6][0-9])([0-9]{2}))?[Zz]?/;
@@ -1369,13 +1384,12 @@ function addSubscribedEvents( c, start, end )
 			var d = new Date(start).YM();
 			while ( d <= end )
 			{
-				console.log ( d );
 				for ( var e in scals[s].events.index[d.YM()] )
 				{
 					var evt = scals[s].events.index[d.YM()][e];
 					if ( evt.TYPE == 'vevent' )
 					{
-						$('#wcal').queue(function (){insertEvent(scals[s]['src']+'_event-'+e,evt,s,start,end); $(this).dequeue();});
+						$('#wcal').queue(function (){insertEvent(scals[s]['src']+'_event-'+String(evt.vcalendar.vevent.uid),evt,s,start,end); $(this).dequeue();});
 					}
 				}
 				d.add('m',1);
@@ -1392,7 +1406,7 @@ function addSubscribedEvents( c, start, end )
 			if ( scals[s].events.ics[e].TYPE == 'vevent' && 
 					( scals[s].events.ics[e].vcalendar.vevent.dtstart.DATE > start && 
 						scals[s].events.ics[e].vcalendar.vevent.dtstart.DATE < end ) )
-				insertEvent(scals[s]['src']+'_event-'+e,scals[s].events.ics[e],s,start,end);
+				insertEvent(scals[s]['src']+'_event-'+scals[s].events.ics[e].vcalendar.vevent.uid,scals[s].events.ics[e],s,start,end);
 	}
 }
 
@@ -1435,7 +1449,11 @@ function insertEvent ( href, icsObj, c, start, end , current)
 	}
 	else
 		run[estart.DayString()] = estart;
-	var otherOcurrences = $('#wcal li[uid='+cevent.uid.VALUE+'][original=0]');
+	perf[0].push($.now()-now);
+	if ( globalEvents.href[href] != undefined )
+		var otherOcurrences = $('#wcal li.calendar'+c+'[uid='+cevent.uid.VALUE+'][original=0]');
+	else
+		var otherOcurrences = $('#wcal > #DOESNTEXISIT');
 	for ( var i in run )
 	{
 		var estart = run[i]; 
@@ -1452,7 +1470,7 @@ function insertEvent ( href, icsObj, c, start, end , current)
 			else if ( cevent.exdate.DATE.getTime() == estart.getTime() )
 				continue;
 		}
-		if ( otherOcurrences.length )
+		if ( otherOcurrences.length > 0 )
 		{
 			var cont = false;
 			for ( var z=0;z<otherOcurrences.length;z++ )
@@ -1472,6 +1490,8 @@ function insertEvent ( href, icsObj, c, start, end , current)
 			var summary = cevent.summary.VALUE;
 		else
 			var summary = '';
+
+		perf[1].push($.now()-now);
 		/////////// handle alarms
 		if ( cevent.valarm != undefined && estart.getTime() > now - 86400000 && estart.getTime() < now + 86400000 * 40 )
 		{
@@ -1488,9 +1508,9 @@ function insertEvent ( href, icsObj, c, start, end , current)
 					if ( alarms[A].trigger.DURATION != undefined )
 					{
 						if ( alarms[A].trigger.PROP && alarms[A].trigger.PROP.related && alarms[A].trigger.PROP.related == 'END' )
-							var atime = new Date(eend.getTime()).localTzApply();
+							var atime = new Date(eend.getTime()).localTzRemove();
 						else
-							var atime = new Date(estart.getTime()).localTzApply();
+							var atime = new Date(estart.getTime()).localTzRemove();
 						atime.addDuration(alarms[A].trigger.DURATION);
 					}
 					else if ( alarms[A].trigger.DATE != undefined )
@@ -1506,7 +1526,7 @@ function insertEvent ( href, icsObj, c, start, end , current)
 						atext = summary + ' ' + (atime.getTime()-now>86400000?estart.prettyDate():estart.prettyTime());
 					if ( atime.getTime()-now <= 0 )
 						continue;
-					if (debug)console.log('alert in ' + ( atime.getTime()-now )/1000 + ' seconds: ' + atext ); 
+					if (debug) console.log('alert in ' + ( atime.getTime()-now )/1000 + ' seconds: ' + atext ); 
 					alerts.push(window.setTimeout(function(){$('#calalertsound')[0].play();alert(atext);alerts.shift();},atime.getTime()-now));
 				}
 			}
@@ -1558,9 +1578,10 @@ function insertEvent ( href, icsObj, c, start, end , current)
 			$(entry)[0].addEventListener('dragstart',calDragStart,true);
 			$(entry)[0].addEventListener('dragend',calDragEnd,true);
 			$(entry).hover(eventHover,eventMouseout);
+			perf[2].push($.now()-now);
 			if ( $('#calendar'+c).val() )
 				$(entry).hide();
-			if ( $('#day_' +  estart.DayString() + ' li[href="'+href+'"]' ).length < 1 )
+			if ( globalEvents.href[href] == undefined || $('#day_' +  estart.DayString() + ' li[href="'+href+'"]' ).length < 1 )
 			{
 				if ( $('#calendar'+c).val() )
 					$(entry).appendTo($('#day_' +  estart.DayString() + ' ul.eventlist' )).fadeIn();
@@ -1577,6 +1598,8 @@ function insertEvent ( href, icsObj, c, start, end , current)
 				eventcount++;
 				eventSort($('#day_' +  estart.DayString() + ' ul.eventlist' ));
 			}
+			globalEvents.href[href] = icsObj;
+			perf[4].push($.now()-now);
 		}
 		else 
 		{
@@ -1587,7 +1610,7 @@ function insertEvent ( href, icsObj, c, start, end , current)
 			var currentevent = eventcount;
 			if ( cevent['recurrence-id'] != undefined )
 			{
-				var entry = $('#day_' + cevent['recurrence-id'].DATE .DayString() + ' li[uid='+cevent.uid.VALUE+']' ).detach();
+				var entry = $('#day_' + cevent['recurrence-id'].DATE.DayString() + ' li[uid='+cevent.uid.VALUE+']' ).detach();
 				var currentevent = $(entry).attr('eventcount');
 				$('[eventcount='+$(entry).attr('eventcount')+']').remove();
 			}
@@ -1606,6 +1629,7 @@ function insertEvent ( href, icsObj, c, start, end , current)
 			$(entry)[0].addEventListener('dragstart',calDragStart,true);
 			$(entry)[0].addEventListener('dragend',calDragEnd,true);
 			$(entry).hover(eventHover,eventMouseout);
+			perf[2].push($.now()-now);
 			if ( $('#calendar'+c).val() )
 				$(entry).hide();
 			eventcount++;
@@ -1632,7 +1656,29 @@ function insertEvent ( href, icsObj, c, start, end , current)
 				if ( j == 0 )
 					$(entry).html('&nbsp;');
 			}
+			globalEvents.href[href] = icsObj;
+			perf[5].push($.now()-now);
 		}
+	}
+}
+
+function perfStats()
+{
+	var p=[],n,m;
+	for (var i=0;i<perf.length;i++)
+	{
+		p[i]=0;
+		n=perf[i][0];
+		m=perf[i][0];
+		for ( var j=0;j<perf[i].length;j++)
+		{
+			p[i]+=perf[i][j];
+			if(perf[i][j]<n)
+				n=perf[i][j];
+			if(perf[i][j]>m)
+				m=perf[i][j];
+		}
+		console.log(i + ' count: '+j+' min:'+n+' max:'+m+' mean:'+(n+(m-n)/2)+' avg:'+(p[i]/j));
 	}
 }
 
@@ -1781,7 +1827,7 @@ function calDrop(e)
 		e.preventOK = true;
 		if ( e.currentTarget != undefined )
 			e.cTarget = e.currentTarget;
-		if ( old != undefined && $(old).data('ics').vcalendar.vevent.rrule != undefined && e.moveAll == undefined )
+		if ( old != undefined && $(old).data('ics').TYPE == 'vevent' && $(old).data('ics').vcalendar.vevent.rrule != undefined && e.moveAll == undefined )
 		{
 			$('#wcal').data('drop-question',e);
 			questionBox(dropquestion[0],dropquestion[1],
@@ -1834,66 +1880,73 @@ function calDrop(e)
 			else
 			{
 				var np = $(e.cTarget).closest('td');
-				$('#wcal').removeData('dragging');
-				var src = $(old).attr('href');
-				var ics = $(old).data('ics');
-				var c = $(old).attr('class').match(/calendar(\d+)/)[1];
-				var d1 = (new Date()).parseDate($(old).closest('td').attr('id').match(/day_(\d+)/)[1]);
-				var d2 = (new Date()).parseDate($(np).closest('td').attr('id').match(/day_(\d+)/)[1]);
-				var tdiff = ics.vcalendar.vevent.dtend.DATE.getTime() - ics.vcalendar.vevent.dtstart.DATE.getTime() ;	
-				if ( e.moveAll === false )
+				if ( $(np).length == 0 ) 
 				{
-					$(old).detach();
-					var nics = $.extend(true,{},ics);
-					nics.vcalendar.vevent.dtstamp = (new Date()).DateString ( );
-					nics.vcalendar.vevent.sequence.VALUE++;
-					var start = d1;
-					var expan = ics.vcalendar.vevent.rrule.RECURRENCE.expandRecurrence(ics.vcalendar.vevent.dtstart.VALUE,dateAdd(start,'d',2));
-					delete nics.vcalendar.vevent.rrule;
-					delete nics.vcalendar.vevent.exdate;
-					for ( var i in expan )
-						if ( expan[i] >= start)
-						{
-							var estart = expan[i];
-							break ;
-						}
-					nics.vcalendar.vevent['recurrence-id'] = nics.PARENT.newField ('RECURRENCE-ID',estart,nics.vcalendar.vevent.dtstart.PROP); 
-					var nstart = new Date ( estart.getTime() + ( d2.getTime() - d1.getTime() ) ); 
-					if ( newtime != undefined )
-						nstart.setUTCHours( newtime.getUTCHours() ); 
-					var dur = ics.vcalendar.vevent.dtend.DATE.getTime() - ics.vcalendar.vevent.dtstart.DATE.getTime() ;	
-					var nend = new Date ( estart.getTime() + dur );
-					nics.vcalendar.vevent.dtstart = nics.PARENT.newField ( 'dtstart', nstart, nics.vcalendar.vevent.dtstart.PROP );
-					nics.vcalendar.vevent.dtend = nics.PARENT.newField ( 'dtend', nstart, nics.vcalendar.vevent.dtstart.PROP );
-					nics.PARENT = ics.PARENT;
-					ics.PARENT.push ( nics.vcalendar );
-					var params = { url:src};
-					$(document).caldav('putEvent',params,ics.PARENT.toString() ); 
-					insertEvent(src,nics,c,$('#wcal').data('firstweek' ),$('#wcal').data('lastweek'));
-					return ;
-				}
-				else if ( e.moveAll === true )
-				{
-					$('li[uid="'+ics.vcalendar.vevent.uid.VALUE+'"][original=1][href="'+src+'"]').detach();
-					var tdiff = d2.getTime() - d1.getTime() ;
-					if ( ics.vcalendar.vevent.rrule.RECURRENCE.UNTIL != undefined )
-						ics.vcalendar.vevent.rrule.RECURRENCE.UNTIL = (new Date()).DateString ( new Date ( (new Date()).parseDate(ics.vcalendar.vevent.rrule.RECURRENCE.UNTIL).getTime() + tdiff ) );
+					np = $(e.cTarget).closest('#caltodo');
 				}
 				else
 				{
+					$('#wcal').removeData('dragging');
+					var src = $(old).attr('href');
+					var ics = $(old).data('ics');
+					var c = $(old).attr('class').match(/calendar(\d+)/)[1];
+					var d1 = (new Date()).parseDate($(old).closest('td').attr('id').match(/day_(\d+)/)[1]);
+					var d2 = (new Date()).parseDate($(np).closest('td').attr('id').match(/day_(\d+)/)[1]);
 					var tdiff = ics.vcalendar.vevent.dtend.DATE.getTime() - ics.vcalendar.vevent.dtstart.DATE.getTime() ;	
-					$(old).detach();
-					$('li[uid="'+ics.vcalendar.vevent.uid.VALUE+'"][original=1][href="'+src+'"]').detach();
+					if ( e.moveAll === false )
+					{
+						$(old).detach();
+						var nics = $.extend(true,{},ics);
+						nics.vcalendar.vevent.dtstamp = (new Date()).DateString ( );
+						nics.vcalendar.vevent.sequence.VALUE++;
+						var start = d1;
+						var expan = ics.vcalendar.vevent.rrule.RECURRENCE.expandRecurrence(ics.vcalendar.vevent.dtstart.VALUE,dateAdd(start,'d',2));
+						delete nics.vcalendar.vevent.rrule;
+						delete nics.vcalendar.vevent.exdate;
+						for ( var i in expan )
+							if ( expan[i] >= start)
+							{
+								var estart = expan[i];
+								break ;
+							}
+						nics.vcalendar.vevent['recurrence-id'] = nics.PARENT.newField ('RECURRENCE-ID',estart,nics.vcalendar.vevent.dtstart.PROP); 
+						var nstart = new Date ( estart.getTime() + ( d2.getTime() - d1.getTime() ) ); 
+						if ( newtime != undefined )
+							nstart.setUTCHours( newtime.getUTCHours() ); 
+						var dur = ics.vcalendar.vevent.dtend.DATE.getTime() - ics.vcalendar.vevent.dtstart.DATE.getTime() ;	
+						var nend = new Date ( estart.getTime() + dur );
+						nics.vcalendar.vevent.dtstart = nics.PARENT.newField ( 'dtstart', nstart, nics.vcalendar.vevent.dtstart.PROP );
+						nics.vcalendar.vevent.dtend = nics.PARENT.newField ( 'dtend', nstart, nics.vcalendar.vevent.dtstart.PROP );
+						nics.PARENT = ics.PARENT;
+						ics.PARENT.push ( nics.vcalendar );
+						var params = { url:src};
+						$(document).caldav('putEvent',params,ics.PARENT.toString() ); 
+						insertEvent(src,nics,c,$('#wcal').data('firstweek' ),$('#wcal').data('lastweek'));
+						return ;
+					}
+					else if ( e.moveAll === true )
+					{
+						$('li[uid="'+ics.vcalendar.vevent.uid.VALUE+'"][original=1][href="'+src+'"]').detach();
+						var tdiff = d2.getTime() - d1.getTime() ;
+						if ( ics.vcalendar.vevent.rrule.RECURRENCE.UNTIL != undefined )
+							ics.vcalendar.vevent.rrule.RECURRENCE.UNTIL = (new Date()).DateString ( new Date ( (new Date()).parseDate(ics.vcalendar.vevent.rrule.RECURRENCE.UNTIL).getTime() + tdiff ) );
+					}
+					else
+					{
+						var tdiff = ics.vcalendar.vevent.dtend.DATE.getTime() - ics.vcalendar.vevent.dtstart.DATE.getTime() ;	
+						$(old).detach();
+						$('li[uid="'+ics.vcalendar.vevent.uid.VALUE+'"][original=1][href="'+src+'"]').detach();
+					}
+					var tdiff = d2.getTime() - d1.getTime() ;
+					if ( newtime != undefined )
+						tdiff += ( newtime.getUTCHours() - (ics.vcalendar.vevent.dtstart.DATE.getUTCHours())) * 3600000;
+					ics.vcalendar.vevent.dtstart.ORIGDATE = ics.vcalendar.vevent.dtstart;
+					ics.vcalendar.vevent.dtstart.UPDATE ( new Date ( ics.vcalendar.vevent.dtstart.DATE.getTime() + tdiff ) );
+					ics.vcalendar.vevent.dtend.UPDATE ( new Date ( ics.vcalendar.vevent.dtend.DATE.getTime() + tdiff ) );
+					var params = { url:src};
+					$(document).caldav('putEvent',params,ics.PARENT.toString() ); 
+					insertEvent(src,ics,c,$('#wcal').data('firstweek' ),$('#wcal').data('lastweek'));
 				}
-				var tdiff = d2.getTime() - d1.getTime() ;
-				if ( newtime != undefined )
-					tdiff += ( newtime.getUTCHours() - (ics.vcalendar.vevent.dtstart.DATE.getUTCHours())) * 3600000;
-				ics.vcalendar.vevent.dtstart.ORIGDATE = ics.vcalendar.vevent.dtstart;
-				ics.vcalendar.vevent.dtstart.UPDATE ( new Date ( ics.vcalendar.vevent.dtstart.DATE.getTime() + tdiff ) );
-				ics.vcalendar.vevent.dtend.UPDATE ( new Date ( ics.vcalendar.vevent.dtend.DATE.getTime() + tdiff ) );
-				var params = { url:src};
-				$(document).caldav('putEvent',params,ics.PARENT.toString() ); 
-				insertEvent(src,ics,c,$('#wcal').data('firstweek' ),$('#wcal').data('lastweek'));
 			}
 		}
 		else
@@ -1954,20 +2007,28 @@ function calDragStart(event)
 			event.preventDefault();
 			return false;
 		}
-		if ( $('#wcal').has(this) )
-      event.dataTransfer.setDragImage(event.target,($(event.target).width()*(2/3)),1);
+		if ( $('#wcal').has(event.target).length )
+			event.dataTransfer.setDragImage(event.target,($(event.target).width()*(2/3)),1);
+		else if ( $('#caltodo').has(event.target).length )
+		{
+			console.log( $(event.target).width() );
+			event.dataTransfer.setDragImage(event.target);
+		}
 		else
-      event.dataTransfer.setDragImage(event.target);
+			event.dataTransfer.setDragImage(event.target);
 		var ics = $(event.target).data('ics').PARENT.printiCal();
-    event.dataTransfer.setData('text/calendar', ics );
-    event.dataTransfer.setData('type', ics.TYPE );
-    event.dataTransfer.setData('Text', ics );
-		if ( cals[cal] != undefined )
-		  event.dataTransfer.setData('DownloadURL', 'text/calendar:event.ics:' + $('.jqcaldav:eq(0)').data('caldavurl') + $(event.target).attr('href') );
+		event.dataTransfer.setData('text/calendar', ics );
+		event.dataTransfer.setData('text/plain', ics );
+		event.dataTransfer.setData('Text', ics );
+		event.dataTransfer.setData('type', ics.TYPE );
+    //event.dataTransfer.setData('Text', ics );
+		//if ( cals[cal] != undefined )
+		event.dataTransfer.setData('DownloadURL', 'text/calendar:event.ics:data:text/calendar;base64,' + window.btoa(ics) );
+		  //event.dataTransfer.setData('DownloadURL', 'text/calendar:event.ics:' + $('.jqcaldav:eq(0)').data('caldavurl') + $(event.target).attr('href') );
 		$('#wcal').data('dragging', $(event.target));
 		$('#wcal').addClass('dragging');
 		$('#calpopup').hide();
-		$('#calpopupe').remove();
+		$('#calpopupe').hide();
 		if ( cals[cal] != undefined )
 		  event.dataTransfer.effectAllowed = 'copyMove'; // only allow copy or move
 		else
@@ -1982,7 +2043,7 @@ function calDragEnd(e)
 {
 	$('#caldrop').hide();
 	$('.drop').removeClass('drop');
-	//$('#wcal').removeData('dragging');
+	$('#wcal').removeData('dragging');
 	$('#wcal').removeClass('dragging');
 }
 
@@ -2035,12 +2096,18 @@ function newevent (e)
 			);
 	var ul = $('<ul></ul>');
 	$(ul).append('<li><span class="label">'+fieldNames.summary+'</span><span class="value">'+ui[ics.vcalendar['v'+type].summary.VALUE]+'</span></li>');
+	var d = new Date();
 	if ( type == 'event' ) 
 	{
 		d.setUTCHours((new Date()).getHours());
 		$(ul).append('<li><span class="label">'+fieldNames.dtstart+'</span><span class="value">'+d.prettyDate() +'</span></li>');
 		d.setUTCHours(d.getUTCHours()+1);
 		$(ul).append('<li><span class="label">'+fieldNames.dtend+'</span><span class="value">'+d.prettyDate() +'</span></li>');
+	}
+	else if ( type == 'todo' ) 
+	{
+		d.setUTCDate((new Date()).getDate()+1);
+		$(ul).append('<li><span class="label">'+fieldNames.due+'</span><span class="value">'+d.prettyDate() +'</span></li>');
 	}
 	$(pop).append(ul);
 	var off = $(e.target).offset();
@@ -2121,6 +2188,7 @@ function eventHover (e)
 	{	
 		var props = [],type = 'vtodo';
 		props.push('summary');
+		props.push('due');
 		for ( var x in d.PARENT.components.vtodo.required){props.push(d.PARENT.components.vtodo.required[x]); }
 		for ( var x in d.PARENT.components.vtodo.optional){props.push(d.PARENT.components.vtodo.optional[x]); }
 	}
@@ -2712,6 +2780,8 @@ function eventEdited (e)
 			edited = true;
 	}
 
+	if ( $(evt).attr('href') == '+&New Event' )
+		edited = true;
 	if ( edited )
 	{
 		var href = $(evt).attr('href');
@@ -2889,7 +2959,7 @@ function scrollCal (d)
 	if ( ed > lw )
 	{
 		var s = lw;
-		while ( s < ed || $('#day_'+ d.DayString() ).length == 0 )
+		while ( s < ed || $('#day_'+ d.LocalDayString() ).length == 0 )
 		{ 
 			$('#calt').append(buildweek(s));
 			s.setDate(s.getDate()+7);
@@ -3092,7 +3162,8 @@ function buildcal(d)
 		e.preventDefault();
 		return false;
 		});
-	var todobar = $('<div id="caltodo" tabindex="8"><div class="sidetitle">'+ui.todos+'</div><ul></ul></div>');
+	var todobar = $('<div id="caltodo" tabindex="8"><div class="sidetitle">'+ui.todos+'<div><span class="button">'+ui.show+'</span><span class="button">'+ui.sort+'</span></div></div><ul></ul></div>');
+	$('.button', todobar).click(showSortTodos);
 	$('ul', todobar).dblclick(newevent);
 	var v = $('ul', todobar);	
 	$(v).bind('drop',calDrop);
@@ -3340,6 +3411,8 @@ function calstyle ()
 	'#caltodo {  float: right;  width: 15%;  overflow-x: hidden; min-height: 6em; height: 100%; background-color: #EFEFFF; border-left: 1px solid #AAA; margin-left: -1px; margin-right: 0; '+
 		'background-image: url(\'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAABCAYAAAAW/mTzAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAN1wAADdcBQiibeAAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAAAUSURBVAiZY/z06dN/BiTAy8vLCABHcQP/jGwD2gAAAABJRU5ErkJggg==\'); }' + "\n" +
 	'#caltodo > .sidetitle { font-size: 200%; font-weight: lighter; border-bottom:1px solid #AAA; text-align: center; padding: 0 0 .6em 0; margin:0;}' + "\n" +
+	'#caltodo > .sidetitle div { display: block; font-size: 50%; font-weight: lighter; border: none !important; text-align: center; width: 100%; margin:0;}' + "\n" +
+	'#caltodo > .sidetitle span { display: block; float: left; width: 50%; margin:-1px; padding:0; position: relative; bottom: -0.43em;}' + "\n" +
 	'#caltodo ul { position: absolute; width: 100%; top: 3.6em; bottom: 0; overflow-x: hidden; overflow-y: auto; margin: 0; padding: 0px; list-style: none; } ' + "\n" +
 	'#caltodo ul li { overflow: hidden; display: block; margin: 0; padding: 0; padding-left: 0; margin-bottom: .75em; line-height: 1.2em; list-style-type: none;  } ' + "\n" +
 
@@ -3631,7 +3704,7 @@ function currentTimeIndicator()
 {
 	var d = new Date ();
 	var dy = new Date ();
-	//dy.localTzApply();
+	dy.localTzRemove();
 	var h = ( d.getHours() ) * 100;
 	if ( h > settings.end.getLongMinutes() || h < settings.start.getLongMinutes() && $('#calcurrenttime').length > 0)
 	{
@@ -3639,10 +3712,10 @@ function currentTimeIndicator()
 		return ;
 	}
 	if ( $('#calcurrenttime').length == 0 )
-		$('#day_' + dy.DayString() + ' .header' ).append('<div id="calcurrenttime"></div>');
+		$('#day_' + dy.LocalDayString() + ' .header' ).append('<div id="calcurrenttime"></div>');
 	var p = $('#calcurrenttime').closest('.day');
-	if ( $(p).attr('id') != 'day_' + dy.DayString() )
-		$(p).detach().appendTo('#day_' + dy.DayString() + ' .header' );
+	if ( $(p).attr('id') != 'day_' + dy.LocalDayString() )
+		$(p).detach().appendTo('#day_' + dy.LocalDayString() + ' .header' );
 	h = h + ( d.getMinutes()/60) * 100;
 	var percent = ((h)-settings.start.getLongMinutes())/(settings.end.getLongMinutes()-settings.start.getLongMinutes());
 	var offset = $('.eventlist',p).outerHeight() - $('.eventlist',p).innerHeight();
@@ -3700,7 +3773,7 @@ function buildweek(d,get)
 
 function buildday (d)
 {
-	var day = $('<td class="day day'+ d.getDate() +' weekday'+ d.getDay() +' month'+ (d.getMonth()+1) +'" id="day_'+ d.DayString() +'" ><div class="header" month="'+ months[d.getMonth()] +'" >'+ d.getDate() +'</div><ul class="eventlist"></ul></td>');
+	var day = $('<td class="day day'+ d.getDate() +' weekday'+ d.getDay() +' month'+ (d.getMonth()+1) +'" id="day_'+ d.LocalDayString() +'" ><div class="header" month="'+ months[d.getMonth()] +'" >'+ d.getDate() +'</div><ul class="eventlist"></ul></td>');
 	$(day).prepend($(hw).clone(true));
 	return day;
 }
@@ -4370,8 +4443,9 @@ var zones = function ( )
 				}
 				else
 				{	
-					this.daylight[i] = {begin:a.daylight[i].dtstart,offset:a.daylight[i].tzoffsetto.VALUE};
-					this.Dstart[a.daylight[i].dtstart.DATE.getUTCFullYear()] = i;
+					console.log( a);
+					//this.daylight[i] = {begin:a.daylight[i].dtstart,offset:a.daylight[i].tzoffsetto.VALUE};
+					//this.Dstart[a.daylight[i].dtstart.DATE.getUTCFullYear()] = i;
 				}
 			}
 		}
@@ -4396,8 +4470,9 @@ var zones = function ( )
 				}
 				else
 				{	
-					this.standard[i] = {begin:a.standard[i].dtstart,offset:a.standard[i].tzoffsetto.VALUE};
-					this.Sstart[a.standard[i].dtstart.DATE.getUTCFullYear()] = i;
+					console.log( a);
+					//this.standard[i] = {begin:a.standard[i].dtstart,offset:a.standard[i].tzoffsetto.VALUE};
+					//this.Sstart[a.standard[i].dtstart.DATE.getUTCFullYear()] = i;
 				}
 			}
 		}
@@ -4656,6 +4731,11 @@ Date.prototype.DayString = function(){
       + this.pad(this.getUTCMonth()+1) + '' 
       + this.pad(this.getUTCDate())};
 
+Date.prototype.LocalDayString = function(){
+	return this.getFullYear() + '' 
+      + this.pad(this.getMonth()+1) + '' 
+      + this.pad(this.getDate())};
+
 Date.prototype.DateString = function(){
 	return this.getUTCFullYear() + ''
       + this.pad(this.getUTCMonth()+1) + ''
@@ -4663,6 +4743,14 @@ Date.prototype.DateString = function(){
       + this.pad(this.getUTCHours()) + ''
       + this.pad(this.getUTCMinutes()) + ''
       + this.pad(this.getUTCSeconds())};
+
+Date.prototype.LocalDateString = function(){
+	return this.getFullYear() + ''
+      + this.pad(this.getMonth()+1) + ''
+      + this.pad(this.getDate())+'T'
+      + this.pad(this.getHours()) + ''
+      + this.pad(this.getMinutes()) + ''
+      + this.pad(this.getSeconds())};
 
 Date.prototype.DateStringZ = function(){
 	return this.getUTCFullYear() + ''
@@ -4789,7 +4877,7 @@ Date.prototype.parseDate  = function( d )
 		this.setUTCHours(parts[4]);
 		this.setUTCMinutes(parts[5]);
 		this.setUTCSeconds(parts[6]);
-		this.setMilliseconds(0);
+		this.setUTCMilliseconds(0);
 		this.zulu = parts[7];
 	}
 	else
@@ -4800,7 +4888,7 @@ Date.prototype.parseDate  = function( d )
 		this.setUTCHours(0);
 		this.setUTCMinutes(0);
 		this.setUTCSeconds(0);
-		this.setMilliseconds(0);
+		this.setUTCMilliseconds(0);
 	}
 	return this;
 };
@@ -4865,7 +4953,7 @@ function Zero (d)
 
 Date.prototype.YM = function (){ var d = Zero(); d.setUTCMonth(this.getUTCMonth()); d.setUTCFullYear(this.getUTCFullYear()); return d; };
 Date.prototype.YW = function (){ var d = Zero(); d.setUTCMonth(this.getUTCMonth()); d.setUTCFullYear(this.getUTCFullYear()); d.setUTCDate(this.setUTCDate());d.setUTCDate(this.getUTCDate()); d.setDayOfWeek(this.WeekStart); return d; };
-Date.prototype.localTzApply = function(){ var adj = localTimezone.offset * 60/100 * 60; this.setTime( this.getTime() - adj *1000); return this; };
+Date.prototype.localTzRemove = function(){ var adj = localTimezone.offset * 60/100 * 60; this.setTime( this.getTime() - adj *1000); return this; };
 Date.prototype.getLongMinutes = function(){return this.getUTCHours() * 100 + this.getUTCMinutes() * (100/60);};
 Date.prototype.Zero = function (){ Zero(this); return this; };
 Date.prototype.WeekStart = new Number(0);
