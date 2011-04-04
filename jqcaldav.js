@@ -4230,6 +4230,15 @@ var iCal = function ( text ) {
 			'integer':function(){return this.VALUE;},
 			number:function(){return this.VALUE;},
 			sequence:function(){return this.VALUE;},
+			uri:function(){
+				if ( arguments.length > 0 && this.VALUES && this.VALUES.length > 1 ) 
+					var t = this.VALUES[arguments[0]]; 
+				else 
+					var t = this.VALUE; 
+				if ( valueNames[t] )
+					t = valueNames[t];
+				if ( t != undefined )
+				return t.replace(/\\n/g,"\n");},
 			text:function(){
 				if ( arguments.length > 0 && this.VALUES && this.VALUES.length > 1 ) 
 					var t = this.VALUES[arguments[0]]; 
@@ -4365,7 +4374,10 @@ var iCal = function ( text ) {
 		else
 			a.type = 'text';
 		a.FIELD = f;
-		a.toString = a.PRINT[a.type];
+		if ( a.PRINT[a.type] != undefined )
+			a.toString = a.PRINT[a.type];
+		else
+			a.toString = a.PRINT['text'];
 		a.propertyIsEnumerable('type',false);
 		a.propertyIsEnumerable('FIELD',false);
 		if ( args.length > 0 )
