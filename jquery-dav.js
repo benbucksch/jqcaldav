@@ -282,7 +282,6 @@ jQuery.extend ({
 			'<x0:prop>' + "\n" +
 			'<x0:displayname/>' + "\n" +
 			'<x2:calendar-description/>' + "\n" +
-			'<x2:calendar-home-set/>' + "\n" +
 			'<x2:calendar-user-address-set/>' + "\n" +
 			'<x2:calendar-inbox-URL/>' + "\n" +
 			'<x2:calendar-outbox-URL/>' + "\n" +
@@ -295,7 +294,6 @@ jQuery.extend ({
 			'<x0:owner/>' + "\n" +
 			'<x0:supported-privilege-set/>' + "\n" +
 			'<x0:current-user-privilege-set/>' + "\n" +
-			'<x0:principal-collection-set/>' + "\n" +
 			'</x0:prop>' + "\n" +
 			'</x0:propfind>' 
 			,complete: function (r,s){
