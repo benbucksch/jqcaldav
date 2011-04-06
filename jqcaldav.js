@@ -54,7 +54,8 @@ var defaults={ui:{calendar:"Calendars",todos:"To Do","show":"Show","sort":"Sort"
 		"COMPLETED":"completed","IN-PROCESS":"in-process","DRAFT":"draft","FINAL":"final","CANCELLED":"cancelled","PUBLIC":"public","PRIVATE":"private",
 		"CONFIDENTIAL":"confidential","AUDIO":"sound","DISPLAY":"message","NONE":"none"},
 	"durations":{"minutes before":"minutes before","hours before":"hours before","days before":"days before","weeks before":"weeks before","minutes after":"minutes after","hours after":"hours after","days after":"days after","weeks after":"weeks after","on date":"on date"},
-	"recurrenceUI":{"YEAR":"year","MONTH":"month","WEEK":"week","DAI":"day","HOUR":"hour","MINUTE":"minute","SECOND":"second","day":"day","time":"time","times":"times","until":"until","every":"every","on":"on"},
+	"recurrenceUI":{"YEAR":"year","MONTH":"month","MONTHDAY":"day of month","YEARDAY":"day of year","WEEKNO":"week number","WEEK":"week","DAI":"day","HOUR":"hour","MINUTE":"minute","SECOND":"second","day":"day","time":"time","times":"times","until":"until","every":"every","on":"on","position0":"sixth to last","position1":"fifth to last","position2":"forth to last","position3":"third to last","position4":"second to last","position5":"last","position6":"","position7":"first","position8":"second","position9":"third","position10":"forth","position11":"fifth","position12":"sixth",	
+	},
 	"privileges":{"all":"all","bind":"bind","unbind":"unbind","unlock":"unlock","read":"read","acl":"acl","free-busy":"free-busy","privileges":"privileges","write":"write","content":"content","properties":"properties","acl":"acl","schedule-send":"schedule-send","invite":"invite","reply":"reply","freebusy":"freebusy","schedule-deliver":"schedule-deliver","invite":"invite","reply":"reply","query-freebusy":"query-freebusy"}};
 
 var ui=defaults.ui, months=defaults.months, weekdays=defaults.weekdays, dropquestion=defaults.dropquestion,
@@ -2209,6 +2210,15 @@ function eventHover (e)
 			case 'DURATION':
 				var label = fieldNames['duration'];
 				break;
+			case 'rrule':
+				if ( d.vcalendar[type][props[x]] && d.vcalendar[type][props[x]].RECURRENCE )
+				{
+					used.push(props[x]);
+					var li = $('<li><span class="label recurrence" >'+fieldNames.rrule+'</span></li>');
+					$(li).append(d.vcalendar[type][props[x]].RECURRENCE.editRecurrence());
+					$(ul).append(li);
+				}
+				continue;
 			case 'valarm':
 				used.push(props[x]);
 				var li = $('<li><span class="label alarm" >'+ui.alarm+'</span></li>');
@@ -2230,23 +2240,33 @@ function eventHover (e)
 		if ( d.vcalendar[type][props[x]] )
 		{
 			if ( d.vcalendar[type][props[x]].length > 1 )
-				$(ul).append('<li><span class="label '+props[x]+'" '+extra+' >'+label+'</span><span class="value" data-value="'+d.vcalendar[type][props[x]] +'" >'+d.vcalendar[type][props[x]] +'</span></li>');
+			{
+				var li = $('<li><span class="label '+props[x]+'" '+extra+' >'+label+'</span><span class="value"></span></li>');
+				$(li).text(d.vcalendar[type][props[x]]);
+				$(li).attr('data-value',d.vcalendar[type][props[x]]);
+				$(ul).append(li);
+			}
 			else
-				$(ul).append('<li><span class="label '+props[x]+'" '+extra+' >'+label+'</span><span class="value" data-value="'+d.vcalendar[type][props[x]] +'" >'+d.vcalendar[type][props[x]] +'</span></li>');
+			{
+				var li = $('<li><span class="label '+props[x]+'" '+extra+' >'+label+'</span><span class="value"></span></li>');
+				$(li).text(d.vcalendar[type][props[x]]);
+				$(li).attr('data-value',d.vcalendar[type][props[x]]);
+				$(ul).append(li);
+			}
 		}
-		else if ( props[x] == 'summary' )
-			$(ul).append('<li><span class="label '+props[x]+'" '+extra+' >'+label+'</span><span class="value" data-value="" ></span></li>');
+		//else if ( props[x] == 'summary' )
+		//	$(ul).append('<li><span class="label '+props[x]+'" '+extra+' >'+label+'</span><span class="value" data-value="" ></span></li>');
 	}
 	var off = $(e.target).offset();
 	var popoff = {width: 280, height: 330 };
 	if ( off.left + e.target.offsetWidth + popoff.width > window.innerWidth )
-	{$(pop).css({left:(off.left - (popoff.width+30))}); $(pop).removeClass('left').addClass('right'); }
+	{	$(pop).css({left:(off.left - (popoff.width+30))}); $(pop).removeClass('left').addClass('right'); }
 	else
 	{	$(pop).css({left:off.left + e.target.offsetWidth+9});$(pop).removeClass('right').addClass('left'); }
 	if ( off.top + popoff.height - 40 > window.innerHeight )
 	{	$(pop).css({top:(off.top-(popoff.height-100))}); $(pop).addClass ('bottom'); }
 	else
-	{		$(pop).css({top: off.top }); $(pop).removeClass('bottom'); }
+	{	$(pop).css({top: off.top }); $(pop).removeClass('bottom'); }
 	$(pop).show();
 }
 
@@ -2323,6 +2343,58 @@ function eventClick(e)
 	//return false;
 }
 
+
+function buildOptions ( target, options, text, none, spaceSelects, search, removeOnEscape, callback )
+{ //  target == target element for completeion, options == array of options, text == array to print option values from defaults to valueNames
+	//  none == whether or not to print the empty value "none", spaceSelects, search, removeOnEscape all passed to keyboardSelector
+	var currentValue = $(target).text();
+	var txt = '<div class="completionWrapper"><div class="completion">';
+	if ( none !== false )
+		txt = txt + '<div class="remove" text="'+valueNames['NONE']+'"></div>';
+	if ( ! text || ( text.length && text.length < 1 ))
+		text = valueNames;
+	for ( var j = 0; j < options.length; j++ )
+		txt = txt + '<div'+ (text[options[j]]==currentValue?' class="selected" ':'') +'>'+text[options[j]]+'</div>';
+	txt = txt + '</div></div>';
+	var comp = $(txt);
+
+	$(comp).children().click(function(evt){$(evt.target).parent().parent().next().text($(evt.target).text());
+		$(evt.target).parent().parent().fadeOut(function(){$(this).remove();popupOverflowAuto();});
+		if ( typeof callback == 'function' )
+			callback ( $(evt.target).parent().parent().next() );
+		return false;
+	});
+	$(target).bind('keydown',function (e2){ 
+		e2.spaceSelects = spaceSelects; 
+		e2.search = search; 
+		e2.removeOnEscape = removeOnEscape; 
+		var k = keyboardSelector(e2);
+		if ( k == 'cancel' )
+		{
+			$('#wcal').data('eatCancel',true);
+			$(this).unbind('blur');
+			popupOverflowAuto();
+			e2.stopPropagation();
+			return false;
+		}
+		else if ( $(k).length == 1 )
+		{
+			$(this).unbind('blur');
+			$(this).text($(k).text());
+			$(this).prev().fadeOut(function(){$(this).remove();popupOverflowAuto();});
+			if ( typeof callback == 'function' )
+				callback ( $(evt.target).parent().parent().next() );
+			var ret = e2.which==9;	
+			return ret;
+		}	
+		else
+			return k;
+		},false);
+	$(comp).css({top:$(target).position().top,left:$(target).position().left,'margin-left':'2em'});
+	$(target).bind('blur',function(evt){$(evt.target).prev().fadeOut(function(){$(this).remove();popupOverflowAuto();});$(this).unbind(evt);});
+	return comp;
+}
+
 function fieldClick(e)
 {
 	var cp = $($('#wcal').data('popup'));
@@ -2333,43 +2405,7 @@ function fieldClick(e)
 			break;
 	if ( d.PARENT.fields[i] && d.PARENT.fields[i].values && d.PARENT.fields[i].values[d.TYPE] && d.PARENT.fields[i].values[d.TYPE].length> 0 )
 	{
-		var options = d.PARENT.fields[i].values[d.TYPE];
-		var currentValue = $(e.target).text();
-		var txt = '<div class="completionWrapper"><div class="completion"><div class="remove" text="'+ui['delete']+'"></div>';
-		for ( var j = 0; j < options.length; j++ )
-			txt = txt + '<div'+ (valueNames[options[j]]==currentValue?' class="selected" ':'') +'>'+valueNames[options[j]]+'</div>';
-		txt = txt + '</div></div>';
-		var comp = $(txt);
-		$(comp).children().click(function(evt){$(evt.target).parent().parent().next().text($(evt.target).text());
-			$(evt.target).parent().parent().fadeOut(function(){$(this).remove();popupOverflowAuto();});
-			return false;
-		});
-		$(e.target).bind('keydown',function (e2){ 
-			e2.spaceSelects = true; 
-			e2.search = true; 
-			e2.removeOnEscape = true; 
-			var k = keyboardSelector(e2);
-			if ( k == 'cancel' )
-			{
-				$('#wcal').data('eatCancel',true);
-				$(this).unbind('blur');
-				popupOverflowAuto();
-				e2.stopPropagation();
-				return false;
-			}
-			else if ( $(k).length == 1 )
-			{
-				$(this).unbind('blur');
-				$(this).text($(k).text());
-				$(this).prev().fadeOut(function(){$(this).remove();popupOverflowAuto();});
-				var ret = e2.which==9;	
-				return ret;
-			}	
-			else
-				return k;
-			},false);
-		$(comp).css({top:$(e.target).position().top,left:$(e.target).position().left,'margin-left':'2em'});
-		$(e.target).bind('blur',function(evt){$(evt.target).prev().fadeOut(function(){$(this).remove();popupOverflowAuto();});$(this).unbind(evt);});
+		var comp = buildOptions(e.target,d.PARENT.fields[i].values[d.TYPE],null,true,true);
 		popupOverflowVisi();
 		$(e.target).before(comp);
 	}
@@ -2474,9 +2510,6 @@ function addField(e)
 			else
 				return k;
 			});
-
-	
-	console.log(showFields);
 }
 
 function printAlarm(a)
@@ -2640,57 +2673,18 @@ function alarmEdited ( valarm , data, event )
 
 function alarmFieldClick(e)
 {
-	console.log( 'boo' );
 	var f = {length:['minutes before','hours before','days before','weeks before','minutes after','hours after','days after','weeks after','on date'],
-					action:['AUDIO','DISPLAY','NONE'],related:['START','END']};
+					action:['AUDIO','DISPLAY'],related:['START','END']};
 	var options = f[$(e.target).attr('class')]; 
 	if ($(e.target).attr('class') == 'length' ) 
 		var list = durations;
 	else
 		var list = valueNames;
+	var allowNone = false;
+	if ($(e.target).attr('class') == 'action' ) 
+		allowNone = true;
 	var currentValue = $(e.target).text();
-	var txt = '<div class="completionWrapper"><div class="completion">';
-	for ( var j = 0; j < options.length; j++ )
-		txt = txt + '<div'+ (list[options[j]]==currentValue?' class="selected" ':'') +'>'+list[options[j]]+'</div>';
-	txt = txt + '</div></div>';
-	var comp = $(txt);
-	$(comp).children().click(function(evt){$(evt.target).parent().parent().next().text($(evt.target).text());
-		var z = undefined;
-		for ( var i in durations ) if ( $(evt.target).text() == durations[i] ) z = i;
-		var ics =$($($('#wcal').data('popup')).data('event')).data('ics');
-		if ( z == 'on date' )
-			$(evt.target).parent().parent().prev().text(ics.vcalendar[ics.TYPE].ESTART.DATE.prettyDate()); 
-		else if ( z != undefined )
-			$(evt.target).parent().parent().prev().text(z.match(/(weeks|days|hours)/)?1:15);
-		$(evt.target).parent().parent().fadeOut(function(){$(this).remove();popupOverflowAuto();});
-		return false;
-	});
-	$(e.target).bind('keydown',function (e2){ 
-		e2.spaceSelects = true; 
-		e2.search = false; 
-		e2.removeOnEscape = true; 
-		var k = keyboardSelector(e2);
-		if ( k == 'cancel' )
-		{
-			$('#wcal').data('eatCancel',true);
-			$(this).unbind('blur');
-			popupOverflowAuto();
-			e2.stopPropagation();
-			return false;
-		}
-		else if ( $(k).length == 1 )
-		{
-			$(this).unbind('blur');
-			$(this).text($(k).text());
-			$(this).prev().fadeOut(function(){$(this).remove();popupOverflowAuto();});
-			var ret = e2.which==9;	
-			return ret;
-		}	
-		else
-			return k;
-		},false);
-	$(comp).css({top:$(e.target).position().top,left:$(e.target).position().left,'margin-left':'2em'});
-	$(e.target).bind('blur',function(evt){$(evt.target).prev().fadeOut(function(){$(this).remove();popupOverflowAuto();});$(this).unbind(evt);});
+	var comp = buildOptions(e.target,options,list, allowNone, true, false,true );
 	popupOverflowVisi();
 	$(e.target).before(comp);
 }
@@ -2949,6 +2943,7 @@ function scrollCal (d)
 	{	
 		var s = fw;
 		nd.setDate(nd.getDate()-28);
+		$.fn.caldav.eventAverageTime = 100;
 		while ( s > nd )
 		{ 
 			$('#calt').prepend(buildweek(s));
@@ -2959,6 +2954,7 @@ function scrollCal (d)
 	if ( ed > lw )
 	{
 		var s = lw;
+		$.fn.caldav.eventAverageTime = 100;
 		while ( s < ed || $('#day_'+ d.LocalDayString() ).length == 0 )
 		{ 
 			$('#calt').append(buildweek(s));
@@ -3430,6 +3426,8 @@ function calstyle ()
 	'.calpopup .value:hover { outline: 1px solid #AAA; resize: both;}' + "\n" +
 	'.calpopup .value:focus { outline: none; -moz-box-shadow: 1px 1px 3px #888; -webkit-box-shadow: 1px 1px 3px #888; box-shadow: 1px 1px 3px #888; resize: none; }' + "\n" +
 	'.calpopup .value:focus:hover { resize:both; }' + "\n" +
+	'.calpopup .recurrence { resize: none; outline: none; margin:0; padding:0; padding-right: 2px; padding-left: 4px; min-width: 3em; min-height: 1em; display: block; float: left; margin-top: 6px; margin-bottom: 2px; }' + "\n" +
+	'.calpopup .recurrence span { resize: none; outline: none; margin:0; padding:0; padding-right: .6em; min-height: 1em; display: block; float: left; }' + "\n" +
 	'.calpopup .alarm { resize: none; outline: none; margin:0; padding:0; padding-right: 2px; padding-left: 4px; min-width: 3em; min-height: 1em; display: block; float: left; margin-top: 6px; margin-bottom: 2px; }' + "\n" +
 	'.calpopup .alarm .value { resize: none; outline: none; margin:0; padding:0; padding-right: .1em; padding-left: .1em; display: inline; float: none; }' + "\n" +
 	'.calpopup .alarm + .plus { display: block; float: left; padding-right: 2px; padding-left: 4px; margin-top: 6px; margin-bottom: 2px; text-decoration: underline; color: #00A; } ' + "\n" +
@@ -4516,6 +4514,112 @@ var recurrence = function ( text )
 		'MINUTELY':{ type:'M', 'BYMONTH':'limit', 'BYMONTHDAY':'limit','BYDAY':'limit', 'BYHOUR':'limit', 'BYMINUTE':'limit', 'BYSECOND':'expand' },
 		'SECONDLY':{ type:'s', 'BYMONTH':'limit', 'BYMONTHDAY':'limit','BYDAY':'limit', 'BYHOUR':'limit', 'BYMINUTE':'limit', 'BYSECOND':'limit' } };
 	
+	this.editRecurrence = function()
+	{
+		var dowa = ['SU','MO','TU','WE','TH','FR','SA'];
+		var dow = {SU:'Sunday',MO:'Monday',TU:'Tuesday',WE:'Wednesday',TH:'Thursday',FR:'Friday',SA:'Saturday'};
+		if ( this.rule == undefined ) 
+			return false ;
+		var r = this.rule;
+		var ret = r.FREQ.replace(/LY$/,'') ;
+		ret = '<span class="recurrence"><span class="repeat" contenteditable="true" >'+recurrenceUI['every']+'</span><span class="every" contenteditable="true">'+recurrenceUI[ret]+'</span>';
+		if ( r.COUNT )
+		{
+			ret = ret + '<span class="foruntil" contenteditable="true">' + recurrenceUI['for'] + '</span><span class="value" data-value="'+
+				Number(r.COUNT).toLocaleString() + ' ' + recurrenceUI['time'+ (r.COUNT>1?'s':'')] + 
+				'" contenteditable="true">' + Number(r.COUNT).toLocaleString() + ' ' + recurrenceUI['time'+ (r.COUNT>1?'s':'')] + '</span>'; 
+		}
+		else if ( r.UNTIL ) 
+		{
+			ret = ret + '<span class="foruntil" contenteditable="true">' + recurrenceUI['until'] + '</span><span class="value" data-value="' + Zero().parseDate(r.UNTIL).prettyDate() +
+				'" contenteditable="true">' + Zero().parseDate(r.UNTIL).prettyDate() + '</span>'; 
+		}
+		else
+			ret = ret + '<span class="foruntil" contenteditable="true">' + valueNames.NONE + '</span><span class="value" contenteditable="true"></span>';
+		for ( var i in this.rrule_expansion[r.FREQ] )
+		{
+			if ( i == 'type' ) 
+				continue ;
+			var type = String(i).replace(/BY/,'');
+			if ( type == 'DAY' )
+				type = 'DAI';
+			ret = ret + '<span class="byrule '+ String(i).toLowerCase() +'" expand="'+ this.rrule_expansion[r.FREQ][i] +'" >'+recurrenceUI[type]+'</span><span class="value" contenteditable="true">';
+			var values = '';
+			if ( r[i] != undefined )
+			{
+				var p = r[i];
+				if ( p.length == undefined )
+					var p = [p];
+				for ( var j = 0; j < p.length; j++ )
+					values = values + (j>0?',':'') + this.printByValue(i, p[j]);
+			}
+			ret = ret + values + '</span>';
+		}
+		ret = ret + '</span>';
+		var ret = $(ret);
+		$('.repeat',ret).bind('focus', function (e){e.preventDefault();window.setTimeout(function(){$(e.target).next().focus();},10);return false; });
+		$('.every',ret).bind('focus', function (e){
+			var freq = ['YEAR','MONTH','WEEK','DAI','HOUR','MINUTE','SECOND'];
+			var comp = buildOptions(e.target,freq,recurrenceUI, true, true, false,true );
+			popupOverflowVisi();
+			if ( ! $(e.target).prev().hasClass('completionWrapper') )
+				$(e.target).before(comp);
+		});
+		$('.foruntil',ret).bind('focus', function (e){
+			$(e.target).data('value',$(e.target).next().text());
+			var comp = buildOptions(e.target,['for','until'],recurrenceUI, true, true,false,false, function (e){
+				if ( $(e).text() == '' )
+					return $(e).text(valueNames.NONE).next().empty();
+				if ( $(e).text() == recurrenceUI['for'] )
+				{
+					var tRE = new RegExp ( recurrenceUI['time'] );
+					var val = Number(1).toLocaleString() + ' ' + recurrenceUI['time'];
+				}
+				if ( $(e).text() == recurrenceUI['until'] )
+				{
+					var tRE = /([0-9]{1,2})\/([0-9]{1,2})\/([0-9]{4})\s*(([0-2]?[0-9]):?([0-6][0-9])?:?([0-6][0-9])?\s*([AP]M)?)?/i;
+					var d = $($($('#wcal').data('popup')).data('event')).attr('instance');
+					var val = Zero().parseDate(d).prettyDate() ;
+				}
+				if ( tRE.test($(e).next().data('value') ) )
+				{	
+					if ( $(e).next().data('value') != $(e).next().text() )
+						$(e).next().text( $(e).next().data('value') );
+				}
+				else
+						$(e).next().text( val );
+			});
+			popupOverflowVisi();
+			$(e.target).before(comp);
+		});
+		return ret;
+	};
+
+	this.printByValue = function ( type, value )
+	{
+		var dowa = {'SU':0,'MO':1,'TU':2,'WE':3,'TH':4,'FR':5,'SA':6};
+		switch ( type )
+		{ 
+			case 'BYMONTH':
+				return months[value-1];
+			case 'BYDAY':
+				var offset = String(value).match ( /([-+]?[0-9]+)?([a-zA-Z]{2})/ );
+				var o = ''
+				if ( offset[1] != undefined )
+				{
+					o = recurrenceUI['position'+(Number(offset[1])+6)];
+				}
+				return o + ' ' + weekdays[ dowa[ offset[2] ] ];
+			case 'BYWEEKNO':
+			case 'BYYEARDAY':
+			case 'BYMONTHDAY':
+			case 'BYHOUR':
+			case 'BYMINUTE':
+			case 'BYSECOND':
+				return value;
+		}
+	};
+
 	this.prettyRecurrence = function()
 	{
 		var dowa = ['SU','MO','TU','WE','TH','FR','SA'];
@@ -4526,7 +4630,7 @@ var recurrence = function ( text )
 		var ret = r.FREQ.replace(/LY$/,'') ;
 		ret = recurrenceUI[ret];
 		if ( r.COUNT ) ret = recurrenceUI['every'] + ' ' + ret + ' ' + recurrenceUI['for'] + ' ' + r.COUNT + ' ' + recurrenceUI['time'+ (r.COUNT>1?'s':'')];
-		if ( r.UNTIL ) ret += ' ' + recurrenceUI['until'] + ' ' + (new Date()).parseDate(r.UNTIL).prettyDate();
+		if ( r.UNTIL ) ret = recurrenceUI['every'] + ' ' + ret + ' ' + recurrenceUI['until'] + ' ' + (new Date()).parseDate(r.UNTIL).prettyDate();
 		if ( ! r.COUNT && ! r.UNTIL ) ret = recurrenceUI['every'] + ' ' + ret;
 		return ret;
 	};
@@ -4545,9 +4649,10 @@ var recurrence = function ( text )
 	
 	this.parseRecurrence = function(r)
 	{
+		var dowa = ['SU','MO','TU','WE','TH','FR','SA'];
 		this.text = r;
 		var S = String(r);
-		//var freqr = /(SECONDLY|MINUTELY|HOURLY|DAILY|WEEKLY|MONTHLY|YEARLY)/;
+		var freqr = /(SECONDLY|MINUTELY|HOURLY|DAILY|WEEKLY|MONTHLY|YEARLY)/;
 		var byr = /(BYSECOND|BYMINUTE|BYHOUR|BYDAY|BYMONTHDAY|BYYEARDAY|BYWEEKNO|BYMONTH|BYSETPOS)/;
 		var parts = S.split(';');
 		var res = new Array;
@@ -4555,11 +4660,88 @@ var recurrence = function ( text )
 		for ( var i=0; i<parts.length;i++)
 		{
 			var c = parts[i].split('=');
+			values = [];
 			if ( byr.test(c[0]) )
-				rule[c[0]] = c[1].split(',');
+				values = c[1].split(',');
 			else
-				rule[c[0]] = c[1];
+				values = [c[1]];
+			rule[c[0]] = new Array ();
+			switch ( c[0] )
+			{
+				case 'BYSECOND':
+					for ( var j=0; j<values.length; j++)
+						if ( values[j] >=0 && values[j] <=60 )
+							rule[c[0]].push ( values[j] );
+					break ;
+				case 'BYMINUTE':
+					for ( var j=0; j<values.length; j++)
+						if ( values[j] >=0 && values[j] <=59 )
+							rule[c[0]].push ( values[j] );
+					break ;
+				case 'BYHOUR':
+					for ( var j=0; j<values.length; j++)
+						if ( values[j] >=0 && values[j] <=23 )
+							rule[c[0]].push ( values[j] );
+					break ;
+				case 'BYDAY':
+					for ( var j=0; j<values.length; j++)
+						if ( /^([+-]?([1-4][0-9]|5[0-3]|[1-9]))?(SU|MO|TU|WE|TH|FR|SA)$/.test(values[j]) )
+							rule[c[0]].push ( values[j] );
+					break ;
+				case 'BYMONTHDAY':
+					for ( var j=0; j<values.length; j++)
+						if ( values[j] > -32 && values[j] != 0 && values[j] < 32 )
+							rule[c[0]].push ( values[j] );
+					break ;
+				case 'BYYEARDAY':
+					for ( var j=0; j<values.length; j++)
+						if ( values[j] > -366 && values[j] != 0 && values[j] < 366 )
+							rule[c[0]].push ( values[j] );
+					break ;
+				case 'BYWEEKNO':
+					for ( var j=0; j<values.length; j++)
+						if ( values[j] > -53 && values[j] != 0 && values[j] < 53 )
+							rule[c[0]].push ( values[j] );
+					break ;
+				case 'BYMONTH':
+					for ( var j=0; j<values.length; j++)
+						if ( values[j] > 0 && values[j] < 13 )
+							rule[c[0]].push ( values[j] );
+					break ;
+				case 'BYSETPOS':
+					for ( var j=0; j<values.length; j++)
+						if ( values[j] > -366 && values[j] != 0 && values[j] < 366 )
+							rule[c[0]].push ( values[j] );
+					break ;
+				case 'WKST':
+					if ( values.length == 1 && /^(SU|MO|TU|WE|TH|FR|SA)$/.test(values[0]) )
+						rule[c[0]] = values[0];
+					break ;
+				case 'FREQ':
+					if ( values.length == 1 && freqr.test(values[0]) )
+						rule[c[0]] = values[0];
+					break ;
+				case 'INTERVAL':
+					if ( values.length == 1 && values[0] > 0 ) 
+						rule[c[0]] = Number ( values[0] );
+					break ;
+				case 'COUNT':
+					if ( values.length == 1 && values[0] > 0 ) 
+						rule[c[0]] = Number ( values[0] );
+					break ;
+				case 'UNTIL':
+					if ( values.length == 1 && Zero().parseDate(values[0])  ) 
+						rule[c[0]] = Zero().parseDate(values[0]);
+					break ;
+			}
 		}
+		if ( rule.BYWEEKNO !=undefined && rule.FREQ != 'YEARLY' )
+			delete rule.BYWEEKNO;
+		if ( rule.BYYEARDAY !=undefined && ( rule.FREQ == 'DAILY' || rule.FREQ == 'WEEKLY' || rule.FREQ == 'MONTHLY' ) )
+			delete rule.BYYEARDAY;
+		if ( rule.BYMONTHDAY !=undefined && rule.FREQ == 'WEEKLY' )
+			delete rule.BYMONTHDAY;
+
 		this.rule = rule;
 		if ( this.occurences != undefined )
 		{
@@ -4581,7 +4763,12 @@ var recurrence = function ( text )
 		{
 			if ( rule.length > 1 )
 				rule = rule + ';';
-			rule = rule +  i + '=' + parts[i];
+			if ( i == 'UNTIL' )
+				rule = rule +  i + '=' + parts[i].DateString();
+			else if ( parts[i].join )
+				rule = rule +  i + '=' + parts[i].join(',');
+			else
+				rule = rule +  i + '=' + parts[i];
 		}
 		this.text = rule;
 		return this.text;
@@ -4594,7 +4781,8 @@ var recurrence = function ( text )
 		var occurences = new Array ();
 		if ( this.rule == undefined ) 
 			return ;
-		r = this.rule;
+		var r = this.rule;
+		var fulldate = true;
 		var hms = s.match(/([0-9]{4})([0-9]{2})([0-9]{2})([Tt]([0-2][0-9])([0-6][0-9])([0-9]{2}))?[Zz]?/).slice(1);
 		if ( hms[3] != undefined  )
 		{
@@ -4619,13 +4807,14 @@ var recurrence = function ( text )
 			s.setUTCMinutes(0);
 			s.setUTCSeconds(0);
 			s.setMilliseconds(0);
+			fulldate = false;
 			var order = { 'BYMONTH':'m', 'BYWEEKNO':'w', 'BYYEARDAY':'Y', 'BYMONTHDAY':'m', 'BYDAY':'D', 'BYSETPOS':'p' };
 			var Set = { 'BYMONTH':'setUTCMonth', 'BYWEEKNO':'setWeek', 'BYYEARDAY':'setDayOfYear', 'BYMONTHDAY':'setUTCDate', 'BYDAY':'setDayOfWeek', 'BYHOUR':'setUTCHours', 'BYMINUTE':'setUTCMinutes', 'BYSECOND':'setUTCSeconds', 'BYSETPOS':'p' };
 		}
 		if ( ! s instanceof Date )
 			return false ;
 		var d = new Date ( s );
-		occurences[d.getTime()] = d;
+		occurences[d.getTime()] = new Date(d);
 		var end = false ;
 		var limit = false ;
 		var freq = r.FREQ ;
@@ -4634,7 +4823,7 @@ var recurrence = function ( text )
 		var count = 100, until = '', interval = 1, c = 0,dummy=0;
 		if ( r.COUNT    ) count     = r.COUNT;
 		if ( r.INTERVAL ) interval  = r.INTERVAL;
-		if ( r.UNTIL    ) until     = (new Date()).parseDate(r.UNTIL);
+		if ( r.UNTIL    ) until     = r.UNTIL;
 			else if ( u instanceof Date ) until = u;
 			else until = dateAdd(new Date(),'y',20);
 		if ( r.WKST     ) wkst      = r.WKST;
@@ -4642,39 +4831,84 @@ var recurrence = function ( text )
 			return this.occurences;
 		for ( var c = 1;c < count &&! end; dummy++ )
 		{
-			var nextd = d;
+			var nextd = new Date(d);
 			var loopoccurences = new Array ();
 			for ( var i in order )
 			{
 				if ( end ) break ;
 				if ( r[i] != undefined )
 				{
+					limit = false;
 					if ( i == 'BYSETPOS' )
 					{
 						var previousoccurences = loopoccurences;
 					}
-					//console.log ( rrule_expansion[freq][r[i]] );
-					if ( this.rrule_expansion[freq][r[i]] == 'limit' ) 
+					if ( this.rrule_expansion[freq][i] == 'limit' ) 
+					{
 						limit = true;
+						loopoccurences = new Array ();
+					}
 					for (var z=0;z<r[i].length&&c<count&&!end;z++)
 					{ 
 						if ( i == 'BYDAY' )
 						{
 							var offset = r[i][z].match ( /([-+]?[0-9]+)?([a-zA-Z]{2})/ );
-							if ( freq == 'MONTHLY' ) // special by day rules for monthly
+							if ( ( freq == 'YEARLY' && r.BYMONTH != undefined ) || freq == 'MONTHLY' ) // special by day rules for monthly
 							{
-								limit = true;
-								d.setUTCDate(1);
-								if ( offset[1] < 0 ) 
-									d.add ( 'm' , 1).setUTCDate(-1);
-								if ( offset[1] == undefined ) offset[1] = 0;
-								d.add ( order[i], offset[1] * 7 + dow[offset[2]]  );
+								if ( limit == false )
+								{
+									loopoccurences = new Array ();
+									limit = true;
+								}
+								if ( offset[1] != undefined )
+								{
+									d.setUTCDate(1);
+									if ( offset[1] < 0 ) 
+									{
+										d.add ( 'm' , 1).setUTCDate(-1);
+										d.setUTCDate(offset[1]*7);
+									}
+									else
+										d.setUTCDate(offset[1]*7-6);
+									d.add ( order[i], dow[offset[2]]  );
+								}
+								else
+									d.add ( order[i], dow[offset[2]]  );
+								if ( c >= count || d > until ) end = true;
+								else loopoccurences[d.getTime()] = new Date(d.getTime());
+							}
+							else if ( offset[1] == undefined || freq != 'YEARLY' || ( r['BYWEEKNO'] != undefined && freq == 'YEARLY' ) ) 
+							{
+								if ( limit == false )
+								{
+									loopoccurences = new Array ();
+									limit = true;
+								}
+								if ( d.getDayOfWeek() > dow[offset[2]] )
+									d.add('W',1);
+								d[Set[i]]( dow[offset[2]] );
+								if ( c >= count || d > until ) end = true;
+								else loopoccurences[d.getTime()] = new Date(d.getTime());
 							}
 							else
-							{
+							{ // integer modifier only valid on YEARLY and MONTHLY frequencies
 								d.setUTCDate(1);
-								if ( offset[1] == undefined ) offset[1] = 0;
-								d.add ( order[i], offset[1] * 7 + dow[offset[2]]  );
+								var m = d.getUTCMonth();
+								var nd = new Date(d);
+								var t = true;
+								while ( t ) 
+								{
+									nd[Set[i]] ( dow[offset[2]] );
+									if ( m == nd.getUTCMonth() )
+									{
+										d = new Date(nd);
+										nd.add('W',1);
+										if ( c >= count || d > until ) end = true;
+										else loopoccurences[d.getTime()] = new Date(d.getTime());
+									}
+									else
+										t = false;
+								}
 							}
 						}
 						else if ( i == 'BYSETPOS' )
@@ -4689,25 +4923,43 @@ var recurrence = function ( text )
 								inc++;
 							}
 						}
+						else if ( this.rrule_expansion[freq][r[i]] == 'expand' )
+						{
+							var sd = new Date(d);
+							var ed = new Date(sd).add(order[i],1);
+							while ( d < ed && ! end )
+							{
+								d.add(order[i], Number(r[i][z]) + Adj[i] );
+								if ( c >= count || d > until ) end = true;
+								else loopoccurences[d.getTime()] = new Date(d.getTime());
+							}
+						}
 						else
+						{
 							d[Set[i]]( Number(r[i][z]) + Adj[i] );
-						//	d.add ( order[i], r[i][z] );
-						if ( c >= count || d > until ) end = true;
-						else loopoccurences[d.getTime()] = d;
-					}
-					for ( var b in loopoccurences )
-					{
-						c++;
-						if ( c < count )
-							occurences[b] = loopoccurences[b];
+							if ( c >= count || d > until ) end = true;
+							else loopoccurences[d.getTime()] = new Date(d.getTime());
+						}
 					}
 				}
 				if ( c >= count || d > until ) end = true;
 			}
-			
+			for ( var b in loopoccurences )
+			{
+				if ( occurences[b] == undefined && c < count )
+				{
+					c++;
+					occurences[b] = loopoccurences[b];
+				}
+			}
+	
 			d = dateAdd ( nextd, this.rrule_expansion[freq].type, interval );
 			if ( c >= count || d > until ) end = true;
-			else if ( ! limit ) { c++;occurences[d.getTime()] = d;}
+			else if ( ! limit ) 
+			{ 
+				c++;
+				occurences[d.getTime()] = d;
+			}
 		}
 		this.start = s;
 		this.until = until;
@@ -4753,7 +5005,8 @@ Date.prototype.DateString = function(){
       + this.pad(this.getUTCDate())+'T'
       + this.pad(this.getUTCHours()) + ''
       + this.pad(this.getUTCMinutes()) + ''
-      + this.pad(this.getUTCSeconds())};
+      + this.pad(this.getUTCSeconds()) +
+			(this.zulu != undefined?'Z':'') };
 
 Date.prototype.LocalDateString = function(){
 	return this.getFullYear() + ''
@@ -4793,6 +5046,7 @@ function emptyDuration ()
 {
 	return {years:0,months:0,weeks:0,days:0,hours:0,minutes:0,seconds:0,negative:false,valid:false};
 }
+
 function parseDuration(dur)
 {
 	var years = /([1-9][0-9]*)[\s\t.,=_;@:-]*years?/i;
@@ -4900,6 +5154,7 @@ Date.prototype.parseDate  = function( d )
 		this.setUTCMinutes(0);
 		this.setUTCSeconds(0);
 		this.setUTCMilliseconds(0);
+		this.zulu = parts[7];
 	}
 	return this;
 };
@@ -4964,6 +5219,7 @@ function Zero (d)
 
 Date.prototype.YM = function (){ var d = Zero(); d.setUTCMonth(this.getUTCMonth()); d.setUTCFullYear(this.getUTCFullYear()); return d; };
 Date.prototype.YW = function (){ var d = Zero(); d.setUTCMonth(this.getUTCMonth()); d.setUTCFullYear(this.getUTCFullYear()); d.setUTCDate(this.setUTCDate());d.setUTCDate(this.getUTCDate()); d.setDayOfWeek(this.WeekStart); return d; };
+Date.prototype.localTzApply = function(){ var adj = localTimezone.offset * 60/100 * 60; this.setTime( this.getTime() + adj *1000); return this; };
 Date.prototype.localTzRemove = function(){ var adj = localTimezone.offset * 60/100 * 60; this.setTime( this.getTime() - adj *1000); return this; };
 Date.prototype.getLongMinutes = function(){return this.getUTCHours() * 100 + this.getUTCMinutes() * (100/60);};
 Date.prototype.Zero = function (){ Zero(this); return this; };
@@ -4976,10 +5232,11 @@ Date.prototype.getDayOfYear = function ( ) { var w = 0, t = new Date(this);t.set
 Date.prototype.setDayOfYear = function ( Day ) { var w=0;this.setUTCDate(1); this.setUTCMonth(0); while (w<Day&&w<366) {this.setUTCDate(this.getUTCDate()+1);w++;}  return this; };
 Date.prototype.getDaysInMonth = function ( ) { var t = new Date(this); t.setUTCMonth(t.getUTCMonth()+1); t.setUTCDate(-1);return t.getUTCDate(); };
 Date.prototype.getWeekInMonth = function ( ) { return Math.ceil(t.getUTCDate()/7); };
-Date.prototype.setDayOfWeek = function (Day) { this.setUTCDate(0-this.getUTCDay());var t=this.getUTCDate();this.setUTCDate(t+Day); return this; };
+Date.prototype.setDayOfWeek = function (Day) { this.setUTCDate(this.getUTCDate()-this.getUTCDay());var t=this.getUTCDate();this.setUTCDate(t+Day); return this; };
+Date.prototype.getDayOfWeek = function (Day) { var d = this.getUTCDay(); return d; };
 
 function dateAdd ( d, field, amount )
-{ // y = year, m = month, w = week number, d = day of month(25), D = day of week (3) -> wed, h = hour, M = minute, s = Second
+{ // y = year, m = month, W = weeks, w = week number, d = day of month(25), D = day of week (3) -> wed, h = hour, M = minute, s = Second
 	var ret = new Date ( d.getTime() );
 	var amount = Number(amount);
 	switch ( field )
