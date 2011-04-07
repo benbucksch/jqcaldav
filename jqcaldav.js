@@ -2292,6 +2292,7 @@ function eventMouseout()
 function eventClick(e)
 {
 	$('#calpopupe').remove();
+	$('#wcal').removeData('popup');
 	e.stopPropagation();
 	eventHover(e);
 	var cp = $($('#wcal').data('popup'));
