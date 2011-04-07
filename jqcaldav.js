@@ -1452,7 +1452,7 @@ function insertEvent ( href, icsObj, c, start, end , current)
 		run[estart.DayString()] = estart;
 	perf[0].push($.now()-now);
 	if ( globalEvents.href[href] != undefined && String(cevent.uid.VALUE).length > 0 )
-		var otherOcurrences = $('#wcal li.calendar'+c+'[uid='+cevent.uid.VALUE+'][original=0]');
+		var otherOcurrences = $('#wcal li.calendar'+c+'[uid="'+cevent.uid.VALUE+'"][original=0]');
 	else
 		var otherOcurrences = $('#wcal > #DOESNTEXISIT');
 	for ( var i in run )
@@ -1554,7 +1554,7 @@ function insertEvent ( href, icsObj, c, start, end , current)
 			if ( cevent['recurrence-id'] != undefined )
 			{
 				if ( String(cevent.uid.VALUE).length > 0 )
-					var entry = $('#day_' + cevent['recurrence-id'].DATE.DayString() + ' li[uid='+cevent.uid.VALUE+']' ).detach();
+					var entry = $('#day_' + cevent['recurrence-id'].DATE.DayString() + ' li[uid="'+cevent.uid.VALUE+'"]' ).detach();
 				else
 					var entry = $('#day_' + cevent['recurrence-id'].DATE.DayString() + ' li[instance='+estart.DateString()+']' ).detach();
 				var recurencesMoved = $('#wcal').data('cal'+c+href); 
@@ -1615,7 +1615,7 @@ function insertEvent ( href, icsObj, c, start, end , current)
 			if ( cevent['recurrence-id'] != undefined )
 			{
 				if ( String(cevent.uid.VALUE).length > 0 )
-					var entry = $('#day_' + cevent['recurrence-id'].DATE.DayString() + ' li[uid='+cevent.uid.VALUE+']' ).detach();
+					var entry = $('#day_' + cevent['recurrence-id'].DATE.DayString() + ' li[uid="'+cevent.uid.VALUE+'"]' ).detach();
 				else
 					var entry = $('#day_' + cevent['recurrence-id'].DATE.DayString() + ' li[instance='+estart.DateString()+']' ).detach();
 				var currentevent = $(entry).attr('eventcount');
@@ -2118,7 +2118,7 @@ function newevent (e)
 	}
 	$(pop).append(ul);
 	var off = $(e.target).offset();
-	var popoff = {width: 280, height: 330 };
+	var popoff = {width: 300, height: 350 };
 	if ( off.left + e.target.offsetWidth + popoff.width > window.innerWidth )
 	{	$(pop).css({left:(off.left - (popoff.width+17))}); $(pop).removeClass('left').removeClass('right'); }
 	else
@@ -2221,7 +2221,7 @@ function eventHover (e)
 				{
 					try {
 					used.push(props[x]);
-					var li = $('<li><span class="label recurrence" >'+fieldNames.rrule+'</span></li>');
+					var li = $('<li><span class="label" >'+fieldNames.rrule+'</span></li>');
 					$(li).append(d.vcalendar[type][props[x]].RECURRENCE.editRecurrence());
 					$(ul).append(li);
 					}catch (e){console.log('error printing recurrence');}
@@ -2270,7 +2270,7 @@ function eventHover (e)
 		//	$(ul).append('<li><span class="label '+props[x]+'" '+extra+' >'+label+'</span><span class="value" data-value="" ></span></li>');
 	}
 	var off = $(e.target).offset();
-	var popoff = {width: 280, height: 330 };
+	var popoff = {width: 300, height: 350 };
 	if ( off.left + e.target.offsetWidth + popoff.width > window.innerWidth )
 	{	$(pop).css({left:(off.left - (popoff.width+30))}); $(pop).removeClass('left').addClass('right'); }
 	else
@@ -2382,30 +2382,63 @@ function eventClick(e)
 }
 
 
-function buildOptions ( target, options, text, none, spaceSelects, search, removeOnEscape, callback )
-{ //  target == target element for completeion, options == array of options, text == array to print option values from defaults to valueNames
-	//  none == whether or not to print the empty value "none", spaceSelects, search, removeOnEscape all passed to keyboardSelector
-	var currentValue = $(target).text();
+function buildOptions ( opt )
+{
+	// opt = { 'target':target, 'options':options, 'text':text, 'none':none, 'spaceSelects':spaceSelects, 'search':search, 'removeOnEscape':removeOnEscape, callback };
+	//  target == target element for completeion, options == array of options, text == array to print option values from defaults to valueNames
+	//  none == whether or not to print the empty value "none", spaceSelects, search, removeOnEscape all passed to keyboardSelectotr
+	var s = { 'target': undefined, 'options': undefined, 'text': valueNames, 'none': true, 'spaceSelects': true, 'search': false, 'removeOnEscape': true, 'multiselect': false, callback: undefined };
+	for ( var i in s )
+		if ( typeof ( opt[i] ) != "undefined" )
+			s[i] = opt[i];
+	var currentValue = $(s.target).text();
+	if ( s.multiselect !== false )
+		var currentValues = String($.trim(currentValue)).split(s.multiselect);
 	var txt = '<div class="completionWrapper"><div class="completion">';
-	if ( none !== false )
+	if ( s.none !== false )
 		txt = txt + '<div class="remove" text="'+valueNames['NONE']+'"></div>';
-	if ( ! text || ( text.length && text.length < 1 ))
-		text = valueNames;
-	for ( var j = 0; j < options.length; j++ )
-		txt = txt + '<div'+ (text[options[j]]==currentValue?' class="selected" ':'') +'>'+text[options[j]]+'</div>';
+	var text = s.text;
+	if ( s.multiselect === false )
+	{
+		for ( var j = 0; j < s.options.length; j++ )
+			txt = txt + '<div'+ (text[s.options[j]]==currentValue?' class="selected" ':'') +'>'+text[s.options[j]]+'</div>';
+	}
+	else
+	{
+		for ( var j = 0; j < s.options.length; j++ )
+			txt = txt + '<div'+ (currentValues.indexOf(text[s.options[j]])>-1?' class="selected" ':'') +'>'+text[s.options[j]]+'</div>';
+	}
 	txt = txt + '</div></div>';
 	var comp = $(txt);
 
-	$(comp).children().click(function(evt){$(evt.target).parent().parent().next().text($(evt.target).text());
-		$(evt.target).parent().parent().fadeOut(function(){$(this).remove();popupOverflowAuto();});
-		if ( typeof callback == 'function' )
-			callback ( $(evt.target).parent().parent().next() );
+	$(comp).children().click(function(evt){
+		if ( s.multiselect !== false )
+		{
+			if ( $(evt.target).text() == valueNames['NONE'] )
+			{
+				$(evt.target).parent().children().removeClass('selected');
+				$(evt.target).parent().parent().next().text('');
+			}
+			else
+			{
+				$(evt.target).toggleClass('selected');
+				var selected = [];
+				$(evt.target).parent().children().each(function(i){if ($(this).hasClass('selected') )selected.push($(this).text());});
+				$(evt.target).parent().parent().next().text(selected.join(s.multiselect));
+			}
+		}
+		else
+			$(evt.target).parent().parent().next().text($(evt.target).text());
+		if ( s.multiselect === false )
+			$(evt.target).parent().parent().fadeOut(function(){$(this).remove();popupOverflowAuto();});
+		if ( typeof s.callback == 'function' )
+			s.callback ( $(evt.target).parent().parent().next() );
 		return false;
 	});
-	$(target).bind('keydown',function (e2){ 
-		e2.spaceSelects = spaceSelects; 
-		e2.search = search; 
-		e2.removeOnEscape = removeOnEscape; 
+	$(s.target).bind('keydown',function (e2){ 
+		e2.spaceSelects = s.spaceSelects; 
+		e2.search = s.search; 
+		e2.removeOnEscape = s.removeOnEscape; 
 		var k = keyboardSelector(e2);
 		if ( k == 'cancel' )
 		{
@@ -2420,16 +2453,16 @@ function buildOptions ( target, options, text, none, spaceSelects, search, remov
 			$(this).unbind('blur');
 			$(this).text($(k).text());
 			$(this).prev().fadeOut(function(){$(this).remove();popupOverflowAuto();});
-			if ( typeof callback == 'function' )
-				callback ( $(evt.target).parent().parent().next() );
+			if ( typeof s.callback == 'function' )
+				s.callback ( $(evt.target).parent().parent().next() );
 			var ret = e2.which==9;	
 			return ret;
 		}	
 		else
 			return k;
 		},false);
-	$(comp).css({top:$(target).position().top,left:$(target).position().left,'margin-left':'2em'});
-	$(target).bind('blur',function(evt){$(evt.target).prev().fadeOut(function(){$(this).remove();popupOverflowAuto();});$(this).unbind(evt);});
+	$(comp).css({top:$(s.target).position().top,left:$(s.target).position().left,'margin-left':'2em'});
+	$(s.target).bind('blur',function(evt){$(evt.target).prev().fadeOut(function(){$(this).remove();popupOverflowAuto();});$(this).unbind(evt);});
 	return comp;
 }
 
@@ -2443,7 +2476,7 @@ function fieldClick(e)
 			break;
 	if ( d.PARENT.fields[i] && d.PARENT.fields[i].values && d.PARENT.fields[i].values[d.TYPE] && d.PARENT.fields[i].values[d.TYPE].length> 0 )
 	{
-		var comp = buildOptions(e.target,d.PARENT.fields[i].values[d.TYPE],null,true,true);
+		var comp = buildOptions({target:e.target,options:d.PARENT.fields[i].values[d.TYPE]});
 		popupOverflowVisi();
 		$(e.target).before(comp);
 	}
@@ -2722,7 +2755,7 @@ function alarmFieldClick(e)
 	if ($(e.target).attr('class') == 'action' ) 
 		allowNone = true;
 	var currentValue = $(e.target).text();
-	var comp = buildOptions(e.target,options,list, allowNone, true, false,true );
+	var comp = buildOptions({target:e.target,options:options,text:list, none: allowNone, spaceSelects:true, search:false,removeOnEscape:true} );
 	popupOverflowVisi();
 	$(e.target).before(comp);
 }
@@ -3460,7 +3493,7 @@ function calstyle ()
 	'.calpopup * { overflow: hidden; } ' + "\n" +
 	'.calpopup ul { margin:0; padding:1em; max-width: 100%; overflow: hidden; }' + "\n" +
 	'.calpopup li { margin:0; padding:0; list-style: none; list-style-type: none; font-size:9pt; }' + "\n" +
-	'.calpopup > ul > li { clear: both; }' + "\n" +
+	'.calpopup > ul > li { clear: both; min-height: 1.8em; }' + "\n" +
 	'.calpopup > ul > li:first-child span:first-child { display: none; }' + "\n" +
 	'.calpopup > ul > li:first-child span { font-size: 14pt; color: #004; padding-bottom: .75em;}' + "\n" +
 	'.calpopup .label { margin:0; padding:0; display: block; float: left; width: 5.5em; text-align: right; color: #777; font-weight: bold; padding-right: 3px; margin-top: 6px;clear: left; }' + "\n" +
@@ -3468,8 +3501,11 @@ function calstyle ()
 	'.calpopup .value:hover { outline: 1px solid #AAA; resize: both;}' + "\n" +
 	'.calpopup .value:focus { outline: none; -moz-box-shadow: 1px 1px 3px #888; -webkit-box-shadow: 1px 1px 3px #888; box-shadow: 1px 1px 3px #888; resize: none; }' + "\n" +
 	'.calpopup .value:focus:hover { resize:both; }' + "\n" +
-	'.calpopup .recurrence { resize: none; outline: none; margin:0; padding:0; padding-right: 2px; padding-left: 4px; min-width: 3em; min-height: 1em; display: block; float: left; margin-top: 6px; margin-bottom: 2px; }' + "\n" +
-	'.calpopup .recurrence span { resize: none; outline: none; margin:0; padding:0; padding-right: .6em; min-height: 1em; display: block; float: left; }' + "\n" +
+	'.calpopup .recurrence { resize: none; outline: none; margin:0; padding:0; padding-right: 2px; padding-left: 4px; min-width: 3em; min-height: 1em; display: block; float: left; margin-top: 6px; margin-bottom: 2px; max-height: 1em; position: absolute; left: 7.5em; overflow: hidden; }' + "\n" +
+	'.calpopup .recurrence:hover,.calpopup .recurrence:focus { max-height: none; background: white; -moz-box-shadow: 1px 1px 3px #888; -webkit-box-shadow: 1px 1px 3px #888; box-shadow: 1px 1px 3px #888; overflow: visible; } \n' +
+	'.calpopup .recurrence > span { float: none;}' + "\n" +
+	'.calpopup .recurrence span { resize: none; outline: none; margin:0; padding:0; padding-right: .3em; min-height: 1em; display: inline; } ' + "\n" +
+	'.calpopup .recurrence .byrule { clear: left; } \n' + 
 	'.calpopup .alarm { resize: none; outline: none; margin:0; padding:0; padding-right: 2px; padding-left: 4px; min-width: 3em; min-height: 1em; display: block; float: left; margin-top: 6px; margin-bottom: 2px; }' + "\n" +
 	'.calpopup .alarm .value { resize: none; outline: none; margin:0; padding:0; padding-right: .1em; padding-left: .1em; display: inline; float: none; }' + "\n" +
 	'.calpopup .alarm + .plus { display: block; float: left; padding-right: 2px; padding-left: 4px; margin-top: 6px; margin-bottom: 2px; text-decoration: underline; color: #00A; } ' + "\n" +
@@ -3567,7 +3603,7 @@ function calstyle ()
 	'.eventstart { -webkit-box-flex: 0; -moz-box-flex: 0; box-flex: 0; text-wrap: none; -moz-border-radius: .5em 0px 0px .5em; -webkit-border-radius: .5em 0px 0px .5em; border-radius: .5em 0px 0px .5em; } ' + "\n" +
 	'.eventend { -webkit-box-flex: 0; -moz-box-flex: 0; box-flex: 0; padding:0px !important; -moz-border-radius: 0px .5em .5em 0px; -webkit-border-radius: 0px .5em .5em 0px; border-radius: .0px .5em .5em 0px; } ' + "\n" +
 	
-	'#calpopup,#calpopupe,.calpopup {position:absolute; z-index: 10;  width: 280px; min-height: 300px; border:1px solid #AAA; background:#FFF; font-size: 11pt; -moz-border-radius:5px; -webkit-border-radius:5px; border-radius:5px; '+
+	'#calpopup,#calpopupe,.calpopup {position:absolute; z-index: 10;  width: 300px; min-height: 300px; border:1px solid #AAA; background:#FFF; font-size: 11pt; -moz-border-radius:5px; -webkit-border-radius:5px; border-radius:5px; '+
 		'-moz-box-shadow: 3px 3px 10px #888; -webkit-box-shadow: 3px 3px 10px #888; box-shadow: 3px 3px 10px #888; -webkit-transform: translate(3px,-20px); -moz-transform: translate(3px,-20px); transform: translate(3px,-20px);}' + "\n" +
 	'#calpopup { overflow: visible; } ' + "\n" +
 	'.calpopupe { min-width: 200px; min-height: 150px;   } ' + "\n" +
@@ -4586,7 +4622,7 @@ var recurrence = function ( text )
 			var type = String(i).replace(/BY/,'');
 			if ( type == 'DAY' )
 				type = 'DAI';
-			ret = ret + '<span class="byrule '+ String(i).toLowerCase() +'" expand="'+ this.rrule_expansion[r.FREQ][i] +'" >'+recurrenceUI[type]+'</span><span class="value" contenteditable="true">';
+			ret = ret + '<div class="byrule"><span class="label '+ String(i).toLowerCase() +'" expand="'+ this.rrule_expansion[r.FREQ][i] +'" >'+recurrenceUI[type]+'</span><span class="value" contenteditable="true">';
 			var values = '';
 			if ( r[i] != undefined )
 			{
@@ -4596,21 +4632,21 @@ var recurrence = function ( text )
 				for ( var j = 0; j < p.length; j++ )
 					values = values + (j>0?',':'') + this.printByValue(i, p[j]);
 			}
-			ret = ret + values + '</span>';
+			ret = ret + values + '</span></div>';
 		}
 		ret = ret + '</span>';
 		var ret = $(ret);
 		$('.repeat',ret).bind('focus', function (e){e.preventDefault();window.setTimeout(function(){$(e.target).next().focus();},10);return false; });
 		$('.every',ret).bind('focus', function (e){
 			var freq = ['YEAR','MONTH','WEEK','DAI','HOUR','MINUTE','SECOND'];
-			var comp = buildOptions(e.target,freq,recurrenceUI, true, true, false,true );
+			var comp = buildOptions({target:e.target,options:freq,text:recurrenceUI, none:true, spaceSelects:true, search:false,removeOnEscape:true });
 			popupOverflowVisi();
 			if ( ! $(e.target).prev().hasClass('completionWrapper') )
 				$(e.target).before(comp);
 		});
 		$('.foruntil',ret).bind('focus', function (e){
 			$(e.target).data('value',$(e.target).next().text());
-			var comp = buildOptions(e.target,['for','until'],recurrenceUI, true, true,false,false, function (e){
+			var comp = buildOptions({target:e.target,options:['for','until'],text:recurrenceUI, none:true,spaceSelects:true ,search:false ,removeOnEscape:true, callback:function (e){
 				if ( $(e).text() == '' )
 					return $(e).text(valueNames.NONE).next().empty();
 				if ( $(e).text() == recurrenceUI['for'] )
@@ -4631,9 +4667,23 @@ var recurrence = function ( text )
 				}
 				else
 						$(e).next().text( val );
-			});
+			}});
 			popupOverflowVisi();
 			$(e.target).before(comp);
+		});
+		$('.bymonth + .value',ret).bind('focus', function (e){
+			var m = [0,1,2,3,4,5,6,7,8,9,10,11];
+			var comp = buildOptions({target:e.target,options:m,text:months, none:true, spaceSelects:true, search:false,removeOnEscape:true,multiselect:','} );
+			popupOverflowVisi();
+			if ( ! $(e.target).prev().hasClass('completionWrapper') )
+				$(e.target).before(comp);
+		});
+		$('.byday + .value',ret).bind('focus', function (e){
+			var m = [0,1,2,3,4,5,6];
+			var comp = buildOptions({target:e.target,options:m,text:weekdays, none:true, spaceSelects:true, search:false,removeOnEscape:true,multiselect:','} );
+			popupOverflowVisi();
+			if ( ! $(e.target).prev().hasClass('completionWrapper') )
+				$(e.target).before(comp);
 		});
 		return ret;
 	};
