@@ -2818,7 +2818,11 @@ function eventEdited (e)
 	{
 		var href = $(evt).attr('href');
 		d.vcalendar[type].dtstamp.UPDATE ( ( new Date()) );
-		d.vcalendar[type].sequence.VALUE++;
+		if ( typeof ( d.vcalendar[type].sequence ) != "undefined" )
+			d.vcalendar[type].sequence.VALUE++;
+		else
+			d.vcalendar[type].sequence = d.PARENT.newField('SEQUENCE',1);
+
 		var cals = $(document).caldav('calendars');
 		if ( href != '+&New Event' )
 		{
@@ -4368,6 +4372,7 @@ var iCal = function ( text ) {
 				case 'recurrence':
 					var update = this.SETRECURRENCE;
 					break;
+				case 'integer':
 				case 'number':
 					var update = this.INTEGER; 
 					break;
