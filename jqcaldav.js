@@ -1,7 +1,7 @@
 // Copyright (c) 2011, Rob Ostensen ( rob@boxacle.net )
 // See README or http://boxacle.net/jqcaldav/ for license
 var cd,hw,fhw,jqcaldavPath,localTimezone,debug=false,alerts=[],timezoneInit = false;
-var settings={twentyFour:true,start:Zero().setUTCHours(6),end:Zero().setUTCHours(22),'update frequency':300,weekStart:0};
+var settings={twentyFour:true,start:Zero().setUTCHours(6),end:Zero().setUTCHours(22),'update frequency':300,weekStart:0,usealarms:false};
 var months,weekdays,dropquestion,deletequestion,fieldNames,valueNames,subscriptions;
 var perf=[[],[],[],[],[],[]];
 var globalEvents = {href:{}};
@@ -40,7 +40,7 @@ function getTZ ( d )
 	return false;
 }
 
-var defaults={ui:{calendar:"Calendars",todos:"To Do","show":"Show","sort":"Sort","add":"Add",settings:"Settings",subscribe:"Subscribe",today:"Today",week:"Week",month:"Month",start:"Day Starts",end:"Day Ends",twentyFour:"24 Hour Time",username:'Username',password:'Password','go':'go','New Event':'New Event','New Todo':'New Todo','New Journal':'New Journal',"alarm":"alarm","done":"Done","delete":"Delete","name":"name","color":"color","description":"description","url":"url","privileges":"privileges","logout":"Logout","new calendar":"New Calendar","yes":"yes","no":"no","logout error":"Error logging out, please CLOSE or RESTART your browser!","owner":"Owner","subscribed":"Subscribed","lock failed":"failed to acquire lock, may not be able to save changes",loading:'working','update frequency':'update frequency'},
+var defaults={ui:{calendar:"Calendars",todos:"To Do","show":"Show","sort":"Sort","add":"Add",settings:"Settings",subscribe:"Subscribe",today:"Today",week:"Week",month:"Month",start:"Day Starts",end:"Day Ends",twentyFour:"24 Hour Time",username:'Username',password:'Password','go':'go','New Event':'New Event','New Todo':'New Todo','New Journal':'New Journal',"alarm":"alarm","done":"Done","delete":"Delete","name":"name","color":"color","description":"description","url":"url","privileges":"privileges","logout":"Logout","new calendar":"New Calendar","yes":"yes","no":"no","logout error":"Error logging out, please CLOSE or RESTART your browser!","owner":"Owner","subscribed":"Subscribed","lock failed":"failed to acquire lock, may not be able to save changes",loading:'working','update frequency':'update frequency',usealarms:"Enable Alarms"},
 	months:["January","February","March","April","May","June","July","August","September","October","November","December"],
 	weekdays:["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
 	dropquestion:["Do you want to move",["All occurences","This one occurence"]],
@@ -313,8 +313,8 @@ function calSettings (e)
 {
 	var ul = $('<ul></ul>');
 	$(ul).append ('<li><span></span><span class="header">'+ui.settings+'</span></li>');
-	var props  = {"start":"Day Starts","end":"Day Ends","twentyFour":"24 Hour Time",'update frequency':'update frequency','weekStart':'Week Starts on'} ;
-	var ptypes = {'start':'time'      ,'end':'time'    ,'twentyFour':'bool'        ,'update frequency':'number'          ,'weekStart':'day'} ;
+	var props  = {"start":"Day Starts","end":"Day Ends","twentyFour":"24 Hour Time",'update frequency':'update frequency','weekStart':'Week Starts on','usealarms':"use alarms"} ;
+	var ptypes = {'start':'time'      ,'end':'time'    ,'twentyFour':'bool'        ,'update frequency':'number'          ,'weekStart':'day','usealarms':'bool'} ;
 	for ( var i in props )
 		$(ul).append ('<li><span class="label">'+ui[i]+'</span><span class="value data'+ptypes[i]+'" tabindex="0" contenteditable="true" >'+printValue(settings[i],ptypes[i])+'</span></li>');
 	$('.value',ul).click(calFieldClick);
@@ -347,8 +347,8 @@ function saveSettings (dialog)
 {
 	if ( dialog )
 	{
-		var props  = {'start':'Day Starts','end':'Day Ends','twentyFour':'24 Hour Time','update frequency':'update frequency','weekStart':'Week Starts on'} ;
-		var ptypes = {'start':'time'      ,'end':'time'    ,'twentyFour':'bool'        ,'update frequency':'number'          ,'weekStart':'day'} ;
+		var props  = {'start':'Day Starts','end':'Day Ends','twentyFour':'24 Hour Time','update frequency':'update frequency','weekStart':'Week Starts on','usealarms':"use alarms"} ;
+		var ptypes = {'start':'time'      ,'end':'time'    ,'twentyFour':'bool'        ,'update frequency':'number'          ,'weekStart':'day','usealarms':'bool'} ;
 		for ( var i in props )
 		{
 			settings[i] = getValue( $('#caldialog li span:contains('+ui[i]+') + span'), ptypes[i] );
@@ -434,8 +434,8 @@ function calFieldClick(e)
 {
 	var cp = $($('#wcal').data('popup'));
 	var label = $(e.target).prev().text();
-	var props  = {'start':'Day Starts','end':'Day Ends','twentyFour':'24 Hour Time','update frequency':'update frequency','weekStart':'Week Starts on'} ;
-	var propOptions  = {'twentyFour':[ui['yes'],ui['no']]} ;
+	var props  = {'start':'Day Starts','end':'Day Ends','twentyFour':'24 Hour Time','update frequency':'update frequency','weekStart':'Week Starts on','usealarms':"use alarms"} ;
+	var propOptions  = {'twentyFour':[ui['yes'],ui['no']],'usealarms':[ui['yes'],ui['no']]} ;
 	propOptions.weekStart = weekdays;
 	for ( var i in props )
 		if ( ui[i] == label )
@@ -1494,7 +1494,7 @@ function insertEvent ( href, icsObj, c, start, end , current)
 
 		perf[1].push($.now()-now);
 		/////////// handle alarms
-		if ( cevent.valarm != undefined && estart.getTime() > now - 86400000 && estart.getTime() < now + 86400000 * 40 )
+		if ( cevent.valarm != undefined && estart.getTime() > now - 86400000 && estart.getTime() < now + 86400000 * 40  && settings.usealarms )
 		{
 			var alarms = [];
 			if ( cevent.valarm.action != undefined )
