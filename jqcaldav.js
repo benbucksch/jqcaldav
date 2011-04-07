@@ -1451,7 +1451,7 @@ function insertEvent ( href, icsObj, c, start, end , current)
 	else
 		run[estart.DayString()] = estart;
 	perf[0].push($.now()-now);
-	if ( globalEvents.href[href] != undefined )
+	if ( globalEvents.href[href] != undefined && String(cevent.uid.VALUE).length > 0 )
 		var otherOcurrences = $('#wcal li.calendar'+c+'[uid='+cevent.uid.VALUE+'][original=0]');
 	else
 		var otherOcurrences = $('#wcal > #DOESNTEXISIT');
@@ -1525,7 +1525,7 @@ function insertEvent ( href, icsObj, c, start, end , current)
 						atext = alarms[A].description;
 					else
 						atext = summary + ' ' + (atime.getTime()-now>86400000?estart.prettyDate():estart.prettyTime());
-					if ( atime.getTime()-now <= 0 )
+					if ( atime.getTime()-now <= 30000 )
 						continue;
 					if (debug) console.log('alert in ' + ( atime.getTime()-now )/1000 + ' seconds: ' + atext ); 
 					alerts.push(window.setTimeout(function(){$('#calalertsound')[0].play();alert(atext);alerts.shift();},atime.getTime()-now));
@@ -1553,7 +1553,10 @@ function insertEvent ( href, icsObj, c, start, end , current)
 			var entry = new Array;
 			if ( cevent['recurrence-id'] != undefined )
 			{
-				var entry = $('#day_' + cevent['recurrence-id'].DATE.DayString() + ' li[uid='+cevent.uid.VALUE+']' ).detach();
+				if ( String(cevent.uid.VALUE).length > 0 )
+					var entry = $('#day_' + cevent['recurrence-id'].DATE.DayString() + ' li[uid='+cevent.uid.VALUE+']' ).detach();
+				else
+					var entry = $('#day_' + cevent['recurrence-id'].DATE.DayString() + ' li[instance='+estart.DateString()+']' ).detach();
 				var recurencesMoved = $('#wcal').data('cal'+c+href); 
 				if ( typeof recurencesMoved != "object" )
 					recurencesMoved = new Object ();
@@ -1611,7 +1614,10 @@ function insertEvent ( href, icsObj, c, start, end , current)
 			var currentevent = eventcount;
 			if ( cevent['recurrence-id'] != undefined )
 			{
-				var entry = $('#day_' + cevent['recurrence-id'].DATE.DayString() + ' li[uid='+cevent.uid.VALUE+']' ).detach();
+				if ( String(cevent.uid.VALUE).length > 0 )
+					var entry = $('#day_' + cevent['recurrence-id'].DATE.DayString() + ' li[uid='+cevent.uid.VALUE+']' ).detach();
+				else
+					var entry = $('#day_' + cevent['recurrence-id'].DATE.DayString() + ' li[instance='+estart.DateString()+']' ).detach();
 				var currentevent = $(entry).attr('eventcount');
 				$('[eventcount='+$(entry).attr('eventcount')+']').remove();
 			}
