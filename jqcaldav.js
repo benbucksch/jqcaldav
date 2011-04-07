@@ -2213,10 +2213,12 @@ function eventHover (e)
 			case 'rrule':
 				if ( d.vcalendar[type][props[x]] && d.vcalendar[type][props[x]].RECURRENCE )
 				{
+					try {
 					used.push(props[x]);
 					var li = $('<li><span class="label recurrence" >'+fieldNames.rrule+'</span></li>');
 					$(li).append(d.vcalendar[type][props[x]].RECURRENCE.editRecurrence());
 					$(ul).append(li);
+					}catch (e){console.log('error printing recurrence');}
 				}
 				continue;
 			case 'valarm':
@@ -2239,20 +2241,24 @@ function eventHover (e)
 		}
 		if ( d.vcalendar[type][props[x]] )
 		{
+			try {
+				var text = String(d.vcalendar[type][props[x]]);
+			}catch (e){
+				var text = '';
+				console.log('error printing '+ props[x]);}
 			if ( d.vcalendar[type][props[x]].length > 1 )
 			{
 				var li = $('<li><span class="label '+props[x]+'" '+extra+' >'+label+'</span><span class="value"></span></li>');
-				$(li).text(d.vcalendar[type][props[x]]);
-				$(li).attr('data-value',d.vcalendar[type][props[x]]);
-				$(ul).append(li);
+				$('.value',li).text( text );
+				$('.value',li).attr('data-value', text );
 			}
 			else
 			{
 				var li = $('<li><span class="label '+props[x]+'" '+extra+' >'+label+'</span><span class="value"></span></li>');
-				$(li).text(d.vcalendar[type][props[x]]);
-				$(li).attr('data-value',d.vcalendar[type][props[x]]);
-				$(ul).append(li);
+				$('.value',li).text( text );
+				$('.value',li).attr('data-value', text );
 			}
+			$(ul).append(li);
 		}
 		//else if ( props[x] == 'summary' )
 		//	$(ul).append('<li><span class="label '+props[x]+'" '+extra+' >'+label+'</span><span class="value" data-value="" ></span></li>');
@@ -2302,9 +2308,34 @@ function eventClick(e)
 	$('#calpopupe').css('opacity',1);
 	if ( cals[c] != undefined ) 
 	{
+
 		$('#calpopupe').append('<div class="button delete" tabindex="0">'+ui['delete']+'</div>');
-	$('#calpopupe').append('<div class="button done" tabindex="0">'+ui.done+'</div>');
-	$('#calpopupe .done').bind ('click keypress',function (e) {
+		$('#calpopupe').append('<div class="button done" tabindex="0">'+ui.done+'</div>');
+		if ( debug ) 
+		{
+			$('#calpopupe').append('<div class="button tweak" style="position:absolute;bottom:5px;left:70px; width:40px;" tabindex="0">tweak</div>'); // for debugging, not translated
+			$('#calpopupe .tweak').bind ('click',
+					function (e)
+					{
+						var cp = $($('#wcal').data('popup'));
+						var cal = cals[c];
+						var src  = $('<div id="eventsource" style="position:absolute;top:0;left:0;background:grey; overflow-y: auto; white-space: pre;" contenteditable="true" ></div>');
+						var save = $('<div id="eventsave" style="position:absolute;bottom:25px;left:70px; width:40px;" class="button">save</div>');
+						var d = $($(cp).data('event')).data('ics');
+						$(src).text(d.PARENT.printiCal());
+						$(save).click(function(e){
+							var ics = new iCal ( $('#eventsource').text()).ics[0];
+							var cp = $($('#wcal').data('popup'));
+							var href = $($(cp).data('event')).attr('href');
+							var c = $($(cp).data('event')).attr('class').match(/calendar(\d+)/)[1];
+							$('[href="'+href+'"]').fadeOut('fast',function (){$(evt).remove();  } );
+							insertEvent(href,ics,c,$('#wcal').data('firstweek'),$('#wcal').data('lastweek'));});
+						$('#calpopupe').append(src);
+						$('#calpopupe').append(save);
+					}
+				);
+		}
+		$('#calpopupe .done').bind ('click keypress',function (e) {
 				if ( e.keyCode > 0 )
 					if ( e.keyCode != 32 || e.keyCode != 13 )
 						return ;
@@ -2315,7 +2346,7 @@ function eventClick(e)
 				}
 			}
 			);
-	$('#calpopupe .delete').bind ('click keypress',function (e) {
+		$('#calpopupe .delete').bind ('click keypress',function (e) {
 				if ( e.keyCode > 0 )
 					if ( e.keyCode != 32 || e.keyCode != 13 )
 						return ;
@@ -3070,7 +3101,7 @@ function buildcal(d)
 		{	$('li.selected',$(this).parent()).toggleClass('selected');$(this).parent('li').toggleClass('open');$(this).parent('li').toggleClass('closed');}});
 	$(sidebar).append(sideul);
 	$(sidebar).append('<div class="calfooter group" tabindex="2"><div id="addcalendar" class="button" >'+ui.add+'</div><div id="calsettings" class="button" >'+ui.settings+'</div><div id="calsubscribe" class="button" >'+ui.subscribe+'</div></div>');
-	if ( startTranslating != undefined && typeof ( startTranslating ) == "function" )
+	if ( startTranslating && startTranslating != undefined && typeof ( startTranslating ) == "function" )
 	{
 		$('.calfooter',sidebar).append('<div id="caltranslate" class="button" >translate</div>');
 		$('#caltranslate',sidebar).click(startTranslating);
@@ -4531,8 +4562,8 @@ var recurrence = function ( text )
 		}
 		else if ( r.UNTIL ) 
 		{
-			ret = ret + '<span class="foruntil" contenteditable="true">' + recurrenceUI['until'] + '</span><span class="value" data-value="' + Zero().parseDate(r.UNTIL).prettyDate() +
-				'" contenteditable="true">' + Zero().parseDate(r.UNTIL).prettyDate() + '</span>'; 
+			ret = ret + '<span class="foruntil" contenteditable="true">' + recurrenceUI['until'] + '</span><span class="value" data-value="' + r.UNTIL.prettyDate() +
+				'" contenteditable="true">' + r.UNTIL.prettyDate() + '</span>'; 
 		}
 		else
 			ret = ret + '<span class="foruntil" contenteditable="true">' + valueNames.NONE + '</span><span class="value" contenteditable="true"></span>';
@@ -4549,7 +4580,7 @@ var recurrence = function ( text )
 			{
 				var p = r[i];
 				if ( p.length == undefined )
-					var p = [p];
+					continue;	
 				for ( var j = 0; j < p.length; j++ )
 					values = values + (j>0?',':'') + this.printByValue(i, p[j]);
 			}
