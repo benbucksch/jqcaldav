@@ -3101,7 +3101,7 @@ function buildcal(d)
 		{	$('li.selected',$(this).parent()).toggleClass('selected');$(this).parent('li').toggleClass('open');$(this).parent('li').toggleClass('closed');}});
 	$(sidebar).append(sideul);
 	$(sidebar).append('<div class="calfooter group" tabindex="2"><div id="addcalendar" class="button" >'+ui.add+'</div><div id="calsettings" class="button" >'+ui.settings+'</div><div id="calsubscribe" class="button" >'+ui.subscribe+'</div></div>');
-	if ( startTranslating && startTranslating != undefined && typeof ( startTranslating ) == "function" )
+	if ( typeof ( startTranslating ) == "function" )
 	{
 		$('.calfooter',sidebar).append('<div id="caltranslate" class="button" >translate</div>');
 		$('#caltranslate',sidebar).click(startTranslating);
