@@ -3594,6 +3594,7 @@ function calstyle ()
 	'.calpopup .value:focus:hover { resize:both; }' + "\n" +
 	'.calpopup .recurrence { resize: none; outline: none; margin:0; padding:0; padding-right: 2px; padding-left: 4px; min-width: 3em; min-height: 1em; display: block; float: left; margin-top: 6px; margin-bottom: 2px; max-height: 1em; position: absolute; left: 7.5em; overflow: hidden; }' + "\n" +
 	'.calpopup .recurrence:hover,.calpopup .recurrence.focus { max-height: none; background: #E3E3E3; -moz-box-shadow: 1px 1px 3px #888; -webkit-box-shadow: 1px 1px 3px #888; box-shadow: 1px 1px 3px #888; overflow: visible; z-index: 120; } \n' +
+	'.calpopup .recurrence .repeat:before { content: attr(text); } \n' + 
 	'.calpopup .recurrence > span { float: none; display: inline; }' + "\n" +
 	'.calpopup .recurrence span { resize: none; outline: none; margin:0; padding:0; padding-right: .3em; min-height: 1em; display: inline; } ' + "\n" +
 	'.calpopup .recurrence .byrule { clear: left; } \n' + 
@@ -4695,7 +4696,10 @@ var recurrence = function ( text )
 			return false ;
 		var r = this.rule;
 		var ret = r.FREQ.replace(/LY$/,'') ;
-		ret = '<span class="recurrence"><span class="repeat" contenteditable="true" >'+recurrenceUI['every']+'</span><span class="every" contenteditable="true">'+recurrenceUI[ret]+'</span>';
+		var inter = '';
+		if ( typeof ( r['INTERVAL'] ) != "undefined"  && r.INTERVAL != 1 )
+			inter = r.INTERVAL;
+		ret = '<span class="recurrence"><span class="repeat" contenteditable="true" text="'+recurrenceUI['every']+' ">'+inter+'</span><span class="every" contenteditable="true">'+recurrenceUI[ret]+'</span>';
 		if ( r.COUNT )
 		{
 			ret = ret + '<span class="foruntil" contenteditable="true">' + recurrenceUI['for'] + '</span><span class="value" data-value="'+
@@ -4713,7 +4717,7 @@ var recurrence = function ( text )
 		var ret = $(ret);
 		$(ret).append(this.printSections(r.FREQ));
 		$(ret).data('rule',this);
-		$('.repeat',ret).bind('focus', function (e){e.preventDefault();window.setTimeout(function(){$(e.target).next().focus();},10);return false; });
+		//$('.repeat',ret).bind('focus', function (e){ });
 		$('.every',ret).bind('focus', function (e){
 			var freq = ['YEAR','MONTH','WEEK','DAI','HOUR','MINUTE','SECOND'];
 			var comp = buildOptions({target:e.target,options:freq,text:recurrenceUI, none:true, spaceSelects:true, search:false,removeOnEscape:false, 
@@ -4847,10 +4851,51 @@ var recurrence = function ( text )
 		var dow = {SU:'Sunday',MO:'Monday',TU:'Tuesday',WE:'Wednesday',TH:'Thursday',FR:'Friday',SA:'Saturday'};
 		if ( this.rule == undefined ) 
 			return false ;
-		var ret = r.FREQ.toLowerCase() ;
-		if ( r.COUNT ) ret += ' ' + r.COUNT + ' time' + (r.COUNT>1?'s':'');
-		if ( r.UNTIL ) ret += ' until ' + (new Date()).parseDate(r.UNTIL).prettyDate();
-	
+		var n = {};
+		if ( $('.repeat',r).text() != '' )
+		{
+			var res = String($('.repeat',r).text()).match(/(\d+)/);
+			if ( ! res )
+				return false;
+			if ( Number(res[1]) != 1 )
+			n.INTERVAL = Number(res[1]);
+		}
+		for ( var j in recurrenceUI ) 
+			if ( recurrenceUI[j] == $('.every',r).text() )
+				break;
+		n.FREQ = j;
+		if ( $('.foruntil',r).text() == recurrenceUI['for'] )
+		{
+			var res = String($('.foruntil + .value',r).text()).match(/(\d+)/);
+			if ( ! res )
+				return false;
+			var num = Number(res[1]);
+			if ( num == NaN )
+				false;
+			n.COUNT = num;
+		}
+		else
+			n.UNTIL = Zero().parsePrettyDate($('.foruntil + .value',r).text());
+		
+		for ( var i in this.rrule_expansion[f] )
+		{
+			var type = String(i).replace(/BY/,'');
+			r[i] = $( '.' + String(i).toLowerCase() + ' + .value' ,r).text();
+			if ( i == 'BYDAY' )
+			{
+				var a = [];
+				for ( var j in r[i] ) 
+					a.push[weekdays.indexOf(r[i][j])];
+				r[i]=a;
+			}
+			if ( i == 'BYMONTH' )
+			{
+				var a = [];
+				for ( var j in r[i] ) 
+					a.push[months.indexOf(r[i][j])];
+				r[i]=a;
+			}
+		}
 		return ret;
 	};
 	
