@@ -1269,21 +1269,27 @@ function completePrincipal(e)
 function keyboardSelector (e)
 {	
 	var et = $(e.target).prev().children('.completion');
-	$('.highlighted',et).removeClass('highlighted');
+	//$('.highlighted',et).removeClass('highlighted');
 	switch ( e.keyCode )
 	{
 		case 40:// ) // down arrow
-			if ( $('.selected',et).length > 0 )
-				$('.selected',et).removeClass('selected').next().addClass('selected');
+			if ( $('.highlighted',et).length > 0 )
+				$('.highlighted',et).removeClass('highlighted').first().next().addClass('highlighted');
 			else
-				$(et).children().first().addClass('selected');
+				$(et).children().first().addClass('highlighted');
+			if ( $('.highlighted',et).length == 0 )
+				$(et).children().first().addClass('highlighted');
+			$(et).scrollTop($('.highlighted',et).position().top - $(et).height() /2 );
 			e.preventDefault();
 			return false;
 		case 38:  // uparrow
-			if ( $('.selected',et).length > 0 )
-				$('.selected',et).removeClass('selected').prev().addClass('selected');
+			if ( $('.highlighted',et).length > 0 )
+				$('.highlighted',et).removeClass('highlighted').first().prev().addClass('highlighted');
 			else
-				$(et).children().last().addClass('selected');
+				$(et).children().last().addClass('highlighted');
+			if ( $('.highlighted',et).length == 0 )
+				$(et).children().last().addClass('highlighted');
+			$(et).scrollTop($('.highlighted',et).position().top - $(et).height() /2 );
 			e.preventDefault();
 			return false;
 		case 32:  // space
@@ -1292,9 +1298,11 @@ function keyboardSelector (e)
 		case 13:  // enter prevent default on enter
 			e.preventDefault();
 		case 9: 	// HTAB do not prevent default on tab
-			return $('.selected',et); //return jquery object even if empty
+			return $('.highlighted',et); //return jquery object even if empty
 		case 8: 	// prevent backspacing past the beginning of the field 
-			return $(e.target).text().length == 0 ;
+			if ( $(e.target).text().length == 0 )
+				e.preventDefault();
+			return false;
 		case 27: // escape
 			if ( e.removeOnEscape === true )
 				$(this).prev().fadeOut(function(){$(this).remove();});
@@ -1309,7 +1317,7 @@ function keyboardSelector (e)
 		var lkt = $(e.target).data('lastKeypressTime');
 		$(e.target).data('lastKeypressTime',n);
 		e.preventDefault();
-		$('.selected',et).removeClass('selected');
+		$('.highlighted',et).removeClass('highlighted');
 		var st = '';
 		if ( n - lkt < 500 )
 			st = $(e.target).data('lastKeypressString');
@@ -1321,7 +1329,7 @@ function keyboardSelector (e)
 		if ( $(matches).length == 0 )
 			matches = $(et).children().filter(function(index){return RE.test($(this).text())});
 		if ( $(matches).length == 1 )
-			$(matches).addClass('selected');
+			$(matches).addClass('highlighted');
 		else if ( $(matches).length > 1 )
 			$(matches).addClass('highlighted');
 		return false;
@@ -1556,7 +1564,7 @@ function insertEvent ( href, icsObj, c, start, end , current)
 				if ( String(cevent.uid.VALUE).length > 0 )
 					var entry = $('#day_' + cevent['recurrence-id'].DATE.DayString() + ' li[uid="'+cevent.uid.VALUE+'"]' ).detach();
 				else
-					var entry = $('#day_' + cevent['recurrence-id'].DATE.DayString() + ' li[instance='+estart.DateString()+']' ).detach();
+					var entry = $('#day_' + cevent['recurrence-id'].DATE.DayString() + ' li[instance="'+estart.DateString()+'"]' ).detach();
 				var recurencesMoved = $('#wcal').data('cal'+c+href); 
 				if ( typeof recurencesMoved != "object" )
 					recurencesMoved = new Object ();
@@ -1617,9 +1625,9 @@ function insertEvent ( href, icsObj, c, start, end , current)
 				if ( String(cevent.uid.VALUE).length > 0 )
 					var entry = $('#day_' + cevent['recurrence-id'].DATE.DayString() + ' li[uid="'+cevent.uid.VALUE+'"]' ).detach();
 				else
-					var entry = $('#day_' + cevent['recurrence-id'].DATE.DayString() + ' li[instance='+estart.DateString()+']' ).detach();
+					var entry = $('#day_' + cevent['recurrence-id'].DATE.DayString() + ' li[instance="'+estart.DateString()+'"]' ).detach();
 				var currentevent = $(entry).attr('eventcount');
-				$('[eventcount='+$(entry).attr('eventcount')+']').remove();
+				$('[eventcount="'+$(entry).attr('eventcount')+']"').remove();
 			}
 			var entry = $('<li class="event calendar' + c + ' calendar' + c + 'bg" draggable="true" data-time="' + time + '" href="' + href + '" eventcount="'+currentevent+'" uid="' + cevent.uid.VALUE + '" instance="' + estart.DateString() + '" transparent="' + transp + '" >'+desc+'</li>');
 			if ( current != undefined )
@@ -1696,6 +1704,11 @@ function insertTodo ( href, icsObj, c  )
 	var desc = '';
 	desc += icsObj.vcalendar[type].summary.VALUE; 
 	var entry = $('<li class="event calendar' + c + '" data-time="' + sortorder + '" href="' + href + '" uid="' + icsObj.vcalendar[type].uid.VALUE + '" draggable="true" >'+desc+'</li>');
+	$(entry).attr('due',icsObj.vcalendar[type].due);
+	$(entry).attr('completed',icsObj.vcalendar[type].completed);
+	$(entry).attr('priority',icsObj.vcalendar[type].priority);
+	$(entry).attr('percent-complete',icsObj.vcalendar[type]['percent-complete']);
+	$(entry).attr('status',icsObj.vcalendar[type].status);
 	$(entry)[0].addEventListener('dragstart',calDragStart,true);
 	$(entry)[0].addEventListener('dragend',calDragEnd,true);
 	$(entry).data('ics', icsObj );
@@ -1881,78 +1894,129 @@ function calDrop(e)
 							username:$('#name').val(),password:$('#pass').val()};
 						$(document).caldav('putNewEvent',params,ics.PARENT.toString() );
 					}
-					insertEvent(cals[c].href+src.replace(/^.*\//,''),ics,c,$('#wcal').data('firstweek' ),$('#wcal').data('lastweek'));
+					if ( ics.TYPE == 'vevent' )
+						insertEvent(cals[c].href+src.replace(/^.*\//,''),ics,c,$('#wcal').data('firstweek' ),$('#wcal').data('lastweek'));
+					if ( ics.TYPE == 'vtodo' )
+						insertTodo(cals[c].href+src.replace(/^.*\//,''),ics,c,$('#wcal').data('firstweek' ),$('#wcal').data('lastweek'));
 				}
 			}
 			else
 			{
 				var np = $(e.cTarget).closest('td');
+				$('#wcal').removeData('dragging');
+				var src = $(old).attr('href');
+				var ics = $(old).data('ics');
+				var c = $(old).attr('class').match(/calendar(\d+)/)[1];
 				if ( $(np).length == 0 ) 
 				{
 					np = $(e.cTarget).closest('#caltodo');
+					var nics = new iCal('vtodo').ics[0];
+					var ve = nics.vcalendar.vtodo;
+					for ( var i in ics.vcalendar[ics.TYPE] )
+					{
+						if ( ics.PARENT.components[ics.TYPE].required.indexOf(i) > -1 || ics.PARENT.components[ics.TYPE].optional.indexOf(i) > -1 )
+						{
+							if ( ics.PARENT.components.vtodo.required.indexOf(i) > -1 || ics.PARENT.components.vtodo.optional.indexOf(i) > -1 )
+								ve[i] = ics.vcalendar[ics.TYPE][i];
+						}
+						else
+							ve[i] = ics.vcalendar[ics.TYPE][i];
+					}
+					if ( ics.vcalendar[ics.TYPE].dtend )
+					nics.vcalendar.vtodo.due.UPDATE ( ics.vcalendar[ics.TYPE].dtend );
+					src = String(src).replace ( /(\.[a-zA-Z]*)$/, '-1$1');
+					var params = { url:src};
+					$(document).caldav('putNewEvent',params,nics.PARENT.toString() ); 
+					insertTodo(src,nics,c,$('#wcal').data('firstweek' ),$('#wcal').data('lastweek'));
 				}
 				else
 				{
-					$('#wcal').removeData('dragging');
-					var src = $(old).attr('href');
-					var ics = $(old).data('ics');
-					var c = $(old).attr('class').match(/calendar(\d+)/)[1];
-					var d1 = (new Date()).parseDate($(old).closest('td').attr('id').match(/day_(\d+)/)[1]);
-					var d2 = (new Date()).parseDate($(np).closest('td').attr('id').match(/day_(\d+)/)[1]);
-					var tdiff = ics.vcalendar.vevent.dtend.DATE.getTime() - ics.vcalendar.vevent.dtstart.DATE.getTime() ;	
-					if ( e.moveAll === false )
+					if ( ics.TYPE == 'vevent' )
 					{
-						$(old).detach();
-						var nics = $.extend(true,{},ics);
-						nics.vcalendar.vevent.dtstamp = (new Date()).DateString ( );
-						nics.vcalendar.vevent.sequence.VALUE++;
-						var start = d1;
-						var expan = ics.vcalendar.vevent.rrule.RECURRENCE.expandRecurrence(ics.vcalendar.vevent.dtstart.VALUE,dateAdd(start,'d',2));
-						delete nics.vcalendar.vevent.rrule;
-						delete nics.vcalendar.vevent.exdate;
-						for ( var i in expan )
-							if ( expan[i] >= start)
-							{
-								var estart = expan[i];
-								break ;
-							}
-						nics.vcalendar.vevent['recurrence-id'] = nics.PARENT.newField ('RECURRENCE-ID',estart,nics.vcalendar.vevent.dtstart.PROP); 
-						var nstart = new Date ( estart.getTime() + ( d2.getTime() - d1.getTime() ) ); 
+						var d1 = (new Date()).parseDate($(old).closest('td').attr('id').match(/day_(\d+)/)[1]);
+						var d2 = (new Date()).parseDate($(np).closest('td').attr('id').match(/day_(\d+)/)[1]);
+						var tdiff = ics.vcalendar.vevent.dtend.DATE.getTime() - ics.vcalendar.vevent.dtstart.DATE.getTime() ;	
+						if ( e.moveAll === false )
+						{
+							$(old).detach();
+							var nics = $.extend(true,{},ics);
+							nics.vcalendar.vevent.dtstamp = (new Date()).DateString ( );
+							nics.vcalendar.vevent.sequence.VALUE++;
+							var start = d1;
+							var expan = ics.vcalendar.vevent.rrule.RECURRENCE.expandRecurrence(ics.vcalendar.vevent.dtstart.VALUE,dateAdd(start,'d',2));
+							delete nics.vcalendar.vevent.rrule;
+							delete nics.vcalendar.vevent.exdate;
+							for ( var i in expan )
+								if ( expan[i] >= start)
+								{
+									var estart = expan[i];
+									break ;
+								}
+							nics.vcalendar.vevent['recurrence-id'] = nics.PARENT.newField ('RECURRENCE-ID',estart,nics.vcalendar.vevent.dtstart.PROP); 
+							var nstart = new Date ( estart.getTime() + ( d2.getTime() - d1.getTime() ) ); 
+							if ( newtime != undefined )
+								nstart.setUTCHours( newtime.getUTCHours() ); 
+							var dur = ics.vcalendar.vevent.dtend.DATE.getTime() - ics.vcalendar.vevent.dtstart.DATE.getTime() ;	
+							var nend = new Date ( estart.getTime() + dur );
+							nics.vcalendar.vevent.dtstart = nics.PARENT.newField ( 'dtstart', nstart, nics.vcalendar.vevent.dtstart.PROP );
+							nics.vcalendar.vevent.dtend = nics.PARENT.newField ( 'dtend', nstart, nics.vcalendar.vevent.dtstart.PROP );
+							nics.PARENT = ics.PARENT;
+							ics.PARENT.push ( nics.vcalendar );
+							var params = { url:src};
+							$(document).caldav('putEvent',params,ics.PARENT.toString() ); 
+							insertEvent(src,nics,c,$('#wcal').data('firstweek' ),$('#wcal').data('lastweek'));
+							return ;
+						}
+						else if ( e.moveAll === true )
+						{
+							$('li[uid="'+ics.vcalendar.vevent.uid.VALUE+'"][original=1][href="'+src+'"]').detach();
+							var tdiff = d2.getTime() - d1.getTime() ;
+							if ( ics.vcalendar.vevent.rrule.RECURRENCE.UNTIL != undefined )
+								ics.vcalendar.vevent.rrule.RECURRENCE.UNTIL = (new Date()).DateString ( new Date ( (new Date()).parseDate(ics.vcalendar.vevent.rrule.RECURRENCE.UNTIL).getTime() + tdiff ) );
+						}
+						else
+						{
+							var tdiff = ics.vcalendar.vevent.dtend.DATE.getTime() - ics.vcalendar.vevent.dtstart.DATE.getTime() ;	
+							$(old).detach();
+							$('li[uid="'+ics.vcalendar.vevent.uid.VALUE+'"][original=1][href="'+src+'"]').detach();
+						}
+						var tdiff = d2.getTime() - d1.getTime() ;
 						if ( newtime != undefined )
-							nstart.setUTCHours( newtime.getUTCHours() ); 
-						var dur = ics.vcalendar.vevent.dtend.DATE.getTime() - ics.vcalendar.vevent.dtstart.DATE.getTime() ;	
-						var nend = new Date ( estart.getTime() + dur );
-						nics.vcalendar.vevent.dtstart = nics.PARENT.newField ( 'dtstart', nstart, nics.vcalendar.vevent.dtstart.PROP );
-						nics.vcalendar.vevent.dtend = nics.PARENT.newField ( 'dtend', nstart, nics.vcalendar.vevent.dtstart.PROP );
-						nics.PARENT = ics.PARENT;
-						ics.PARENT.push ( nics.vcalendar );
+							tdiff += ( newtime.getUTCHours() - (ics.vcalendar.vevent.dtstart.DATE.getUTCHours())) * 3600000;
+						ics.vcalendar.vevent.dtstart.ORIGDATE = ics.vcalendar.vevent.dtstart;
+						ics.vcalendar.vevent.dtstart.UPDATE ( new Date ( ics.vcalendar.vevent.dtstart.DATE.getTime() + tdiff ) );
+						ics.vcalendar.vevent.dtend.UPDATE ( new Date ( ics.vcalendar.vevent.dtend.DATE.getTime() + tdiff ) );
 						var params = { url:src};
 						$(document).caldav('putEvent',params,ics.PARENT.toString() ); 
-						insertEvent(src,nics,c,$('#wcal').data('firstweek' ),$('#wcal').data('lastweek'));
-						return ;
-					}
-					else if ( e.moveAll === true )
-					{
-						$('li[uid="'+ics.vcalendar.vevent.uid.VALUE+'"][original=1][href="'+src+'"]').detach();
-						var tdiff = d2.getTime() - d1.getTime() ;
-						if ( ics.vcalendar.vevent.rrule.RECURRENCE.UNTIL != undefined )
-							ics.vcalendar.vevent.rrule.RECURRENCE.UNTIL = (new Date()).DateString ( new Date ( (new Date()).parseDate(ics.vcalendar.vevent.rrule.RECURRENCE.UNTIL).getTime() + tdiff ) );
+						insertEvent(src,ics,c,$('#wcal').data('firstweek' ),$('#wcal').data('lastweek'));
 					}
 					else
 					{
-						var tdiff = ics.vcalendar.vevent.dtend.DATE.getTime() - ics.vcalendar.vevent.dtstart.DATE.getTime() ;	
-						$(old).detach();
-						$('li[uid="'+ics.vcalendar.vevent.uid.VALUE+'"][original=1][href="'+src+'"]').detach();
+						var d1 = (new Date()).parseDate($(np).closest('td').attr('id').match(/day_(\d+)/)[1]);
+						if ( newtime != undefined )
+						{
+							d1.setUTCHours(newtime.getUTCHours());
+							d1.setUTCMinutes(newtime.getUTCMinutes());
+						}
+						var nics = new iCal('vevent').ics[0];
+						var ve = nics.vcalendar.vevent;
+						for ( var i in ics.vcalendar[ics.TYPE] )
+						{
+							if ( ics.PARENT.components[ics.TYPE].required.indexOf(i) > -1 || ics.PARENT.components[ics.TYPE].optional.indexOf(i) > -1 )
+							{
+								if ( ics.PARENT.components.vevent.required.indexOf(i) > -1 || ics.PARENT.components.vevent.optional.indexOf(i) > -1 )
+									ve[i] = ics.vcalendar[ics.TYPE][i];
+							}
+							else
+								ve[i] = ics.vcalendar[ics.TYPE][i];
+						}
+						nics.vcalendar.vevent.dtstart.UPDATE ( (new Date(d1.getTime())) );
+						nics.vcalendar.vevent.dtend.UPDATE ( d1.add('h',1) );
+						src = String(src).replace ( /(\.[a-zA-Z]*)$/, '-1$1');
+						var params = { url:src};
+						$(document).caldav('putNewEvent',params,nics.PARENT.toString() ); 
+						insertEvent(src,nics,c,$('#wcal').data('firstweek' ),$('#wcal').data('lastweek'));
 					}
-					var tdiff = d2.getTime() - d1.getTime() ;
-					if ( newtime != undefined )
-						tdiff += ( newtime.getUTCHours() - (ics.vcalendar.vevent.dtstart.DATE.getUTCHours())) * 3600000;
-					ics.vcalendar.vevent.dtstart.ORIGDATE = ics.vcalendar.vevent.dtstart;
-					ics.vcalendar.vevent.dtstart.UPDATE ( new Date ( ics.vcalendar.vevent.dtstart.DATE.getTime() + tdiff ) );
-					ics.vcalendar.vevent.dtend.UPDATE ( new Date ( ics.vcalendar.vevent.dtend.DATE.getTime() + tdiff ) );
-					var params = { url:src};
-					$(document).caldav('putEvent',params,ics.PARENT.toString() ); 
-					insertEvent(src,ics,c,$('#wcal').data('firstweek' ),$('#wcal').data('lastweek'));
 				}
 			}
 		}
@@ -2018,8 +2082,8 @@ function calDragStart(event)
 			event.dataTransfer.setDragImage(event.target,($(event.target).width()*(2/3)),1);
 		else if ( $('#caltodo').has(event.target).length )
 		{
-			console.log( $(event.target).width() );
-			event.dataTransfer.setDragImage(event.target);
+			event.dataTransfer.setDragImage(event.target,($(event.target).width()*(2/3)),1);
+			//event.dataTransfer.setDragImage(event.target);
 		}
 		else
 			event.dataTransfer.setDragImage(event.target);
@@ -2392,9 +2456,14 @@ function buildOptions ( opt )
 		if ( typeof ( opt[i] ) != "undefined" )
 			s[i] = opt[i];
 	var currentValue = $(s.target).text();
+	var innerclass = 'completion';
 	if ( s.multiselect !== false )
-		var currentValues = String($.trim(currentValue)).split(s.multiselect);
-	var txt = '<div class="completionWrapper"><div class="completion">';
+	{
+		var sep = new RegExp ( "\\s*"+s.multiselect+"\\s*" );
+		var currentValues = String($.trim(currentValue)).split(sep);
+		innerclass = innerclass + ' multiselect';
+	}
+	var txt = '<div class="completionWrapper"><div class="'+innerclass+'">';
 	if ( s.none !== false )
 		txt = txt + '<div class="remove" text="'+valueNames['NONE']+'"></div>';
 	var text = s.text;
@@ -2414,7 +2483,7 @@ function buildOptions ( opt )
 	$(comp).children().click(function(evt){
 		if ( s.multiselect !== false )
 		{
-			if ( $(evt.target).text() == valueNames['NONE'] )
+			if ( $(evt.target).hasClass('remove') )
 			{
 				$(evt.target).parent().children().removeClass('selected');
 				$(evt.target).parent().parent().next().text('');
@@ -2426,14 +2495,19 @@ function buildOptions ( opt )
 				$(evt.target).parent().children().each(function(i){if ($(this).hasClass('selected') )selected.push($(this).text());});
 				$(evt.target).parent().parent().next().text(selected.join(s.multiselect));
 			}
+			if ( typeof s.callback == 'function' )
+				s.callback ( $(evt.target).parent().parent().next() );
+			return true;
 		}
 		else
+		{
 			$(evt.target).parent().parent().next().text($(evt.target).text());
-		if ( s.multiselect === false )
-			$(evt.target).parent().parent().fadeOut(function(){$(this).remove();popupOverflowAuto();});
-		if ( typeof s.callback == 'function' )
-			s.callback ( $(evt.target).parent().parent().next() );
-		return false;
+			if ( s.multiselect === false )
+				$(evt.target).parent().parent().fadeOut(function(){$(this).remove();popupOverflowAuto();$(evt.target).parent().parent().next().unbind('blur keydown');});
+			if ( typeof s.callback == 'function' )
+				s.callback ( $(evt.target).parent().parent().next() );
+			return false;
+		}
 	});
 	$(s.target).bind('keydown',function (e2){ 
 		e2.spaceSelects = s.spaceSelects; 
@@ -2442,17 +2516,33 @@ function buildOptions ( opt )
 		var k = keyboardSelector(e2);
 		if ( k == 'cancel' )
 		{
+			$(this).prev().fadeOut(function(){$(this).remove();popupOverflowAuto(); $(this).unbind('blur keydown');});
 			$('#wcal').data('eatCancel',true);
-			$(this).unbind('blur');
-			popupOverflowAuto();
 			e2.stopPropagation();
 			return false;
 		}
 		else if ( $(k).length == 1 )
 		{
-			$(this).unbind('blur');
-			$(this).text($(k).text());
-			$(this).prev().fadeOut(function(){$(this).remove();popupOverflowAuto();});
+			if ( s.multiselect === false )
+			{
+				$(this).text($(k).text());
+				$(this).prev().fadeOut(function(){$(this).remove();popupOverflowAuto(); $(this).unbind('blur keydown');});
+			}
+			else
+			{
+				if ( $(k).hasClass('remove') )
+				{
+					$(k).parent().children().removeClass('selected');
+					$(k).parent().parent().next().text('');
+				}
+				else
+				{
+					$(k).toggleClass('selected');
+					var selected = [];
+					$(k).parent().children().each(function(i){if ($(this).hasClass('selected') )selected.push($(this).text());});
+					$(k).parent().parent().next().text(selected.join(s.multiselect));
+				}
+			}
 			if ( typeof s.callback == 'function' )
 				s.callback ( $(evt.target).parent().parent().next() );
 			var ret = e2.which==9;	
@@ -2462,7 +2552,8 @@ function buildOptions ( opt )
 			return k;
 		},false);
 	$(comp).css({top:$(s.target).position().top,left:$(s.target).position().left,'margin-left':'2em'});
-	$(s.target).bind('blur',function(evt){$(evt.target).prev().fadeOut(function(){$(this).remove();popupOverflowAuto();});$(this).unbind(evt);});
+	// TODO fix the blur handler so that multiselects don't disapear if the event was inside the completionWrapper
+	$(s.target).bind('blur',function(evt){$(evt.target).prev().fadeOut(function(){$(this).remove();popupOverflowAuto();});$(this).unbind('blur keydown');});
 	return comp;
 }
 
@@ -3484,7 +3575,7 @@ function calstyle ()
 	'#caltodo > .sidetitle { font-size: 200%; font-weight: lighter; border-bottom:1px solid #AAA; text-align: center; padding: 0 0 .6em 0; margin:0;}' + "\n" +
 	'#caltodo > .sidetitle div { display: block; font-size: 50%; font-weight: lighter; border: none !important; text-align: center; width: 100%; margin:0;}' + "\n" +
 	'#caltodo > .sidetitle span { display: block; float: left; width: 50%; margin:-1px; padding:0; position: relative; bottom: -0.43em;}' + "\n" +
-	'#caltodo ul { position: absolute; width: 100%; top: 3.6em; bottom: 0; overflow-x: hidden; overflow-y: auto; margin: 0; padding: 0px; list-style: none; } ' + "\n" +
+	'#caltodo ul { position: absolute; top: 3.6em; bottom: 0; overflow-x: hidden; overflow-y: auto; margin: 0; padding: 0px; list-style: none; } ' + "\n" +
 	'#caltodo ul li { overflow: hidden; display: block; margin: 0; padding: 0; padding-left: 0; margin-bottom: .75em; line-height: 1.2em; list-style-type: none;  } ' + "\n" +
 
 	'#wcal { width: 100%; overflow: scroll; float: left; overflow-x: hidden; height:24em; border-spacing:0; padding:0; margin:0; margin-left: 0.95em; margin-right: -9px; border:0; border-top: 1px solid #AAA; border-left: 1px solid #AAA; border-bottom: 1px solid #AAA; }' + "\n" + 
@@ -3502,8 +3593,8 @@ function calstyle ()
 	'.calpopup .value:focus { outline: none; -moz-box-shadow: 1px 1px 3px #888; -webkit-box-shadow: 1px 1px 3px #888; box-shadow: 1px 1px 3px #888; resize: none; }' + "\n" +
 	'.calpopup .value:focus:hover { resize:both; }' + "\n" +
 	'.calpopup .recurrence { resize: none; outline: none; margin:0; padding:0; padding-right: 2px; padding-left: 4px; min-width: 3em; min-height: 1em; display: block; float: left; margin-top: 6px; margin-bottom: 2px; max-height: 1em; position: absolute; left: 7.5em; overflow: hidden; }' + "\n" +
-	'.calpopup .recurrence:hover,.calpopup .recurrence:focus { max-height: none; background: white; -moz-box-shadow: 1px 1px 3px #888; -webkit-box-shadow: 1px 1px 3px #888; box-shadow: 1px 1px 3px #888; overflow: visible; } \n' +
-	'.calpopup .recurrence > span { float: none;}' + "\n" +
+	'.calpopup .recurrence:hover,.calpopup .recurrence.focus { max-height: none; background: #E3E3E3; -moz-box-shadow: 1px 1px 3px #888; -webkit-box-shadow: 1px 1px 3px #888; box-shadow: 1px 1px 3px #888; overflow: visible; z-index: 120; } \n' +
+	'.calpopup .recurrence > span { float: none; display: inline; }' + "\n" +
 	'.calpopup .recurrence span { resize: none; outline: none; margin:0; padding:0; padding-right: .3em; min-height: 1em; display: inline; } ' + "\n" +
 	'.calpopup .recurrence .byrule { clear: left; } \n' + 
 	'.calpopup .alarm { resize: none; outline: none; margin:0; padding:0; padding-right: 2px; padding-left: 4px; min-width: 3em; min-height: 1em; display: block; float: left; margin-top: 6px; margin-bottom: 2px; }' + "\n" +
@@ -3645,13 +3736,16 @@ function calstyle ()
 		'-moz-box-shadow: 0px 0px 6px #888; -webkit-box-shadow: 0px 0px 6px #888; box-shadow: 0px 0px 6px #888; } '+ "\n" +
 	'.completion { z-index: 100; padding: 0; min-height:0 ; max-height: 20em; min-width: 0;background: white; overflow-y: auto ; overflow-x: hidden; padding-right: 19px; margin-right: -18px; }' + "\n" +
 	'.completion div:first-child {margin: 0 0 0 0; } ' + "\n" +
+	'.completion div:nth-last-child(11) ~ div:last-child {margin-bottom: 1em; } ' + "\n" +
 	'.completion div { width: 110%; margin: 0; padding: .3em; white-space: pre; padding-left: .5em; padding-right: .5em; -moz-transition-property: all; -moz-transition-duration: .2s; -webkit-transition-property: all; -webkit-transition-duration: .2s; transition-property: all; transition-duration: .2s; } ' + "\n" +
 	'.completion div:hover { background: #AAA !important; } ' + "\n" +
-	'.completion:hover div.selected { background: none; } ' + "\n" +
+	'.completion div:nth-last-child(11):before { content: ""; display: block; position: absolute; top: 19em; left: 0; height: 1em; width: 100%; z-index:110; background: -webkit-gradient(linear, left top, left bottom, from(rgba(255,255,255,0)), to(rgba(160,160,160,1))); background: -webkit-linear-gradient(top, rgba(255,255,255,0) 0%, rgba(160,160,160,1) 100%); background: linear-gradient(top, rgba(255,255,255,0) 0%, rgba(160,160,160,1) 100%);} \n' +
+	//'.completion div:nth-last-child(8):before { display: block; position: relative; top: 5em; left: 0; height: .5em; width: 100%; outline: 1px solid green; background: blue; z-index:110;  } \n' +
+	'.completion:not(.multiselect):hover div.selected { background: none; } ' + "\n" +
 	'.completion div.selected { background: #AAA; } ' + "\n" +
 	'.completion div.highlighted { background: #BBA; } ' + "\n" +
 	'.completion div.remove { height: 1em; } ' + "\n" +
-	'.completion div.remove:after { content: attr(text); color: #787878; } ' + "\n" +
+	'.completion div.remove:before { content: attr(text); color: #787878; } ' + "\n" +
 	
 
 	'.timeline { margin: 0 ; padding:0; width: 1em; position: absolute; bottom: 1px; height: 100%;   } ' + "\n" +
@@ -4615,31 +4709,23 @@ var recurrence = function ( text )
 		}
 		else
 			ret = ret + '<span class="foruntil" contenteditable="true">' + valueNames.NONE + '</span><span class="value" contenteditable="true"></span>';
-		for ( var i in this.rrule_expansion[r.FREQ] )
-		{
-			if ( i == 'type' ) 
-				continue ;
-			var type = String(i).replace(/BY/,'');
-			if ( type == 'DAY' )
-				type = 'DAI';
-			ret = ret + '<div class="byrule"><span class="label '+ String(i).toLowerCase() +'" expand="'+ this.rrule_expansion[r.FREQ][i] +'" >'+recurrenceUI[type]+'</span><span class="value" contenteditable="true">';
-			var values = '';
-			if ( r[i] != undefined )
-			{
-				var p = r[i];
-				if ( p.length == undefined )
-					continue;	
-				for ( var j = 0; j < p.length; j++ )
-					values = values + (j>0?',':'') + this.printByValue(i, p[j]);
-			}
-			ret = ret + values + '</span></div>';
-		}
-		ret = ret + '</span>';
+		ret = ret +  '</span>';
 		var ret = $(ret);
+		$(ret).append(this.printSections(r.FREQ));
+		$(ret).data('rule',this);
 		$('.repeat',ret).bind('focus', function (e){e.preventDefault();window.setTimeout(function(){$(e.target).next().focus();},10);return false; });
 		$('.every',ret).bind('focus', function (e){
 			var freq = ['YEAR','MONTH','WEEK','DAI','HOUR','MINUTE','SECOND'];
-			var comp = buildOptions({target:e.target,options:freq,text:recurrenceUI, none:true, spaceSelects:true, search:false,removeOnEscape:true });
+			var comp = buildOptions({target:e.target,options:freq,text:recurrenceUI, none:true, spaceSelects:true, search:false,removeOnEscape:false, 
+				callback: function (e) {
+					for ( var j in recurrenceUI ) 
+						if ( recurrenceUI[j] == $(e).text() )
+							break;
+					var freq = j;
+					var txt = $(e).parent().data('rule').printSections(freq+'LY');
+					$(e).parent().children('.byrule').replaceWith($(txt));
+				}
+			});
 			popupOverflowVisi();
 			if ( ! $(e.target).prev().hasClass('completionWrapper') )
 				$(e.target).before(comp);
@@ -4671,16 +4757,44 @@ var recurrence = function ( text )
 			popupOverflowVisi();
 			$(e.target).before(comp);
 		});
+		$(ret).bind('focusin focusout',function(){$(this).toggleClass('focus')});
+		return ret;
+	};
+
+	this.printSections = function (f)
+	{
+		var r = this.rule;
+		var ret = '';
+		for ( var i in this.rrule_expansion[f] )
+		{
+			if ( i == 'type' ) 
+				continue ;
+			var type = String(i).replace(/BY/,'');
+			if ( type == 'DAY' )
+				type = 'DAI';
+			ret = ret + '<div class="byrule"><span class="label '+ String(i).toLowerCase() +'" expand="'+ this.rrule_expansion[f][i] +'" >'+recurrenceUI[type]+'</span><span class="value" contenteditable="true">';
+			var values = '';
+			if ( r[i] != undefined )
+			{
+				var p = r[i];
+				if ( p.length == undefined )
+					continue;	
+				for ( var j = 0; j < p.length; j++ )
+					values = values + (j>0?', ':'') + this.printByValue(i, p[j]);
+			}
+			ret = ret + values + '</span></div>';
+		}
+		var ret = $(ret);
 		$('.bymonth + .value',ret).bind('focus', function (e){
 			var m = [0,1,2,3,4,5,6,7,8,9,10,11];
-			var comp = buildOptions({target:e.target,options:m,text:months, none:true, spaceSelects:true, search:false,removeOnEscape:true,multiselect:','} );
+			var comp = buildOptions({target:e.target,options:m,text:months, none:true, spaceSelects:true, search:true,removeOnEscape:true,multiselect:', '} );
 			popupOverflowVisi();
 			if ( ! $(e.target).prev().hasClass('completionWrapper') )
 				$(e.target).before(comp);
 		});
 		$('.byday + .value',ret).bind('focus', function (e){
 			var m = [0,1,2,3,4,5,6];
-			var comp = buildOptions({target:e.target,options:m,text:weekdays, none:true, spaceSelects:true, search:false,removeOnEscape:true,multiselect:','} );
+			var comp = buildOptions({target:e.target,options:m,text:weekdays, none:true, spaceSelects:true, search:true,removeOnEscape:true,multiselect:', '} );
 			popupOverflowVisi();
 			if ( ! $(e.target).prev().hasClass('completionWrapper') )
 				$(e.target).before(comp);
