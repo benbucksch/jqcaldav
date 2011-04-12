@@ -2137,9 +2137,12 @@ function newevent (e)
 	else
 		c=0;
 	var type;
+	var d;
 	if ( $(e.target).closest('td').length > 0 )
 	{
-		var d = (new Date()).parseDate($(e.target).closest('td').attr('id').match(/day_(\d+)/)[1]);
+		var dte = $(e.target).closest('td').attr('id').match(/day_(\d+)/)[1];
+		console.log('new day');
+		d = (new Date()).parseDate(dte);
 		type = 'event';
 	}
 	else if ( $(e.target).closest('div').attr('id') == 'caltodo' )
@@ -2167,7 +2170,6 @@ function newevent (e)
 			);
 	var ul = $('<ul></ul>');
 	$(ul).append('<li><span class="label">'+fieldNames.summary+'</span><span class="value">'+ui[ics.vcalendar['v'+type].summary.VALUE]+'</span></li>');
-	var d = new Date();
 	if ( type == 'event' ) 
 	{
 		d.setUTCHours((new Date()).getHours());
@@ -2177,6 +2179,7 @@ function newevent (e)
 	}
 	else if ( type == 'todo' ) 
 	{
+	var d = new Date();
 		d.setUTCDate((new Date()).getDate()+1);
 		$(ul).append('<li><span class="label">'+fieldNames.due+'</span><span class="value">'+d.prettyDate() +'</span></li>');
 	}
@@ -2629,6 +2632,11 @@ function addField(e)
 				$('.action,.length,.related',txt).bind('click, focus',alarmFieldClick);
 				var cp = $(this).closest('li').before(txt);
 			}
+			else if ( $(this).text() == fieldNames.rrule )
+			{
+				var nr = recurrence ('FREQ=YEARLY');
+				$('.value',txt).replaceWith(nr.editRecurrence());
+			}
 			else
 			{
 				$('.value',txt).focus(fieldClick);
@@ -2658,6 +2666,11 @@ function addField(e)
 					$('.value',txt).replaceWith(plus);
 					var cp = $(this).closest('li').before(txt);
 					$('.action,.length,.related',cp).bind('click, focus',alarmFieldClick);
+				}
+				else if ( $(this).text() == fieldNames.rrule )
+				{
+					var nr = recurrence ('FREQ=YEARLY');
+					$('.value',txt).replaceWith(nr.editRecurrence());
 				}
 				else
 				{
@@ -3578,7 +3591,7 @@ function calstyle ()
 	'#caltodo ul { position: absolute; top: 3.6em; bottom: 0; overflow-x: hidden; overflow-y: auto; margin: 0; padding: 0px; list-style: none; } ' + "\n" +
 	'#caltodo ul li { overflow: hidden; display: block; margin: 0; padding: 0; padding-left: 0; margin-bottom: .75em; line-height: 1.2em; list-style-type: none;  } ' + "\n" +
 
-	'#wcal { width: 100%; overflow: scroll; float: left; overflow-x: hidden; height:24em; border-spacing:0; padding:0; margin:0; margin-left: 0.95em; margin-right: -9px; border:0; border-top: 1px solid #AAA; border-left: 1px solid #AAA; border-bottom: 1px solid #AAA; }' + "\n" + 
+	'#wcal { width: 100%; overflow: scroll; float: left; overflow-x: hidden; height:24em; border-spacing:0; padding:0; margin:0; margin-left: 0.95em; margin-right: -9px; border:0; border-top: 1px solid #AAA; border-left: 1px solid #AAA; }' + "\n" + 
 	
 	'.calpopup { overflow: auto; } ' + "\n" +
 	'.calpopup * { overflow: hidden; } ' + "\n" +
@@ -5070,8 +5083,11 @@ var recurrence = function ( text )
 		var end = false ;
 		var limit = false ;
 		var freq = r.FREQ ;
-		if ( this.rrule_expansion[freq].length < 2 )
-			return false ;
+		if ( this.rrule_expansion[freq] == undefined || this.rrule_expansion[freq].length < 2 )
+		{
+			console.log('frequency ' + freq + ' not found' );
+			return occurences;
+		}
 		var count = 100, until = '', interval = 1, c = 0,dummy=0;
 		if ( r.COUNT    ) count     = r.COUNT;
 		if ( r.INTERVAL ) interval  = r.INTERVAL;
