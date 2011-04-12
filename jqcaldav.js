@@ -2402,7 +2402,8 @@ function eventClick(e)
 							var cp = $($('#wcal').data('popup'));
 							var href = $($(cp).data('event')).attr('href');
 							var c = $($(cp).data('event')).attr('class').match(/calendar(\d+)/)[1];
-							$('[href="'+href+'"]').fadeOut('fast',function (){$(evt).remove();  } );
+							$('[href="'+href+'"]').fadeOut('fast',function (){$(cp).remove();  } );
+							$(document).caldav('putEvent',{url:href},ics.PARENT.printiCal (  )); 
 							insertEvent(href,ics,c,$('#wcal').data('firstweek'),$('#wcal').data('lastweek'));});
 						$('#calpopupe').append(src);
 						$('#calpopupe').append(save);
