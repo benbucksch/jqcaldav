@@ -40,7 +40,7 @@ function getTZ ( d )
 	return false;
 }
 
-var defaults={ui:{calendar:"Calendars",todos:"To Do","show":"Show","sort":"Sort","add":"Add",settings:"Settings",subscribe:"Subscribe",today:"Today",week:"Week",month:"Month",start:"Day Starts",end:"Day Ends",twentyFour:"24 Hour Time",username:'Username',password:'Password','go':'go','New Event':'New Event','New Todo':'New Todo','New Journal':'New Journal',"alarm":"alarm","done":"Done","delete":"Delete","name":"name","color":"color","description":"description","url":"url","privileges":"privileges","logout":"Logout","new calendar":"New Calendar","yes":"yes","no":"no","logout error":"Error logging out, please CLOSE or RESTART your browser!","owner":"Owner","subscribed":"Subscribed","lock failed":"failed to acquire lock, may not be able to save changes",loading:'working','update frequency':'update frequency',usealarms:"Enable Alarms"},
+var defaults={ui:{calendar:"Calendars",todos:"To Do","show":"Show","sort":"Sort","add":"Add",settings:"Settings",subscribe:"Subscribe",today:"Today",week:"Week",month:"Month",start:"Day Starts",end:"Day Ends",twentyFour:"24 Hour Time",username:'Username',password:'Password','go':'go','New Event':'New Event','New Todo':'New Todo','New Journal':'New Journal',"alarm":"alarm","done":"Done","delete":"Delete","name":"name","color":"color","description":"description","url":"url","privileges":"privileges","logout":"Logout","new calendar":"New Calendar","yes":"yes","no":"no","logout error":"Error logging out, please CLOSE or RESTART your browser!","owner":"Owner","subscribed":"Subscribed","lock failed":"failed to acquire lock, may not be able to save changes",loading:'working','update frequency':'update frequency',usealarms:"Enable Alarms","listSeparator":","},
 	months:["January","February","March","April","May","June","July","August","September","October","November","December"],
 	weekdays:["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
 	dropquestion:["Do you want to move",["All occurences","This one occurence"]],
@@ -2933,8 +2933,10 @@ function eventEdited (e)
 					continue ;
 				else
 					delete d.vcalendar[type][props[x]];
+			else if ( props[x] == 'rrule' )
+				d.vcalendar[type][props[x]].UPDATE ( $(element) );
 			else
-				d.vcalendar[type][props[x]].UPDATE ( $(element).text(), $(element).data('value')  );
+				d.vcalendar[type][props[x]].UPDATE ( $(element).text() );
 			if ( debug ) console.log ( 'modified prop ' + props[x] + ' with display name ' + label + ' from type ' + type + "\n  from " + d.vcalendar[type][props[x]] + "\n    to " + $(element).text() );
 			mod += props[x];
 			edited=true;
@@ -2964,7 +2966,7 @@ function eventEdited (e)
 		var cals = $(document).caldav('calendars');
 		if ( href != '+&New Event' )
 		{
-			$('[href="'+$(evt).attr('src')+'"]').fadeOut('fast',function (){$(evt).remove();  } );
+			$('[href="'+href+'"]').fadeOut('fast',function (){$(this).remove();  } );
 			$(document).caldav('putEvent',{url:href},d.PARENT.printiCal (  )); 
 		}
 		else
@@ -4365,7 +4367,7 @@ var iCal = function ( text ) {
 			if (String(s).match(/\s/)) 
 			{ 
 				this.RECURRENCE.parsePrettyRecurrence(s); 
-				this.VALUE = s; 
+				this.VALUE = this.RECURRENCE.unparseRecurrence(); 
 			}
 			else 
 			{ 
@@ -4798,21 +4800,21 @@ var recurrence = function ( text )
 				if ( p.length == undefined )
 					continue;	
 				for ( var j = 0; j < p.length; j++ )
-					values = values + (j>0?', ':'') + this.printByValue(i, p[j]);
+					values = values + (j>0?ui.listSeparator+' ':'') + this.printByValue(i, p[j]);
 			}
 			ret = ret + values + '</span></div>';
 		}
 		var ret = $(ret);
 		$('.bymonth + .value',ret).bind('focus', function (e){
 			var m = [0,1,2,3,4,5,6,7,8,9,10,11];
-			var comp = buildOptions({target:e.target,options:m,text:months, none:true, spaceSelects:true, search:true,removeOnEscape:true,multiselect:', '} );
+			var comp = buildOptions({target:e.target,options:m,text:months, none:true, spaceSelects:true, search:true,removeOnEscape:true,multiselect:ui.listSeparator+' '} );
 			popupOverflowVisi();
 			if ( ! $(e.target).prev().hasClass('completionWrapper') )
 				$(e.target).before(comp);
 		});
 		$('.byday + .value',ret).bind('focus', function (e){
 			var m = [0,1,2,3,4,5,6];
-			var comp = buildOptions({target:e.target,options:m,text:weekdays, none:true, spaceSelects:true, search:true,removeOnEscape:true,multiselect:', '} );
+			var comp = buildOptions({target:e.target,options:m,text:weekdays, none:true, spaceSelects:true, search:true,removeOnEscape:true,multiselect:ui.listSeparator+' '} );
 			popupOverflowVisi();
 			if ( ! $(e.target).prev().hasClass('completionWrapper') )
 				$(e.target).before(comp);
@@ -4861,8 +4863,8 @@ var recurrence = function ( text )
 	};
 	
 	this.parsePrettyRecurrence = function(r)
-	{ // FIXME
-		var dow = {SU:'Sunday',MO:'Monday',TU:'Tuesday',WE:'Wednesday',TH:'Thursday',FR:'Friday',SA:'Saturday'};
+	{ 
+		var dowa = ['SU','MO','TU','WE','TH','FR','SA'];
 		if ( this.rule == undefined ) 
 			return false ;
 		var n = {};
@@ -4877,7 +4879,7 @@ var recurrence = function ( text )
 		for ( var j in recurrenceUI ) 
 			if ( recurrenceUI[j] == $('.every',r).text() )
 				break;
-		n.FREQ = j;
+		n.FREQ = j + 'LY';
 		if ( $('.foruntil',r).text() == recurrenceUI['for'] )
 		{
 			var res = String($('.foruntil + .value',r).text()).match(/(\d+)/);
@@ -4891,26 +4893,39 @@ var recurrence = function ( text )
 		else
 			n.UNTIL = Zero().parsePrettyDate($('.foruntil + .value',r).text());
 		
-		for ( var i in this.rrule_expansion[f] )
+		var sep = new RegExp ( "\\s*"+ui.listSeparator+"\\s*" );
+		for ( var i in this.rrule_expansion[n.FREQ] )
 		{
 			var type = String(i).replace(/BY/,'');
-			r[i] = $( '.' + String(i).toLowerCase() + ' + .value' ,r).text();
+			var val = $.trim($( '.' + String(i).toLowerCase() + ' + .value' ,r).text());
+			if ( val != '' )
+				n[i] = val;
+			else 
+				continue;
 			if ( i == 'BYDAY' )
 			{
 				var a = [];
-				for ( var j in r[i] ) 
-					a.push[weekdays.indexOf(r[i][j])];
-				r[i]=a;
+				var parts = n[i].split(sep);
+				for ( var j = 0 ; j < parts.length; j++ ) 
+					a.push(dowa[weekdays.indexOf(parts[j])]);
+				n[i]=a;
 			}
 			if ( i == 'BYMONTH' )
 			{
 				var a = [];
-				for ( var j in r[i] ) 
-					a.push[months.indexOf(r[i][j])];
-				r[i]=a;
+				var parts = n[i].split(sep);
+				for ( var j = 0 ; j < parts.length; j++ ) 
+					a.push(months.indexOf(parts[j]));
+				n[i]=a;
 			}
 		}
-		return ret;
+		this.rule = n;
+		if ( this.occurences != undefined )
+		{
+			delete this.occurrences;
+			delete this.until;
+			delete this.start;
+		}
 	};
 	
 	this.parseRecurrence = function(r)
