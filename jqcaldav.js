@@ -143,7 +143,7 @@ function doit ( e )
 	window.setTimeout(function()
 	{
 		var fd = $('.jqcaldav:first').data('fulldiscovery');
-		if ( fd != true )
+		if ( fd != 'true' )
 			fd = false;
 		else
 			fd = true;
@@ -151,7 +151,7 @@ function doit ( e )
 		$.fn.caldav.options.calendars = gotCalendars;
 		$(document).caldav('getCalendars', {});
 
-		//$(window).unload ( logoutClicked ); 
+		$(window).unload ( logoutClicked ); 
 		if ( timezoneJS && timezoneJS != undefined && timezoneJS.timezone != undefined && timezoneInit == false ) 
 		{
 			timezoneInit = true;
@@ -171,19 +171,19 @@ function loginFailed (r,s)
 
 function logoutClicked ()
 {
-	//if ( $('#calwrap').length > 0 || $.fn.caldav.options.username )
-		//$(document).caldav ( 'logout' );
+	if ( $('#calwrap').length > 0 || $.fn.caldav.options.username )
+		$(document).caldav ( 'logout' );
 }
 
 function logout ()
 {
-	//window.clearInterval($('#wcal').data('updateInterval'));
+	window.clearInterval($('#wcal').data('updateInterval'));
 	for ( var i in alerts )
 		window.clearTimeout(alerts[i]);
-	//$('#calwrap').remove();
-	//$('#cal_login').fadeIn();
-	//$('#name').val('');
-	//$('#pass').val('');
+	$('#calwrap').remove();
+	$('#cal_login').fadeIn();
+	$('#name').val('');
+	$('#pass').val('');
 }
 
 function gotCalendars ()
@@ -3228,7 +3228,7 @@ function buildcal(d)
 		if ( settings.calendars != undefined && settings.calendars[cals[i].url] != undefined && settings.calendars[cals[i].url] == false )
 		{
 			$('#calendar'+i,cparent).attr('checked',false);
-			ss.addRule ( '#caltodo .event.'+i ,{ display: 'none' }  );
+			ss.addRule ( '#caltodo .event.calendar'+i ,' display:none;'  );
 			ss.addRule ( '#wcal .day .event.calendar'+i ,' opacity: 0 '  );
 			ss.addRule ( '#wcal .day .event.calendar'+i +'bg',' opacity: 0 ' );
 			ss.addRule ( '#wcal .day .event.calendar'+i ,' display: none; '  );
