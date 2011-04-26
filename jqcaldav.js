@@ -2,6 +2,8 @@
 // See README or http://boxacle.net/jqcaldav/ for license
 var cd,hw,fhw,jqcaldavPath,localTimezone,debug=false,alerts=[],timezoneInit = false;
 var settings={twentyFour:true,start:Zero().setUTCHours(6),end:Zero().setUTCHours(22),'update frequency':300,weekStart:0,usealarms:false};
+var defaultColors = ['#00D','#0D0','#D00','#08D','#0D8','#D80'];
+
 var months,weekdays,dropquestion,deletequestion,fieldNames,valueNames,subscriptions;
 var perf=[[],[],[],[],[],[]];
 var globalEvents = {href:{}};
@@ -141,13 +143,15 @@ function doit ( e )
 	window.setTimeout(function()
 	{
 		var fd = $('.jqcaldav:first').data('fulldiscovery');
-		if ( fd != 'true' )
+		if ( fd != true )
 			fd = false;
+		else
+			fd = true;
 		cd = $(document).caldav ( { url: $('.jqcaldav:first').data('caldavurl'),fullDiscovery:fd, username:$('.jqcaldav:eq(0)').data('username'), password:$('.jqcaldav:eq(0)').data('password'), events: addEvents, todos: addToDos,eventPut: eventPut, eventDel: removeEvent, deletedCalendar: deletedCalendar, logout: logout, loading: $('#caldavloading1')}, loginFailed );
 		$.fn.caldav.options.calendars = gotCalendars;
 		$(document).caldav('getCalendars', {});
 
-		$(window).unload ( logoutClicked ); 
+		//$(window).unload ( logoutClicked ); 
 		if ( timezoneJS && timezoneJS != undefined && timezoneJS.timezone != undefined && timezoneInit == false ) 
 		{
 			timezoneInit = true;
@@ -167,19 +171,19 @@ function loginFailed (r,s)
 
 function logoutClicked ()
 {
-	if ( $('#calwrap').length > 0 || $.fn.caldav.options.username )
-		$(document).caldav ( 'logout' );
+	//if ( $('#calwrap').length > 0 || $.fn.caldav.options.username )
+		//$(document).caldav ( 'logout' );
 }
 
 function logout ()
 {
-	window.clearInterval($('#wcal').data('updateInterval'));
+	//window.clearInterval($('#wcal').data('updateInterval'));
 	for ( var i in alerts )
 		window.clearTimeout(alerts[i]);
-	$('#calwrap').remove();
-	$('#cal_login').fadeIn();
-	$('#name').val('');
-	$('#pass').val('');
+	//$('#calwrap').remove();
+	//$('#cal_login').fadeIn();
+	//$('#name').val('');
+	//$('#pass').val('');
 }
 
 function gotCalendars ()
@@ -703,6 +707,7 @@ function toggleCalendar ()
 	var i = this.id;
 	if ( ! this.checked ) 
 	{
+		ss.updateRule ( '#caltodo .event.'+i ,{ display: 'none' }  );
 		ss.updateRule ( '#wcal .day .event.'+i ,{ opacity: 0, height: 0 }  );
 		ss.updateRule ( '#wcal .day .event.'+i +'bg',{ opacity: 0, height: 0 } );
 		window.setTimeout(function(){ss.updateRule ( '#wcal .day .event.'+i ,{ display: 'none' }  );
@@ -710,8 +715,9 @@ function toggleCalendar ()
 	}
 	else 
 	{
-		ss.updateRule ( '#wcal .day .event.'+i ,{ display: 'block' }  );
-		ss.updateRule ( '#wcal .day .event.'+i +'bg',{ display: 'block' } );
+		ss.updateRule ( '#caltodo .event.'+i ,{ display: null }  );
+		ss.updateRule ( '#wcal .day .event.'+i ,{ display: null }  );
+		ss.updateRule ( '#wcal .day .event.'+i +'bg',{ display: null } );
 		window.setTimeout(function(){ss.updateRule ( '#wcal .day .event.'+i ,{ opacity: 1, height: null }  );
 		ss.updateRule ( '#wcal .day .event.'+i +'bg',{ opacity: 1, height: null } );},100);
 	}
@@ -3222,6 +3228,7 @@ function buildcal(d)
 		if ( settings.calendars != undefined && settings.calendars[cals[i].url] != undefined && settings.calendars[cals[i].url] == false )
 		{
 			$('#calendar'+i,cparent).attr('checked',false);
+			ss.addRule ( '#caltodo .event.'+i ,{ display: 'none' }  );
 			ss.addRule ( '#wcal .day .event.calendar'+i ,' opacity: 0 '  );
 			ss.addRule ( '#wcal .day .event.calendar'+i +'bg',' opacity: 0 ' );
 			ss.addRule ( '#wcal .day .event.calendar'+i ,' display: none; '  );
@@ -3505,6 +3512,8 @@ function calstyle ()
 	var cals = $(document).caldav('calendars');
 	for ( var i=0;i<cals.length;i++)
 	{
+		if ( ! String(cals[i].color).match ( /^#[0-9a-fA-F]+/ ) )
+			cals[i].color = defaultColors[(i%6)] ;
 		calcolors = calcolors + ' .calendar' + i + ' { color: ' + cals[i].color + '; border-right-color: ' + cals[i].color + ';   }' ;
 		calcolors += '.calendar' + i + ':hover { background-color: ' + cals[i].color + '; }' ;
 		calcolors += '.calendar' + i + 'bg { color: white; background-color: ' + cals[i].color + '; border-right-color: ' + cals[i].color + '; }' ;
