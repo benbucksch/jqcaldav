@@ -201,6 +201,8 @@ jQuery.extend ({
 			$.fn.caldav.coalesceEvents = new Array ();
 			$.fn.caldav.principals = new Array ;
 			$.fn.caldav.principalMap = new Object ;
+			$.fn.caldav.inboxMap = new Object ;
+			$.fn.caldav.outboxMap = new Object ;
 			$.fn.caldav.calendarData = new Array ;
 			$.fn.caldav.collectionData = new Array ;
 			$.fn.caldav.locks = {};
@@ -312,14 +314,28 @@ jQuery.extend ({
 		parseCalendars : function (r, callback ) { 
 			var pcalendars = $("response resourcetype > ["+$.fn.caldav.xmlNSfield+"=collection],",r.responseXML).closest('response'); 
 			var rcalendars = $("response resourcetype > ["+$.fn.caldav.xmlNSfield+"=calendar],",r.responseXML).closest('response'); 
+			var inboxes = $("response resourcetype > ["+$.fn.caldav.xmlNSfield+"=schedule-inbox],",r.responseXML).closest('response'); 
+			var outboxes = $("response resourcetype > ["+$.fn.caldav.xmlNSfield+"=schedule-outbox],",r.responseXML).closest('response'); 
 			var baseurl = jQuery.fn.caldav.options.url.replace(/(\/\/[.a-zA-Z0-9-])\/.*$/, '$1');
 			var s =0;
 			if ( $.fn.caldav.collectionData && $.fn.caldav.collectionData.length > 0 )
 				s = $.fn.caldav.collectionData.length;
+			for (var i=0;i<inboxes.length;i++)
+			{
+				var cuprincipal = $.trim($("owner > href",inboxes[i]).text());
+				var href = $("> href",inboxes[i]).text();
+				$.fn.caldav.inboxMap[cuprincipal] = href;
+			}
+			for (var i=0;i<outboxes.length;i++)
+			{
+				var cuprincipal = $.trim($("owner > href",outboxes[i]).text());
+				var href = $("> href",outboxes[i]).text();
+				$.fn.caldav.outboxMap[cuprincipal] = href;
+			}
 			for (var i=0;i<pcalendars.length;i++)
 			{
 				var cuprincipal = $.trim($("owner > href",pcalendars[i]).text());
-				href = $("> href",pcalendars[i]).text();
+				var href = $("> href",pcalendars[i]).text();
 				$.fn.caldav.collectionData[s+i] = { xml: $(pcalendars[i]).clone(true),
 				displayName: $("displayname",pcalendars[i]).text(),
 				href: href, 
@@ -440,7 +456,8 @@ jQuery.extend ({
 					else
 					{
 						if ( r.status == 0 )
-							alert ( 'jqcaldav must be served from the same host and port as your caldav server' );
+							//alert ( 'jqcaldav must be served from the same host and port as your caldav server' );
+							console.log('login failed, bad username and password or not  served from the same host and port as your caldav server');
 						else
 							alert ( r.status +' failed to perform initial propfind, check data-caldavurl setting' );
 					}

@@ -492,6 +492,9 @@ function calFieldClick(e)
 
 function subscribeCalendar (e)
 {
+	var proxyurl = $('.jqcaldav').data('calproxyurl');
+	if ( proxyurl == '' )
+		return;
 	var ul = $('<ul></ul>');
 	var props ={'a':'name','b':'url','c':'color','d':'description','order':'order'} ;
 	for ( var i in props )
@@ -571,6 +574,9 @@ function saveSubscription ()
 
 function addSubscribedCalendar(name,color,order,description,url)
 {
+	var proxyurl = $('.jqcaldav').data('calproxyurl');
+	if ( proxyurl == '' )
+		return;
 	var cparent = $('#calsidebar li:contains(Subscribed) > ul');
 	var cals = $(document).caldav('calendars');
 	var scals = $('#wcal').data('subscribed');
@@ -613,6 +619,9 @@ function addSubscribedCalendar(name,color,order,description,url)
 
 function fetchCalendar ( curl, name, color, order, description )
 {
+	var proxyurl = $('.jqcaldav').data('calproxyurl');
+	if ( proxyurl == '' )
+		return;
 	$.get($('.jqcaldav').data('calproxyurl')+curl).complete(function (req) {
 		data = req.responseText;
 		var cal = addSubscribedCalendar(name,color,order,description,curl);
@@ -1343,14 +1352,104 @@ function keyboardSelector (e)
 	return true;
 }
 
+function showVisTodos ( e )
+{
+	if ( $(e.target).prev().hasClass('completionWrapper') )
+	{
+		$('#caltodo .completionWrapper').remove();
+		return ;
+	}
+	$(e.target).text($('#caltodo > ul').attr('show'));
+	//completed,canceled,due,needs-action,in-process
+	var comp = buildOptions({target:e.target,
+		options:['completed','cancelled','needs-action','in-process','past due','upcoming'],
+		text:   {completed:'completed',cancelled:'cancelled','past due':'past due','needs-action':'needs-action','in-process':'in-process','upcoming':'upcoming'},
+		none:false,multiselect:',',callback:showHideTodos});
+	$(comp).css({width: '8em','text-align': 'left'});
+	$(e.target).text(ui.show);
+	$('#caltodo .completionWrapper').remove();
+	$(e.target).before(comp);
+	//console.log(e);
+}
+
+function showHideTodos ( e )
+{
+	var txt = $(e).text();
+	$('#caltodo > ul').attr('show',txt);
+	settings.todoShow = txt;
+	saveSettings(false);
+	$(e).text(ui.show);
+	$('#caltodo .completionWrapper').remove();
+
+	$('#caltodo .event').each(function(i,e)
+		{
+			if ( todoVisible(e) ) 
+			{
+				var calviz = $('#'+$(e).attr('class').match(/(calendar\d+)/)[1]).attr('checked'); 
+				if ( calviz != false )
+					$(e).fadeIn('fast',function(){$(this).css('display',null);});
+				else
+					$(e).css('display',null);
+			}
+			else
+			{
+				var calviz = $('#'+$(e).attr('class').match(/(calendar\d+)/)[1]).attr('checked'); 
+				if ( calviz != false )
+					$(e).fadeOut();
+				else 
+					$(e).hide();
+			}
+		});
+}
+
 function showSortTodos ( e )
 {
-	if ( $(e.target).text() == ui.show )
+	if ( $(e.target).prev().hasClass('completionWrapper') )
 	{
+		$('#caltodo .completionWrapper').remove();
+		return ;
 	}
-	else if ( $(e.target).text() == ui.sort )
-	{
-	}
+	$(e.target).text($('#caltodo > ul').attr('sort'));
+	var comp = buildOptions({target:e.target,
+		options:['priority','percent-complete','due','manual'],
+		text:   {'priority':'priority','percent-complete':'percent','due':'due','manual':'manual'},
+		none:false,callback:sortTodos});
+	$(comp).css({width: '8em','text-align': 'left'});
+	$(e.target).text(ui.sort);
+	$('#caltodo .completionWrapper').remove();
+	$(e.target).before(comp);
+}
+
+function sortTodos ( e )
+{
+	var txt = $(e).text();
+	$('#caltodo > ul').attr('sort',txt);
+	settings.todoSort = txt;
+	saveSettings(false);
+	$(e).text(ui.sort);
+	todoSort($('#caltodo ul' ));
+}
+
+function todoVisible ( e )
+{
+	var txt = $('#caltodo > ul').attr('show');
+	var ret = true;
+	var possible = ['completed','cancelled','needs-action','in-process','past due','upcoming'];
+	var opts = String(txt).split(',');
+	if ( opts.indexOf('completed') == -1 && ( $(e).attr('completed') || $(e).attr('status') == 'completed' ) )
+		ret = false;
+	if ( opts.indexOf('cancelled') == -1 && $(e).attr('status') == 'cancelled' )
+		ret = false;
+	if ( opts.indexOf('needs-action') == -1 && $(e).attr('status') == 'needs-action' )
+		ret = false;
+	if ( opts.indexOf('in-process') == -1 && $(e).attr('status') == 'in-process' )
+		ret = false;
+	var d  = $(e).attr('due'); 
+	if ( opts.indexOf('past due') == -1 && d != undefined && String(d).length > 4 && d < $.now() )
+		ret = false;
+	if ( opts.indexOf('upcoming') == -1 && d != undefined && String(d).length > 4 && d > $.now() )
+		ret = false;
+	return ret;
 }
 
 function addEvents ( e ,c, start, end )
@@ -1597,11 +1696,11 @@ function insertEvent ( href, icsObj, c, start, end , current)
 			$(entry)[0].addEventListener('dragend',calDragEnd,true);
 			$(entry).hover(eventHover,eventMouseout);
 			perf[2].push($.now()-now);
-			if ( $('#calendar'+c).val() )
+			if ( $('#calendar'+c).attr('checked') )
 				$(entry).hide();
 			if ( globalEvents.href[href] == undefined || $('#day_' +  estart.DayString() + ' li[href="'+href+'"]' ).length < 1 )
 			{
-				if ( $('#calendar'+c).val() )
+				if ( $('#calendar'+c).attr('checked') )
 					$(entry).appendTo($('#day_' +  estart.DayString() + ' ul.eventlist' )).fadeIn();
 				else
 					$(entry).appendTo($('#day_' +  estart.DayString() + ' ul.eventlist' ));
@@ -1651,7 +1750,7 @@ function insertEvent ( href, icsObj, c, start, end , current)
 			$(entry)[0].addEventListener('dragend',calDragEnd,true);
 			$(entry).hover(eventHover,eventMouseout);
 			perf[2].push($.now()-now);
-			if ( $('#calendar'+c).val() )
+			if ( $('#calendar'+c).attr('checked') )
 				$(entry).hide();
 			eventcount++;
 			for (var j=0;j*86400000<tdiff;j++)
@@ -1667,7 +1766,7 @@ function insertEvent ( href, icsObj, c, start, end , current)
 				$(cloned)[0].addEventListener('dragend',calDragEnd,true);
 				if ( $('#day_' +  nd.DayString() + ' li[href="'+href+'"]' ).length < 1 )
 				{	
-					if ( $('#calendar'+c).val() )
+					if ( $('#calendar'+c).attr('checked') )
 						$(cloned).appendTo($('#day_' +  nd.DayString() + ' ul.eventlist' )).fadeIn();
 					else
 						$(cloned).appendTo($('#day_' +  nd.DayString() + ' ul.eventlist' ));
@@ -1710,7 +1809,8 @@ function insertTodo ( href, icsObj, c  )
 	var desc = '';
 	desc += icsObj.vcalendar[type].summary.VALUE; 
 	var entry = $('<li class="event calendar' + c + '" data-time="' + sortorder + '" href="' + href + '" uid="' + icsObj.vcalendar[type].uid.VALUE + '" draggable="true" >'+desc+'</li>');
-	$(entry).attr('due',icsObj.vcalendar[type].due);
+	if ( icsObj.vcalendar[type].due && icsObj.vcalendar[type].due.DATE)
+		$(entry).attr('due',icsObj.vcalendar[type].due.DATE.getTime());
 	$(entry).attr('completed',icsObj.vcalendar[type].completed);
 	$(entry).attr('priority',icsObj.vcalendar[type].priority);
 	$(entry).attr('percent-complete',icsObj.vcalendar[type]['percent-complete']);
@@ -1720,11 +1820,18 @@ function insertTodo ( href, icsObj, c  )
 	$(entry).data('ics', icsObj );
 	$(entry).hover(eventHover,eventMouseout);
 	$(entry).click(eventClick); 
-	$(entry).hide();
 	if ( $('#caltodo ul li[href="' + href + '"]').length > 0 )
 		$('#caltodo ul li[href="' + href + '"]').remove();
-	$(entry).appendTo($('#caltodo ul' )).fadeIn();
-	eventSort($('#caltodo ul' ));
+	if ( $('#calendar'+c).attr('checked') )
+	{
+		if ( ! todoVisible(entry) )
+			$(entry).hide().appendTo($('#caltodo ul' ));
+		else
+			$(entry).hide().appendTo($('#caltodo ul' )).fadeIn();
+	}
+	else
+		$(entry).appendTo($('#caltodo ul' ));
+	todoSort($('#caltodo ul' ));
 }
 
 function updateIcs ( href, ics , cal )
@@ -2920,7 +3027,10 @@ function eventEdited (e)
 		var missing= new Array (),type = 'vevent';
 	}	
 	else if ( d.vcalendar.vtodo != undefined )
-		var props = {summary:'summary',due:'due',completed:'completed',category:'category',location:'location',url:'url',note:'description'}, missing= new Array (),type = 'vtodo';
+	{
+		var props = d.PARENT.components.vtodo.required.concat(d.PARENT.components.vtodo.optional);
+		var missing= new Array (),type = 'vtodo';
+	}
 	for ( var x in props )
 	{
 		var label = fieldNames[props[x]];
@@ -2935,10 +3045,12 @@ function eventEdited (e)
 			if ( d.vcalendar[type][props[x]] == $(element).text() )
 				continue ;
 			if ( $(element).text() == '' )
+			{
 				if ( d.PARENT.components.vevent.required.indexOf ( props[x] ) > -1 )
 					continue ;
 				else
 					delete d.vcalendar[type][props[x]];
+			}
 			else if ( props[x] == 'rrule' )
 				d.vcalendar[type][props[x]].UPDATE ( $(element) );
 			else
@@ -3100,6 +3212,27 @@ function eventSort( e )
 	$(e).append(events);
 }
 
+function todoSort( e )
+{
+	var events = $(e).children('li');
+	$(events).detach();
+	var sortorder = $(e).attr('sort');
+	if ( sortorder == 'manual' )
+		sortorder = 'data-time';
+	events.sort(function (a,b)
+			{
+				if ( $(a).attr(sortorder) && $(b).attr(sortorder) )
+					return $(a).attr(sortorder) - $(b).attr(sortorder); 
+				else if ( $(a).attr(sortorder) )
+					return 1;
+				else if ( $(b).attr(sortorder) )
+					return -1;
+				else 
+					return 0;
+			});
+	$(e).append(events);
+}
+
 function popupOverflowVisi()
 {
 	var c = Number($($('#wcal').data('popup')).data('overflow')) + 1;
@@ -3228,7 +3361,8 @@ function buildcal(d)
 		if ( settings.calendars != undefined && settings.calendars[cals[i].url] != undefined && settings.calendars[cals[i].url] == false )
 		{
 			$('#calendar'+i,cparent).attr('checked',false);
-			ss.addRule ( '#caltodo .event.calendar'+i ,' display:none;'  );
+			$('#calendar'+i,cparent).val(false);
+			ss.addRule ( '#caltodo .event.calendar'+i ,'display: none;'  );
 			ss.addRule ( '#wcal .day .event.calendar'+i ,' opacity: 0 '  );
 			ss.addRule ( '#wcal .day .event.calendar'+i +'bg',' opacity: 0 ' );
 			ss.addRule ( '#wcal .day .event.calendar'+i ,' display: none; '  );
@@ -3347,8 +3481,17 @@ function buildcal(d)
 		e.preventDefault();
 		return false;
 		});
-	var todobar = $('<div id="caltodo" tabindex="8"><div class="sidetitle">'+ui.todos+'<div><span class="button">'+ui.show+'</span><span class="button">'+ui.sort+'</span></div></div><ul></ul></div>');
-	$('.button', todobar).click(showSortTodos);
+	if ( settings.todoShow )
+		var show = settings.todoShow;
+	else
+		var show = "completed,cancelled,past due,upcoming,needs-action,in-process";
+	if ( settings.todoSort )
+		var sort = settings.todoSort;
+	else
+		var sort = "manual";
+	var todobar = $('<div id="caltodo" tabindex="8"><div class="sidetitle">'+ui.todos+'<div><span class="button show">'+ui.show+'</span><span class="button sort">'+ui.sort+'</span></div></div><ul show="'+show+'" sort="'+sort+'"></ul></div>');
+	$('.button.show', todobar).click(showVisTodos);
+	$('.button.sort', todobar).click(showSortTodos);
 	$('ul', todobar).dblclick(newevent);
 	var v = $('ul', todobar);	
 	$(v).bind('drop',calDrop);
@@ -3432,7 +3575,7 @@ function buildcal(d)
 		$(calt).append(buildweek(s));
 		s.setDate(s.getDate()+7);
 	}
-	$('#day_'+ (new Date()).DayString(),calt).addClass('today');
+	$('#day_'+ (new Date()).LocalDayString(),calt).addClass('today');
 	$(cal).data('lastweek',s);
 	$(cal).data('created',Date.now());
 	$(cal).scroll(function() {
@@ -3761,6 +3904,7 @@ function calstyle ()
 	'.completionWrapper { position: absolute; top:0; margin:0; margin-top: 2em; z-index: 100; padding: 0; min-height:0 ; max-width: ; min-width: 0; overflow: hidden; padding-right: -1em; ' + "\n" +
 		'-moz-box-shadow: 0px 0px 6px #888; -webkit-box-shadow: 0px 0px 6px #888; box-shadow: 0px 0px 6px #888; } '+ "\n" +
 	'.completion { z-index: 100; padding: 0; min-height:0 ; max-height: 20em; min-width: 0;background: white; overflow-y: auto ; overflow-x: hidden; padding-right: 19px; margin-right: -18px; }' + "\n" +
+	'#caltodo .completionWrapper .completion div { text-align: left; }' + "\n" +
 	'.completion div:first-child {margin: 0 0 0 0; } ' + "\n" +
 	'.completion div:nth-last-child(11) ~ div:last-child {margin-bottom: 1em; } ' + "\n" +
 	'.completion div { width: 110%; margin: 0; padding: .3em; white-space: pre; padding-left: .5em; padding-right: .5em; -moz-transition-property: all; -moz-transition-duration: .2s; -webkit-transition-property: all; -webkit-transition-duration: .2s; transition-property: all; transition-duration: .2s; } ' + "\n" +
@@ -3899,8 +4043,6 @@ function updateTimeline()
 function currentTimeIndicator()
 {
 	var d = new Date ();
-	var dy = new Date ();
-	dy.localTzRemove();
 	var h = ( d.getHours() ) * 100;
 	if ( h > settings.end.getLongMinutes() || h < settings.start.getLongMinutes() && $('#calcurrenttime').length > 0)
 	{
@@ -3908,10 +4050,10 @@ function currentTimeIndicator()
 		return ;
 	}
 	if ( $('#calcurrenttime').length == 0 )
-		$('#day_' + dy.LocalDayString() + ' .header' ).append('<div id="calcurrenttime"></div>');
+		$('#day_' + d.LocalDayString() + ' .header' ).append('<div id="calcurrenttime"></div>');
 	var p = $('#calcurrenttime').closest('.day');
-	if ( $(p).attr('id') != 'day_' + dy.LocalDayString() )
-		$(p).detach().appendTo('#day_' + dy.LocalDayString() + ' .header' );
+	if ( $(p).attr('id') != 'day_' + d.LocalDayString() )
+		$('#calcurrenttime').detach().appendTo('#day_' + d.LocalDayString() + ' .header' );
 	h = h + ( d.getMinutes()/60) * 100;
 	var percent = ((h)-settings.start.getLongMinutes())/(settings.end.getLongMinutes()-settings.start.getLongMinutes());
 	var offset = $('.eventlist',p).outerHeight() - $('.eventlist',p).innerHeight();
