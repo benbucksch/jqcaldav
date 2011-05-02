@@ -3756,7 +3756,7 @@ function calstyle ()
 	'#caltodo {  float: right;  width: 15%;  overflow-x: hidden; min-height: 6em; height: 100%; background-color: #EFEFFF; border-left: 1px solid #AAA; margin-left: -1px; margin-right: 0; '+
 		'background-image: url(\'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAABCAYAAAAW/mTzAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAN1wAADdcBQiibeAAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAAAUSURBVAiZY/z06dN/BiTAy8vLCABHcQP/jGwD2gAAAABJRU5ErkJggg==\'); }' + "\n" +
 	'#caltodo > .sidetitle { font-size: 200%; font-weight: lighter; border-bottom:1px solid #AAA; text-align: center; padding: 0 0 .6em 0; margin:0;}' + "\n" +
-	'#caltodo > .sidetitle div { display: block; font-size: 50%; font-weight: lighter; border: none !important; text-align: center; width: 100%; margin:0;}' + "\n" +
+	'#caltodo > .sidetitle div.button { display: block; font-size: 50%; font-weight: lighter; border: none !important; text-align: center; width: 100%; margin:0;}' + "\n" +
 	'#caltodo > .sidetitle span { display: block; float: left; width: 50%; margin:-1px; padding:0; position: relative; bottom: -0.43em;}' + "\n" +
 	'#caltodo ul { position: absolute; top: 3.6em; bottom: 0; overflow-x: hidden; overflow-y: auto; margin: 0; padding: 0px; list-style: none; } ' + "\n" +
 	'#caltodo ul li { overflow: hidden; display: block; margin: 0; padding: 0; padding-left: 0; margin-bottom: .75em; line-height: 1.2em; list-style-type: none;  } ' + "\n" +
@@ -3919,6 +3919,7 @@ function calstyle ()
 	'.completionWrapper { position: absolute; top:0; margin:0; margin-top: 2em; z-index: 100; padding: 0; min-height:0 ; max-width: ; min-width: 0; overflow: hidden; padding-right: -1em; ' + "\n" +
 		'-moz-box-shadow: 0px 0px 6px #888; -webkit-box-shadow: 0px 0px 6px #888; box-shadow: 0px 0px 6px #888; } '+ "\n" +
 	'.completion { z-index: 100; padding: 0; min-height:0 ; max-height: 20em; min-width: 0;background: white; overflow-y: auto ; overflow-x: hidden; padding-right: 19px; margin-right: -18px; }' + "\n" +
+	'#caltodo .completionWrapper,#caltodo .completionWrapper > div { text-align: left; font-size: 8pt; font-weight: normal; }' + "\n" +
 	'#caltodo .completionWrapper .completion div { text-align: left; }' + "\n" +
 	'.completion div:first-child {margin: 0 0 0 0; } ' + "\n" +
 	'.completion div:nth-last-child(11) ~ div:last-child {margin-bottom: 1em; } ' + "\n" +
