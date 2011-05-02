@@ -42,7 +42,7 @@ function getTZ ( d )
 	return false;
 }
 
-var defaults={ui:{calendar:"Calendars",todos:"To Do","show":"Show","sort":"Sort","add":"Add",settings:"Settings",subscribe:"Subscribe",today:"Today",week:"Week",month:"Month",start:"Day Starts",end:"Day Ends",twentyFour:"24 Hour Time",username:'Username',password:'Password','go':'go','New Event':'New Event','New Todo':'New Todo','New Journal':'New Journal',"alarm":"alarm","done":"Done","delete":"Delete","name":"name","color":"color","description":"description","url":"url","privileges":"privileges","logout":"Logout","new calendar":"New Calendar","yes":"yes","no":"no","logout error":"Error logging out, please CLOSE or RESTART your browser!","owner":"Owner","subscribed":"Subscribed","lock failed":"failed to acquire lock, may not be able to save changes",loading:'working','update frequency':'update frequency',usealarms:"Enable Alarms","listSeparator":","},
+var defaults={ui:{calendar:"Calendars",todos:"To Do","show":"Show","sort":"Sort","add":"Add",settings:"Settings",subscribe:"Subscribe",today:"Today",week:"Week",month:"Month",start:"Day Starts",end:"Day Ends",twentyFour:"24 Hour Time",username:'Username',password:'Password','go':'go','New Event':'New Event','New Todo':'New Todo','New Journal':'New Journal',"alarm":"alarm","done":"Done","delete":"Delete","name":"name","color":"color","description":"description","url":"url","privileges":"privileges","logout":"Logout","new calendar":"New Calendar","yes":"yes","no":"no","logout error":"Error logging out, please CLOSE or RESTART your browser!","owner":"Owner","subscribed":"Subscribed","lock failed":"failed to acquire lock, may not be able to save changes",loading:'working','update frequency':'update frequency',usealarms:"Enable Alarms","listSeparator":",","manual":"manual"},
 	months:["January","February","March","April","May","June","July","August","September","October","November","December"],
 	weekdays:["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
 	dropquestion:["Do you want to move",["All occurences","This one occurence"]],
@@ -54,7 +54,7 @@ var defaults={ui:{calendar:"Calendars",todos:"To Do","show":"Show","sort":"Sort"
 		url:"url",action:"action",repeat:"repeat",trigger:"trigger","last-modified":"last modified","request-status":"request status",},
 	valueNames:{"TRANSPARENT":"transparent","OPAQUE":"opaque","TENTATIVE":"tentative","CONFIRMED":"confirmed","CANCELLED":"cancelled","NEEDS-ACTION":"needs-action",
 		"COMPLETED":"completed","IN-PROCESS":"in-process","DRAFT":"draft","FINAL":"final","CANCELLED":"cancelled","PUBLIC":"public","PRIVATE":"private",
-		"CONFIDENTIAL":"confidential","AUDIO":"sound","DISPLAY":"message","NONE":"none"},
+		"CONFIDENTIAL":"confidential","AUDIO":"sound","DISPLAY":"message","NONE":"none","past due":"past due","upcoming":"upcoming"},
 	"durations":{"minutes before":"minutes before","hours before":"hours before","days before":"days before","weeks before":"weeks before","minutes after":"minutes after","hours after":"hours after","days after":"days after","weeks after":"weeks after","on date":"on date"},
 	"recurrenceUI":{"YEAR":"year","MONTH":"month","MONTHDAY":"day of month","YEARDAY":"day of year","WEEKNO":"week number","WEEK":"week","DAI":"day","HOUR":"hour","MINUTE":"minute","SECOND":"second","day":"day","time":"time","times":"times","until":"until","every":"every","on":"on","position0":"sixth to last","position1":"fifth to last","position2":"forth to last","position3":"third to last","position4":"second to last","position5":"last","position6":"","position7":"first","position8":"second","position9":"third","position10":"forth","position11":"fifth","position12":"sixth",	
 	},
@@ -1359,11 +1359,19 @@ function showVisTodos ( e )
 		$('#caltodo .completionWrapper').remove();
 		return ;
 	}
-	$(e.target).text($('#caltodo > ul').attr('show'));
+	var sp = String($('#caltodo > ul').attr('show')).split(',');
+	var options = ['COMPLETED','CANCELLED','NEEDS-ACTION','IN-PROCESS','past due','upcoming'];
+	var nv = [];
+	for ( var i =0; i < options.length; i++ )
+		if ( sp.indexOf(options[i]) > -1 )
+			nv.push(valueNames[options[i]]);
+	txt = nv.join(','); 
+	console.log(txt);
+	$(e.target).text(txt);
 	//completed,canceled,due,needs-action,in-process
 	var comp = buildOptions({target:e.target,
-		options:['completed','cancelled','needs-action','in-process','past due','upcoming'],
-		text:   {completed:'completed',cancelled:'cancelled','past due':'past due','needs-action':'needs-action','in-process':'in-process','upcoming':'upcoming'},
+		options:['COMPLETED','CANCELLED','NEEDS-ACTION','IN-PROCESS','past due','upcoming'],
+		text:  valueNames, 
 		none:false,multiselect:',',callback:showHideTodos});
 	$(comp).css({width: '8em','text-align': 'left'});
 	$(e.target).text(ui.show);
@@ -1375,12 +1383,20 @@ function showVisTodos ( e )
 function showHideTodos ( e )
 {
 	var txt = $(e).text();
+	console.log(txt);
+	var sp = String(txt).split(',');
+	var options = ['COMPLETED','CANCELLED','NEEDS-ACTION','IN-PROCESS','past due','upcoming'];
+	var nv = [];
+	for ( var i = 0; i < options.length; i++ )
+		if ( sp.indexOf(valueNames[options[i]]) > -1 )
+			nv.push(options[i]);
+	txt = nv.join(',');
 	$('#caltodo > ul').attr('show',txt);
+	console.log(txt);
 	settings.todoShow = txt;
 	saveSettings(false);
 	$(e).text(ui.show);
 	$('#caltodo .completionWrapper').remove();
-
 	$('#caltodo .event').each(function(i,e)
 		{
 			if ( todoVisible(e) ) 
@@ -1412,9 +1428,9 @@ function showSortTodos ( e )
 	$(e.target).text($('#caltodo > ul').attr('sort'));
 	var comp = buildOptions({target:e.target,
 		options:['priority','percent-complete','due','manual'],
-		text:   {'priority':'priority','percent-complete':'percent','due':'due','manual':'manual'},
+		text:   {'priority':fieldNames.priority,'percent-complete':fieldNames['percent-complete'],'due':fieldNames.due,'manual':ui.manual},
 		none:false,callback:sortTodos});
-	$(comp).css({width: '8em','text-align': 'left'});
+	$(comp).css({width: '8em','margin-left':'-2em','margin-top':'1em','text-align': 'left'});
 	$(e.target).text(ui.sort);
 	$('#caltodo .completionWrapper').remove();
 	$(e.target).before(comp);
@@ -1434,15 +1450,14 @@ function todoVisible ( e )
 {
 	var txt = $('#caltodo > ul').attr('show');
 	var ret = true;
-	var possible = ['completed','cancelled','needs-action','in-process','past due','upcoming'];
 	var opts = String(txt).split(',');
-	if ( opts.indexOf('completed') == -1 && ( $(e).attr('completed') || $(e).attr('status') == 'completed' ) )
+	if ( opts.indexOf('COMPLETED') == -1 && ( $(e).attr('completed') || $(e).attr('status') == 'completed' ) )
 		ret = false;
-	if ( opts.indexOf('cancelled') == -1 && $(e).attr('status') == 'cancelled' )
+	if ( opts.indexOf('CANCELLED') == -1 && $(e).attr('status') == 'cancelled' )
 		ret = false;
-	if ( opts.indexOf('needs-action') == -1 && $(e).attr('status') == 'needs-action' )
+	if ( opts.indexOf('NEEDS-ACTION') == -1 && $(e).attr('status') == 'needs-action' )
 		ret = false;
-	if ( opts.indexOf('in-process') == -1 && $(e).attr('status') == 'in-process' )
+	if ( opts.indexOf('IN-PROCESS') == -1 && $(e).attr('status') == 'in-process' )
 		ret = false;
 	var d  = $(e).attr('due'); 
 	if ( opts.indexOf('past due') == -1 && d != undefined && String(d).length > 4 && d < $.now() )
