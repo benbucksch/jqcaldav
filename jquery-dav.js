@@ -206,6 +206,7 @@ jQuery.extend ({
 			$.fn.caldav.calendarData = new Array ;
 			$.fn.caldav.collectionData = new Array ;
 			$.fn.caldav.locks = {};
+			$.fn.caldav.supports = {};
 			$.fn.caldav.xmlNSfield = 'localName';
 			if ( document.documentElement.baseName ) // ie just has to be different
 					$.fn.caldav.xmlNSfield = 'baseName';
@@ -279,7 +280,10 @@ jQuery.extend ({
 
     getCalendarData : function( params, callback ) { 
 			$.fn.caldav('spinner',true);
-	    $.propfind ($.extend(true,{},jQuery.fn.caldav.options,params,{headers:{Depth:1},data:'<?xml version="1.0" encoding="utf-8"?>' + "\n" +
+			var headers = {Depth:1};
+			if ( $.fn.caldav.supports.bind )
+				headers['DAV'] = 'bind';
+	    $.propfind ($.extend(true,{},jQuery.fn.caldav.options,params,{headers:headers,data:'<?xml version="1.0" encoding="utf-8"?>' + "\n" +
 			'<x0:propfind xmlns:x1="http://calendarserver.org/ns/" xmlns:x0="DAV:" xmlns:x3="http://apple.com/ns/ical/" xmlns:x2="urn:ietf:params:xml:ns:caldav" xmlns:x4="http://boxacle.net/ns/calendar/">' + "\n" +
 			'<x0:prop>' + "\n" +
 			'<x0:displayname/>' + "\n" +
@@ -392,7 +396,10 @@ jQuery.extend ({
 				// DCS report on '<D:principal-match xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav"><D:self/><D:prop><D:displayname/><C:calendar-home-set/><C:calendar-user-address-set/></D:prop></D:principal-match>',
 	//		$.propfind ($.extend(true,{},$.fn.caldav.options,{url:'/davical/htdocs/caldav.php/',headers:{Depth:1},data:'<?xml version="1.0" encoding="utf-8" ?>\n' +
 //'<propfind xmlns="DAV"><prop><principal-collection-set/><current-user-principal/></prop></propfind>',
-			$.propfind ($.extend(true,{},$.fn.caldav.options,{headers:{Depth:0},data:'<?xml version="1.0" encoding="utf-8" ?>\n' +
+			var headers = {Depth:0};
+			if ( $.fn.caldav.supports['bind'] )
+				headers['DAV'] = 'bind';
+			$.propfind ($.extend(true,{},$.fn.caldav.options,{headers:headers,data:'<?xml version="1.0" encoding="utf-8" ?>\n' +
 				'<propfind xmlns="DAV:"><prop><principal-collection-set/><current-user-principal/><calendar-description xmlns="urn:ietf:params:xml:ns:caldav" /></prop></propfind>',
 				complete: function (r,s)
 				{
@@ -400,6 +407,9 @@ jQuery.extend ({
 					if (s=='success')
 				  {
 						$.fn.caldav.serverSupports = r.getResponseHeader('Dav');
+						var splits = String($.fn.caldav.serverSupports).split(',');
+						for ( var i in splits )
+							$.fn.caldav.supports[$.trim(splits[i])] = true;
 						$.fn.caldav.requestcount = 0;
 						if ( r.responseXML.firstChild.baseName )
 							$.fn.caldav.xmlNSfield = 'baseName';
@@ -467,7 +477,10 @@ jQuery.extend ({
 
 		getPrincipalData: function (url,callback){
 			$.fn.caldav('spinner',true);
-			$.propfind ($.extend(true,{},$.fn.caldav.options,{url:url,headers:{Depth:1},data:'<?xml version="1.0" encoding="utf-8" ?>\n' +
+			var headers = {Depth:1};
+			if ( $.fn.caldav.supports.bind )
+				headers['DAV'] = 'bind';
+			$.propfind ($.extend(true,{},$.fn.caldav.options,{url:url,headers:headers,data:'<?xml version="1.0" encoding="utf-8" ?>\n' +
 					'<D:propfind xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav" xmlns:C2="http://calendarserver.org/ns/"><D:prop><D:displayname/><C:calendar-home-set/><C:calendar-user-address-set/><C:calendar-description/><C2:calendar-proxy-write/><C2:calendar-proxy-read/><C2:calendar-proxy-write-for/><C2:calendar-proxy-read-for/><D:resourcetype/></D:prop></D:propfind>',
 				complete: function (r,s)
 				{
@@ -527,7 +540,7 @@ jQuery.extend ({
 			if ( ! String(url).match(/\//) ) 
 				url = $.fn.caldav.data.myPrincipal;
 			$.fn.caldav('spinner',true);
-			$.report ($.extend(true,{},$.fn.caldav.options,{url:url,data:'<?xml version="1.0" encoding="utf-8" ?>\n' +
+			$.report ($.extend(true,{},$.fn.caldav.options,{url:url,headers:{DAV:'bind'},data:'<?xml version="1.0" encoding="utf-8" ?>\n' +
 '<expand-property xmlns="DAV:">' +
 ' <property name="calendar-proxy-write-for" xmlns="http://calendarserver.org/ns/"><property name="displayname"/><property name="principal-URL"/><property name="calendar-user-address-set" xmlns="urn:ietf:params:xml:ns:caldav"/></property>' +
 ' <property name="calendar-proxy-read-for" xmlns="http://calendarserver.org/ns/"><property name="displayname"/><property name="principal-URL"/><property name="calendar-user-address-set" xmlns="urn:ietf:params:xml:ns:caldav"/></property>' +
@@ -727,7 +740,7 @@ jQuery.extend ({
 		{ 
 			if ( ! $.fn.caldav.calendarData[cal] )
 				return;
-			var params = {url:$.fn.caldav.calendarData[cal].href};
+			var params = {url:$.fn.caldav.calendarData[cal].href,cal:cal,start:start,end:end };
 			if ( ! $.fn.caldav.calendarData[cal].synctoken )
 				var data = '<?xml version="1.0" encoding="utf-8"?>' + "\n" +
 					'<D:sync-collection xmlns:D="DAV:"><D:sync-token/><D:limit><D:nresults>1</D:nresults></D:limit><D:prop><D:getetag/></D:prop></D:sync-collection>';
@@ -735,24 +748,28 @@ jQuery.extend ({
 				var data = '<?xml version="1.0" encoding="utf-8"?>' + "\n" +
 					'<D:sync-collection xmlns:D="DAV:"><D:sync-token>'+$.fn.caldav.calendarData[cal].synctoken+'</D:sync-token><D:prop><D:getetag/></D:prop></D:sync-collection>';
 			$.report ($.extend(true,{},$.fn.caldav.options,params,{headers:{depth:1},data:data,
-				complete: function (r,s){ 
-					if ( $.fn.caldav.calendarData[cal].synctoken && $('href',r.responseXML).length > 0 )
-					{
-						var hrefs = [];
-						var updates = $('href',r.responseXML);
-						for ( var i=0; i< updates.length; i++ )
-						{
-							if ( ! String($(updates[i]).siblings('status').text()).match(/404/) ) 
-								hrefs.push($(updates[i]).text());
-							else
-								if ( typeof($.fn.caldav.options.eventDel) == "function" )
-									$.fn.caldav.options.eventDel($(updates[i]).text());
-						}
-						if ( hrefs.length > 0 )
-							$(this).caldav( 'multiget', params.url, cal, hrefs, start, end );
-					}
-					$.fn.caldav.calendarData[cal].synctoken = $('sync-token',r.responseXML).text(); 
-				}}));
+				complete: function (r,s) { $.fn.caldav('gotSyncData',r,s,cal,start,end);}}));
+		},
+		
+		gotSyncData: function (r,s,cal,start,end)
+		{ 
+			if ( $.fn.caldav.calendarData[cal].synctoken && $('href',r.responseXML).length > 0 )
+			{
+				var hrefs = [];
+				var updates = $('href',r.responseXML);
+				for ( var i=0; i< updates.length; i++ )
+				{
+					if ( ! String($(updates[i]).siblings('status').text()).match(/404/) ) 
+						hrefs.push($(updates[i]).text());
+					else
+						if ( typeof($.fn.caldav.options.eventDel) == "function" )
+							$.fn.caldav.options.eventDel($(updates[i]).text());
+				}
+				if ( hrefs.length > 0 )
+					$(this).caldav( 'multiget', r.url, cal, hrefs, start, end );
+			}
+			$.fn.caldav.calendarData[cal].synctoken = $('sync-token',r.responseXML).text(); 
+			//debug.log(r);
 		},
 
 		multiget: function ( url, cal, hrefs, start, end ) { 
