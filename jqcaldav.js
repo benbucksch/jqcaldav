@@ -802,8 +802,8 @@ function editCalendar (e)
 	$('#caldialog li span:contains(name) + span').focus();
 	if ( cals[c].bound == false )
 		$('#caldialog').append('<div class="button bind" tabindex="0">'+ui['bind']+'</div>');
-	else
-		$('#caldialog').append('<div class="button unbind" tabindex="0">'+ui['unbind']+'</div>');
+	//else
+	//	$('#caldialog').append('<div class="button unbind" tabindex="0">'+ui['unbind']+'</div>');
 	$('#caldialog').append('<div class="button delete" tabindex="0">'+ui['delete']+'</div>');
 	$('#caldialog').append('<div class="button done" tabindex="0" >'+ui.done+'</div>');
 	$('#caldialog .button').bind ('click keypress',function (e) {
