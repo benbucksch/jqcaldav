@@ -42,7 +42,7 @@ function getTZ ( d )
 	return false;
 }
 
-var defaults={ui:{calendar:"Calendars",todos:"To Do","show":"Show","sort":"Sort","add":"Add",settings:"Settings",subscribe:"Subscribe",today:"Today",week:"Week",month:"Month",start:"Day Starts",end:"Day Ends",twentyFour:"24 Hour Time",username:'Username',password:'Password','go':'go','New Event':'New Event','New Todo':'New Todo','New Journal':'New Journal',"alarm":"alarm","done":"Done","delete":"Delete","name":"name","color":"color","description":"description","url":"url","privileges":"privileges","logout":"Logout","new calendar":"New Calendar","yes":"yes","no":"no","logout error":"Error logging out, please CLOSE or RESTART your browser!","owner":"Owner","subscribed":"Subscribed","lock failed":"failed to acquire lock, may not be able to save changes",loading:'working','update frequency':'update frequency',usealarms:"Enable Alarms","listSeparator":",","manual":"manual"},
+var defaults={ui:{calendar:"Calendars",todos:"To Do","show":"Show","sort":"Sort","add":"Add",settings:"Settings",subscribe:"Subscribe",today:"Today",week:"Week",month:"Month",start:"Day Starts",end:"Day Ends",twentyFour:"24 Hour Time",username:'Username',password:'Password','go':'go','New Event':'New Event','New Todo':'New Todo','New Journal':'New Journal',"alarm":"alarm","done":"Done","delete":"Delete","name":"name","color":"color","description":"description","url":"url","privileges":"privileges","logout":"Logout","new calendar":"New Calendar","yes":"yes","no":"no","logout error":"Error logging out, please CLOSE or RESTART your browser!","owner":"Owner","subscribed":"Subscribed","lock failed":"failed to acquire lock, may not be able to save changes",loading:'working','update frequency':'update frequency',usealarms:"Enable Alarms","listSeparator":",","manual":"manual","bind":"bind","unbind":"unbind","refresh":"refresh","path":"Path","source":"Source"},
 	months:["January","February","March","April","May","June","July","August","September","October","November","December"],
 	weekdays:["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
 	dropquestion:["Do you want to move",["All occurences","This one occurence"]],
@@ -796,9 +796,14 @@ function editCalendar (e)
 	$('#caldialog').css({overflow:'auto'});
 	$('[data-prop=color]',ul).click ( colorClicked );
 	$('#caldialog').append(ul);
+	$('#caldialog').data('url', cals[c].href);
 	draggable ( $('#caldialog') );
 	$('#caldialog').show();
 	$('#caldialog li span:contains(name) + span').focus();
+	if ( cals[c].bound == false )
+		$('#caldialog').append('<div class="button bind" tabindex="0">'+ui['bind']+'</div>');
+	else
+		$('#caldialog').append('<div class="button unbind" tabindex="0">'+ui['unbind']+'</div>');
 	$('#caldialog').append('<div class="button delete" tabindex="0">'+ui['delete']+'</div>');
 	$('#caldialog').append('<div class="button done" tabindex="0" >'+ui.done+'</div>');
 	$('#caldialog .button').bind ('click keypress',function (e) {
@@ -819,12 +824,32 @@ function editCalendar (e)
 					$(document).unbind('click',$('#wcal').data('edit_click')); 
 					$(document).unbind('keyup',$('#wcal').data('edit_keyup')); 
 				}
-				if ( $(this).hasClass('delete') && delCalendar() == true ) 
+				else if ( $(this).hasClass('delete') && delCalendar() == true ) 
 				{
 					$(e.target).closest('.calpopup').fadeOut();
 					$('#wcal').removeData('popup'); 
 					$(document).unbind('click',$('#wcal').data('edit_click')); 
 					$(document).unbind('keyup',$('#wcal').data('edit_keyup')); 
+				}
+				else if ( $(this).hasClass('unbind')  ) 
+				{
+					var href = cals[c].href;
+					href = href.replace (/\/$/,'');
+					var seg = href.match ( /\/([^\/]+)$/ )[1] +'';
+					href = href.replace (/\/[^\/]*$/,'');
+					if ( debug )
+						console.log( seg, href );
+					$(document).caldav('unbind', seg, href );
+					$(e.target).closest('.calpopup').fadeOut();
+					$('#wcal').removeData('popup'); 
+					$(document).unbind('click',$('#wcal').data('edit_click')); 
+					$(document).unbind('keyup',$('#wcal').data('edit_keyup')); 
+				}
+				else if ( $(this).hasClass('bind')  ) 
+				{
+					$('#caldialog').fadeOut('fast');
+					bind ( c );
+					return false;
 				}
 			}
 			);
@@ -832,6 +857,41 @@ function editCalendar (e)
 	$('#wcal').data('clicked', e.target);
 	$(document).click( $('#wcal').data('edit_click') ); 
 	$(document).keyup( $('#wcal').data('edit_keyup') ); 
+}
+
+function bind ( c )
+{
+	var cals = $(document).caldav('calendars');
+	$('#caldialog').empty();
+	var ul = $('<ul data-calendar="' + c + '" ></ul>');
+	var props = {"name":"name","path":"path","source":"source"};
+	for ( var i in props )
+		$(ul).append ('<li><span class="label">'+ui[props[i]]+'</span><span class="value ' + props[i] + '" data-prop="' + props[i] + 
+				'" contenteditable="true">'+ i +'</span></li>');
+	$('#caldialog').append(ul);
+	$('#caldialog').css({overflow:'auto'});
+	$('#caldialog').append('<div class="button done" tabindex="0">'+ui['done']+'</div>');
+	if ( (0+c) > -1 )
+	{
+		$('#caldialog span.name').text(cals[c].displayName);
+		$('#caldialog span.source').text(cals[c].href);
+	}
+	$(this).unbind('click keypress');
+	$('#caldialog .button').bind ('click keypress',function (e) {
+			if ( $(this).hasClass('done') )
+			{
+				var name = $('#caldialog span.name').text();
+				var path = $('#caldialog span.path').text();
+				var source = $('#caldialog span.source').text();
+				$(document).caldav('bind', name, path , source );
+				$(e.target).closest('.calpopup').fadeOut();
+				$('#wcal').removeData('popup'); 
+				$(document).unbind('click',$('#wcal').data('edit_click')); 
+				$(document).unbind('keyup',$('#wcal').data('edit_keyup')); 
+			}
+			return false;
+		});
+	$('#caldialog').fadeIn();
 }
 
 function privilegeBox ( acl )
@@ -1003,7 +1063,7 @@ function delCalendar (e)
 								$('.calendar' + calendar).remove();
 								for ( var j in subscriptions )
 									if ( subscriptions[j] != undefined && subscriptions[j].url == cals[calendar].url && subscriptions[j].name == cals[calendar].displayName )
-										subscriptions[j];
+										delete subscriptions[j];
 								delete cals[calendar];
 								$('#wcal').data('subscribed',cals);
 								var purl = '';
@@ -1829,7 +1889,11 @@ function insertTodo ( href, icsObj, c  )
 	var sortorder = icsObj.vcalendar[type]['x-apple-sort-order'];
 	var desc = '';
 	desc += icsObj.vcalendar[type].summary.VALUE; 
-	var entry = $('<li class="event calendar' + c + '" data-time="' + sortorder + '" href="' + href + '" uid="' + icsObj.vcalendar[type].uid.VALUE + '" draggable="true" >'+desc+'</li>');
+	if ( icsObj.vcalendar[type].uid )
+		var uid = icsObj.vcalendar[type].uid.VALUE;
+	else
+		var uid = '';
+	var entry = $('<li class="event calendar' + c + '" data-time="' + sortorder + '" href="' + href + '" uid="' + uid + '" draggable="true" >'+desc+'</li>');
 	if ( icsObj.vcalendar[type].due && icsObj.vcalendar[type].due.DATE)
 		$(entry).attr('due',icsObj.vcalendar[type].due.DATE.getTime());
 	$(entry).attr('completed',icsObj.vcalendar[type].completed);
@@ -2332,6 +2396,8 @@ function newevent (e)
 	$('#calpopupe .value,.evheader').attr('contentEditable',true);
 	$('#calpopupe .evheader').focus();
 	$('#calpopupe .value,.evheader').attr('spellcheck','true');
+	$('#calpopupe > ul').append('<li><div class="completionWrapper"><div class="completion"></div></div><span class="add button dropdown">'+ui.add+'</span></li>');
+	$('#calpopupe .add').click(addField);
 	$('#calpopupe').data('event', '#calpopupe' );
 	$('#calpopupe').data('ics',ics);
 	draggable ( $('#calpopupe') );
@@ -2397,6 +2463,10 @@ function eventHover (e)
 		var props = [],type = 'vtodo';
 		props.push('summary');
 		props.push('due');
+		if ( d.vcalendar[type].valarm != undefined )
+		{
+			props.push('valarm');
+		}
 		for ( var x in d.PARENT.components.vtodo.required){props.push(d.PARENT.components.vtodo.required[x]); }
 		for ( var x in d.PARENT.components.vtodo.optional){props.push(d.PARENT.components.vtodo.optional[x]); }
 	}
@@ -2542,12 +2612,12 @@ function eventClick(e)
 					{
 						var cp = $($('#wcal').data('popup'));
 						var cal = cals[c];
-						var src  = $('<div id="eventsource" style="position:absolute;top:0;left:0;background:grey; overflow-y: auto; white-space: pre;" contenteditable="true" ></div>');
+						var src  = $('<textarea id="eventsource" style="position:absolute;top:0;left:0;background:grey; overflow-y: auto; white-space: pre;" cols="80" rows="30" contenteditable="true" ></textarea>');
 						var save = $('<div id="eventsave" style="position:absolute;bottom:25px;left:70px; width:40px;" class="button">save</div>');
 						var d = $($(cp).data('event')).data('ics');
 						$(src).text(d.PARENT.printiCal());
 						$(save).click(function(e){
-							var ics = new iCal ( $('#eventsource').text()).ics[0];
+							var ics = new iCal ( $('#eventsource').val()).ics[0];
 							var cp = $($('#wcal').data('popup'));
 							var href = $($(cp).data('event')).attr('href');
 							var c = $($(cp).data('event')).attr('class').match(/calendar(\d+)/)[1];
@@ -2786,6 +2856,7 @@ function addField(e)
 			{
 				var nr = recurrence ('FREQ=YEARLY');
 				$('.value',txt).replaceWith(nr.editRecurrence());
+				var cp = $(this).closest('li').before(txt);
 			}
 			else
 			{
@@ -2897,11 +2968,14 @@ function printAlarm(a)
 				else
 					var type = type + ' after';
 			}
-			else if ( alarms[A].trigger.DATE != undefined )
+			if ( alarms[A].trigger.DATE != undefined )
 			{
 				var avalue = alarms[A].trigger.DATE.prettyDate();
 				var type = 'on date';
 			}
+			//else if ( alarms[A]['x-apple-proximity'] )
+			//{
+			//}
 			else 
 				continue ;
 			var atext = '';
@@ -3106,7 +3180,9 @@ function eventEdited (e)
 		{
 			var element = $('span:contains('+label+') + span',cp)[0];
 			if	( d.vcalendar[type][props[x]] == undefined )
+			{
 				d.vcalendar[type][props[x]] = d.PARENT.newField( props[x] );
+			}
 			if ( $(element).data('value') == $(element).text() )
 				continue ;
 			if ( d.vcalendar[type][props[x]] == $(element).text() )
@@ -3198,12 +3274,14 @@ function eventDeleted (e)
 	if ( d.TYPE =='vtodo' )
 	{
 		var params = { url:src};
+		$(document).caldav('unlock',src );
 		$(document).caldav('delEvent',params); 
 		//$(t).remove();
 	}
 	else if ( d.vcalendar.vevent.rrule == undefined  && d.vcalendar.vevent['recurrence-id'] == undefined )
 	{
 		var params = { url:src};
+		$(document).caldav('unlock',src );
 		$(document).caldav('delEvent',params); 
 		//$(t).remove();
 	}
@@ -3229,6 +3307,7 @@ function eventDeleted (e)
 	else if ( e.all == true )
 	{
 		var params = { url:src};
+		$(document).caldav('unlock',src );
 		$(document).caldav('delEvent',params); 
 		$('[href="'+$(t).attr('href')+'"]').fadeOut('fast',function (){$(this).remove();  } );
 	}
@@ -3469,7 +3548,8 @@ function buildcal(d)
 	$('#calsettings',sidebar).click(calSettings); 
 	$('#calsubscribe',sidebar).click(subscribeCalendar); 
 	$(calwrap).append(sidebar);
-	$(calwrap).append('<div id="calcenter" ><div id="calheader" tabindex="6"><span id="gototoday" class="button" >'+ui.today+'</span><span id="weekview" class="button" >'+ui.week+'</span><span id="calmonthname">' + months[s.getMonth()] + '</span><span id="calyearname">' + s.getFullYear() + '</span><span id="logout" class="button" >'+ui.logout+'</span></div>');
+	$(calwrap).append('<div id="calcenter" ><div id="calheader" tabindex="6"><span id="gototoday" class="button" >'+ui.today+'</span><span id="weekview" class="button" >'+ui.week+'</span><span id="refresh" class="button" >'+ui.refresh+'</span><span id="calmonthname">' + months[s.getMonth()] + '</span><span id="calyearname">' + s.getFullYear() + '</span><span id="logout" class="button" >'+ui.logout+'</span></div>');
+	$('#refresh',calwrap).click(function(){calendarSync(); return false;} );
 	$('#gototoday',calwrap).click(function(){var d = new Date(); scrollCal ( d );return false;} );
 	$('#logout',calwrap).click(function(){ logoutClicked(); return false;} );
 	$('#weekview',calwrap).click(function()
@@ -3532,19 +3612,27 @@ function buildcal(d)
 	$(days).append(tr);
 	$(calh).append(days);
 	$('#calheader',calwrap).append(calh);
-	$('#calheader',calwrap).bind('edit_keyup',function (e){ 
-		var month =	$.inArray($('#calmonthname').text(),months);
-		var year = $('#calyearname').text();
-		if ( e.keyCode == 40 ) // down arrow
-		{
-			$('#wcal').scrollTop( $('#day_'+(year+''+(month+1))+'1').position().top );
+	$('#calheader',calwrap).bind('keyup',function (e){ 
+		var month =	parseInt($.inArray($('#calmonthname').text(),months));
+		var year = parseInt($('#calyearname').text());
+		console.log ( year + ' ' + month + ' key ' + e.which );
+		switch ( e.keyCode  )
+		{	
+			case 37:  // left arrow
+				scrollCal ( new Date ( year-1 , month,1) );
+				break;
+			case 38: // up arrow
+				scrollCal ( new Date ( year, month-1,1) );
+				break;
+			case 39: // right arrow
+				scrollCal ( new Date ( year+1, month,1) );
+				break;
+			case 40:  // down arrow
+				scrollCal ( new Date ( year, month+1,1) );
+				break;
+			default :
+				return true;
 		}
-		else if ( e.keyCode == 38 ) // down arrow
-		{
-			$('#wcal').scrollTop( $('#day_'+(year+''+(month+1))+'1').position().top );
-		}
-		else
-			return true;
 		e.preventDefault();
 		return false;
 		});
@@ -3627,6 +3715,7 @@ function buildcal(d)
 				e.stopPropagation();
 				return false;
 			}
+
 		} 
 			);
 
@@ -3776,6 +3865,7 @@ function calstyle ()
 	"#calh .days td { display: table-cell; float: none; }\n" + 
 	'#gototoday { position: absolute; left: 0em; font-size: 12pt; width: 4em;}' + "\n" +
 	'#weekview { position: absolute; left: 7em; font-size: 12pt; width: 4em;}' + "\n" +
+	'#refresh { position: absolute; left: 14em; font-size: 12pt; width: 4em;}' + "\n" +
 	'#logout { position: absolute; right: 4em; font-size: 12pt; width: 4em;}' + "\n" +
 	'#calt { width:100%; border-spacing:0; padding:0; margin:0; border:0; table-layout: fixed; }' + "\n" + 
 	'#calsidebar { float: left; /* -moz-box-flex: 1; -webkit-box-flex: 1; box-flex: 1; */ position: relative; width: 15%; min-height: 6em; height: 100%; background-color: #EFEFFF; '+
@@ -3849,6 +3939,8 @@ function calstyle ()
 		' -webkit-transform: translate(0px, -1em) ; -moz-transform: translate(0px,-1em) ; transform: translate(0px,-1em); } ' + "\n" +
 	'.calpopup .done { position: absolute; bottom: 10px; right: 10px; }' + "\n" +
 	'.calpopup .delete { position: absolute; bottom: 10px; right: 80px; }' + "\n" +
+	'.calpopup .unbind { position: absolute; bottom: 10px; left: 10px; }' + "\n" +
+	'.calpopup .bind { position: absolute; bottom: 10px; left: 10px; }' + "\n" +
 	'.button { text-align: center; padding: 0.1em 1.25em 0.1em 1.25em; border: 1px solid #888; border-bottom: 1px solid #AAA; '+
 		'-webkit-border-radius: 2px; -moz-border-radius: 2px; border-radius: 2px; font-size: 9pt; '+
 		'background:  -moz-linear-gradient(top, #FFF 0%,#dadada 55%,#dddddd 100%); background: -webkit-gradient(linear, left top, left bottom, from(#FFF),color-stop(0.55,#dadada), to(#dddddd) ); }' + "\n" +
@@ -4588,7 +4680,7 @@ var iCal = function ( text ) {
 		{ 
 			if ( this.RECURRENCE == undefined )
 				this.RECURRENCE = new recurrence;
-			if (String(s).match(/\s/)) 
+			if ( String(s).match(/\s/) ) 
 			{ 
 				this.RECURRENCE.parsePrettyRecurrence(s); 
 				this.VALUE = this.RECURRENCE.unparseRecurrence(); 
@@ -4685,7 +4777,7 @@ var iCal = function ( text ) {
 					var t = this.VALUE; 
 				return t;},
 			trigger:function(){ if ( this.DATE ) return this.PRINT.date.apply(this,arguments);return this.PRINT.duration.apply(this,arguments);},
-			recurrence:function(){if ( arguments[0] !== true ) var p = true; else var p = false; return this.RECURRENCE.toString(p);},
+			recurrence:function(){if ( arguments[0] !== true ) var p = true; else var p = false;if (this.RECURRENCE == undefined ) return undefined ; else return this.RECURRENCE.toString(p);},
 			props:function(){
 				var line = '';
 				if ( arguments.length > 0 && this.PROPS && this.PROPS.length > 1 )
@@ -5069,7 +5161,7 @@ var recurrence = function ( text )
 				return months[value-1];
 			case 'BYDAY':
 				var offset = String(value).match ( /([-+]?[0-9]+)?([a-zA-Z]{2})/ );
-				var o = ''
+				var o = '';
 				if ( offset[1] != undefined )
 				{
 					o = recurrenceUI['position'+(Number(offset[1])+6)];
@@ -5104,7 +5196,7 @@ var recurrence = function ( text )
 	{ 
 		var dowa = ['SU','MO','TU','WE','TH','FR','SA'];
 		if ( this.rule == undefined ) 
-			return false ;
+			this.rule = {'FREQ':'YEARLY'};
 		var n = {};
 		if ( $('.repeat',r).text() != '' )
 		{
@@ -5128,7 +5220,7 @@ var recurrence = function ( text )
 				false;
 			n.COUNT = num;
 		}
-		else
+		else if ( $('.foruntil',r).text() == recurrenceUI['until'] )
 			n.UNTIL = Zero().parsePrettyDate($('.foruntil + .value',r).text());
 		
 		var sep = new RegExp ( "\\s*"+ui.listSeparator+"\\s*" );
@@ -5809,27 +5901,28 @@ var styles = {
 	sheet: undefined,	
 	rules: {} ,
 	getStyleSheet: function (unique_title) { 
-	  for(var i=0; i<document.styleSheets.length; i++) 
-	    if(document.styleSheets[i].title == unique_title) 
-	      this.sheet = document.styleSheets[i];
-		if ( this.sheet != undefined );
-			this.refreshRules();
+		var i;
+	  for(i=0; i<document.styleSheets.length; i++) {
+	    if(document.styleSheets[i].title == unique_title) {
+	      this.sheet = document.styleSheets[i]; }}
+		if ( this.sheet != undefined ) {
+			this.refreshRules(); }
 		return this;
 	},
 	refreshRules: function ()
 	{
-		 var cr = this.sheet.cssRules;
-		 for ( var x in cr )
-			 this.rules[cr[x].selectorText]=x;
+		 var x,cr = this.sheet.cssRules;
+		 for ( x in cr ){
+			 this.rules[cr[x].selectorText]=x;}
 		 this.rules.length = cr.length;
 	},
 	getRule: function (selector)
 	{
-		var ret = new Array ;
-		if ( this.rules.length != this.sheet.cssRules.length )
-			this.refreshRules();
-		if ( this.rules[selector] != undefined )
-			ret.push(this.sheet.cssRules[this.rules[selector]]);
+		var ret = [] ;
+		if ( this.rules.length != this.sheet.cssRules.length ) {
+			this.refreshRules(); }
+		if ( this.rules[selector] != undefined ) {
+			ret.push(this.sheet.cssRules[this.rules[selector]]); }
 		/*/for ( var x in cr )
 		{
 			if ( cr[x].selectorText != selector && cr[x].selectorText.match( selector ) )
@@ -5841,8 +5934,8 @@ var styles = {
 	},
 	setRule: function (selector,style)
 	{
-		var cr = this.sheet.cssRules;
-		for ( var x in cr )
+		var x,cr = this.sheet.cssRules;
+		for ( x in cr )
 		{
 			if ( cr[x].selectorText == selector )
 			{
@@ -5854,42 +5947,42 @@ var styles = {
 	},
 	addRule: function (selector, style )
 	{
-		if ( this.rules[selector] != undefined )
-			return ;
+		if ( this.rules[selector] != undefined ) 
+			return ; 
 		this.sheet.insertRule(selector+'{'+style+'}',this.sheet.cssRules.length);
 		this.rules[selector]=this.sheet.cssRules.length;
 	},
 	updateRule: function ( selector, prop_erties )
 	{
-		var rs = this.getRule( selector );
-		if ( rs.length == 0 )
+		var props,x,r,i,rs = this.getRule( selector );
+		if ( rs.length === 0 )
 		{
 			this.addRule ( selector, '' );
 			rs = this.getRule ( selector );
-			if ( rs.length < 1 )
-				return;
+			if ( rs.length < 1 ) 
+				return; 
 		}
-		var props = prop_erties;
-		if ( typeof props != "object" )
+		props = prop_erties;
+		if ( typeof props !== "object" )
 		{
-			var props = new Object ;
-			var r = properties.split(';');
-			for ( var x in r )
+			props = new Object() ;
+			r = prop_erties.split(';');
+			for ( x in r )
 			{
 				var parts = r[x].split(':',2);
 				props[parts[0]] = parts[1];
 			}
 		}
-		for ( var i in rs )
+		for ( i in rs )
 		{
-			if ( rs[i] == undefined )
-				continue;
-			for ( var x in props )
+			if ( rs[i] === undefined ) 
+				continue; 
+			for ( x in props )
 			{
-				if ( props[x] == null || props[x].length == 0 )
-					rs[i].style.removeProperty(x);
-				else
-					rs[i].style.setProperty( x, String(props[x]), null );
+				if ( props[x] === null || props[x].length == 0 ) {
+					rs[i].style.removeProperty(x); }
+				else {
+					rs[i].style.setProperty( x, String(props[x]), null ); }
 			}
 		}
 	}
