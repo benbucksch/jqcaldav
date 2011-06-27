@@ -5805,7 +5805,7 @@ Date.prototype.parsePrettyDate = function(d,zero){
 		this.setUTCFullYear(parts[2]);
 		this.setUTCMonth(parts[0]-1);
 		this.setUTCDate(parts[1]);
-		this.setUTCHours((parts[7]!=undefined&&parts[7].match(/pm/i))?(parts[4]-0+12):(parts[4]==12?0:parts[4]));
+		this.setUTCHours((parts[7]!=undefined&&parts[7].match(/pm/i))?(parts[4]<12?(parts[4]-0+12):12):(parts[4]==12?0:parts[4]));
 		this.setUTCMinutes(parts[5]==undefined?0:parts[5]);
 		this.setUTCSeconds(parts[6]||0);
 	}
