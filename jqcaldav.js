@@ -4289,7 +4289,7 @@ function guid()
 
 var iCal = function ( text ) {
 	this.prototype = Array.prototype;
-	this.icsTemplateVevent = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//jqCalDav\nCALSCALE:GREGORIAN\nBEGIN:VEVENT\nSUMMARY:"+ui['New Event']+"\nDTEND;VALUE=DATE:19700101\nTRANSP:TRANSPARENT\nDTSTART;VALUE=DATE:19700101\nDTSTAMP:19700101T000000Z\nSEQUENCE:0\nEND:VEVENT\nEND:VCALENDAR";
+	this.icsTemplateVevent = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//jqCalDav\nCALSCALE:GREGORIAN\nBEGIN:VEVENT\nSUMMARY:"+ui['New Event']+"\nDTEND:19700101\nTRANSP:TRANSPARENT\nDTSTART:19700101\nDTSTAMP:19700101T000000Z\nSEQUENCE:0\nEND:VEVENT\nEND:VCALENDAR";
 	this.icsTemplateVtodo = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//jqCalDav\nCALSCALE:GREGORIAN\nBEGIN:VTODO\nSUMMARY:"+ui['New Todo']+"\nDTEND;VA\nTRANSP:TRANSPARENT\nDTSTAMP:19700101T000000Z\nSEQUENCE:0\nDUE;VALUE=DATE:19700101\nSTATUS:NEEDS-ACTION\nEND:VTODO\nEND:VCALENDAR";
 	this.icsTemplateVjournal = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//jqCalDav\nCALSCALE:GREGORIAN\nBEGIN:VJOURNAL\nSUMMARY:"+ui['New Journal']+"\nDTSTAMP:19700101T000000Z\nSEQUENCE:0\nEND:VJOURNAL\nEND:VCALENDAR";
 
@@ -4766,6 +4766,15 @@ var iCal = function ( text ) {
 				if ( t != undefined )
 				return t.replace(/\\n/g,"\n");},
 			date:function(){
+				if ( arguments.length > 0 && this.PROPS && this.PROPS.length > 1 )
+				{
+					if ( this.VALUES.indexOf(arguments[0]) ) var p = this.PROPS[this.VALUES.indexOf(arguments[0])];
+					if ( this.VALUES[arguments[0]] ) var p = this.PROPS[arguments[0]];
+				}
+				else
+					var p = this.PROP;
+				if ( p[tzid] == undefined )
+					this.DATA.zulu = true;
 				if ( arguments.length > 0 && this.DATES.length > 1 ) 
 					return this.DATES[arguments[0]].prettyDate(); 
 				else 
