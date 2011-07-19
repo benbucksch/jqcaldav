@@ -4597,10 +4597,16 @@ var iCal = function ( text ) {
 				}
 				else
 				{
+					if ( props )
+					{
+						if ( typeof props == 'object' && props['TZID'] == undefined )
+							n.DATE.zulu = true;
+						this.PROPS[n.DATE] = props;
+					}
+					else 
+						n.DATE.zulu = true;
 					this.VALUES.push(n.VALUE);
 					this.DATES.push(n.DATE);
-					if ( props )
-						this.PROPS[n.DATE] = props;
 				}
 			}
 			else 
@@ -4608,7 +4614,13 @@ var iCal = function ( text ) {
 				this.DATE = n.DATE;
 				this.VALUE = n.VALUE;
 				if ( props )
+				{
 					this.PROP = props;
+					if ( typeof props == 'object' && props['TZID'] == undefined )
+						this.DATE.zulu = true;
+				}
+				else 
+					this.DATE.zulu = true;
 			} 
 		};
 		this.SETDURATION = function (t,p)
@@ -4773,8 +4785,10 @@ var iCal = function ( text ) {
 				}
 				else
 					var p = this.PROP;
-				if ( p == undefined || p['tzid'] == undefined )
+				if ( p == undefined || p['TZID'] == undefined )
 					this.DATE.zulu = true;
+				else
+					this.DATE.zulu = false;
 				if ( arguments.length > 0 && this.DATES.length > 1 ) 
 					return this.DATES[arguments[0]].prettyDate(); 
 				else 
@@ -4816,7 +4830,13 @@ var iCal = function ( text ) {
 				{
 					line = this.FIELD.toUpperCase() + this.PRINT.props.apply(this,[i]) + ':';
 					if ( this.type == 'date' )
+					{
+						if ( this.PROPS[i] != undefined && this.PROPS[i]['tzid'] != undefined )
+							this.DATES[i].zulu = false;
+						else
+							this.DATES[i].zulu = true;
 						line = line + this.DATES[i].DateString() + "\n";
+					}
 					else if ( this.type == 'text' )
 						line = line + this.ESCAPE(this.VALUES[i]) + "\n";
 					else
@@ -4831,7 +4851,13 @@ var iCal = function ( text ) {
 			{
 				ret = ret + this.FIELD.toUpperCase() + this.PRINT.props.apply(this) + ':' ;
 				if ( this.type == 'date' )
+				{
+					if ( this.PROP != undefined && this.PROP['tzid'] != undefined )
+						this.DATE.zulu = false;
+					else
+						this.DATE.zulu = true;
 					ret = ret + this.DATE.DateString() + "\n";
+				}
 				else if ( this.type == 'text' )
 					ret = ret + this.ESCAPE(this.VALUE) + "\n";
 				else
@@ -5629,7 +5655,7 @@ Date.prototype.DateString = function(){
       + this.pad(this.getUTCHours()) + ''
       + this.pad(this.getUTCMinutes()) + ''
       + this.pad(this.getUTCSeconds()) +
-			(this.zulu != undefined?'Z':'') };
+			(this.zulu?'Z':'') };
 
 Date.prototype.LocalDateString = function(){
 	return this.getFullYear() + ''
