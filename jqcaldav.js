@@ -4766,15 +4766,15 @@ var iCal = function ( text ) {
 				if ( t != undefined )
 				return t.replace(/\\n/g,"\n");},
 			date:function(){
-				if ( arguments.length > 0 && this.PROPS && this.PROPS.length > 1 )
+				if ( this.PROPS && this.PROPS.length > 1 )
 				{
 					if ( this.VALUES.indexOf(arguments[0]) ) var p = this.PROPS[this.VALUES.indexOf(arguments[0])];
 					if ( this.VALUES[arguments[0]] ) var p = this.PROPS[arguments[0]];
 				}
 				else
 					var p = this.PROP;
-				if ( p[tzid] == undefined )
-					this.DATA.zulu = true;
+				if ( p == undefined || p['tzid'] == undefined )
+					this.DATE.zulu = true;
 				if ( arguments.length > 0 && this.DATES.length > 1 ) 
 					return this.DATES[arguments[0]].prettyDate(); 
 				else 
