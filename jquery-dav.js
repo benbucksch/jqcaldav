@@ -590,6 +590,7 @@ jQuery.extend ({
 							href:href,
 							calendar:calendar,
 							name:$.trim($("["+$.fn.caldav.xmlNSfield+"=displayname]",results[i]).text()),
+							calendarHome:$.trim($("["+$.fn.caldav.xmlNSfield+"=calendar-home-set]:first",results[i]).text()),
 							desc:$.trim($("["+$.fn.caldav.xmlNSfield+"=calendar-description]",results[i]).text()),
 							email:$.trim($("href:contains('mailto:')",results[i]).text()).replace(/^mailto:/i,'')
 						};

@@ -982,8 +982,11 @@ function saveCalendar (e)
 		var v = $('.label:contains('+ ui.owner +') ~ .value',cd); 
 		var owner = $(v).data('principal');
 		var ownerName = $(v).text();
-		var url = owner + guid();
 		var cals = $(document).caldav('calendars');
+		var url = $.fn.caldav.principals[$.fn.caldav.principalMap[owner]].calendarHome ;
+		if ( url.length < 3 )
+			var url = owner;
+		url = url + guid() + '/' ;
 		var p = $('#callist > li > span:contains('+ownerName+')').next();
 		var i = cals.length;
 
