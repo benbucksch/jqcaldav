@@ -2588,8 +2588,13 @@ function eventClick(e)
 	var href = $($(cp).data('event')).attr('href');
 	var cals = $(document).caldav('calendars');
 	var c = $($(cp).data('event')).attr('class').match(/calendar(\d+)/)[1];
+	var ok = true;
 	if ( cals[c] != undefined ) 
-		$(document).caldav('lock',href,600,function(){});
+		ok = $(document).caldav('lock',href,600,
+				function(k)
+				{
+					if (k!==true ) $('#calpopupe .done,#calpopupe .delete').addClass('warning'); 
+				});
 	$('#calpopup').clone(true).attr('id','calpopupe').removeClass('left right bottom').appendTo('#calwrap');
 	$('#wcal').data('popup','#calpopupe');
 	$('#calpopupe').data('overflow',0);
@@ -2598,12 +2603,12 @@ function eventClick(e)
 	if ( $('#calpopupe > ul').outerHeight()  + lh * 1.5 + 10 > $('#calpopupe').height() )
 		$('#calpopupe').height($('#calpopupe > ul').outerHeight()  + lh * 1.5 + 10);
 	$('#calpopupe').data('fields',fieldNames);
-	$('#calpopupe > ul').append('<li><div class="completionWrapper"><div class="completion"></div></div><span class="add button dropdown">'+ui.add+'</span></li>');
-	$('#calpopupe .value').focus(fieldClick);
-	$('#calpopupe .add').click(addField);
 	$('#calpopupe').css('opacity',1);
 	if ( cals[c] != undefined ) 
 	{
+		$('#calpopupe > ul').append('<li><div class="completionWrapper"><div class="completion"></div></div><span class="add button dropdown">'+ui.add+'</span></li>');
+		$('#calpopupe .value').focus(fieldClick);
+		$('#calpopupe .add').click(addField);
 
 		$('#calpopupe').append('<div class="button delete" tabindex="0">'+ui['delete']+'</div>');
 		$('#calpopupe').append('<div class="button done" tabindex="0">'+ui.done+'</div>');
@@ -3941,6 +3946,7 @@ function calstyle ()
 	'.dropdown:after   { content: ""; display: block; position: absolute; right: 5px; width:0; height:0; border-color: #666 transparent transparent transparent; border-style: solid; border-width: 8px 4px 1px 4px;  '+
 		' -webkit-transform: translate(0px, -1em) ; -moz-transform: translate(0px,-1em) ; transform: translate(0px,-1em); } ' + "\n" +
 	'.calpopup .done { position: absolute; bottom: 10px; right: 10px; }' + "\n" +
+	'.warning { text-shadow: #FF7400 0px 0px 3px; } ' + "\n" +
 	'.calpopup .delete { position: absolute; bottom: 10px; right: 80px; }' + "\n" +
 	'.calpopup .unbind { position: absolute; bottom: 10px; left: 10px; }' + "\n" +
 	'.calpopup .bind { position: absolute; bottom: 10px; left: 10px; }' + "\n" +

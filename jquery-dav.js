@@ -1020,6 +1020,8 @@ jQuery.extend ({
 		},
 
 		lock: function ( url, timeout, callback ) { 
+			if ( ! /2/.test ( $.fn.caldav.serverSupports ) )
+				return false;
 			var to = timeout?timeout:600;
 			var data = '<?xml version="1.0" encoding="utf-8"?>' + "\n" +
 				'<D:lockinfo xmlns:D="DAV:">'+
@@ -1038,19 +1040,23 @@ jQuery.extend ({
 							var to = Number(String($("["+$.fn.caldav.xmlNSfield+"=timeout]",r.responseXML).text()).replace(/second-/i,''));
 							var cancel = window.setTimeout (function(){delete $.fn.caldav.locks[url];},to*1000);
 							$.fn.caldav.locks[url] = {token:r.getResponseHeader('Lock-Token'),timeout:to,taken:$.now(),unsetlock:cancel };
+							callback(true,r,s);
 						}
 						else
 							if ( typeof(callback) == 'function' )
-								callback(r,s);
+								callback(false,r,s);
 					}
 					else
 						if ( typeof(callback) == 'function' )
-							callback(r,s);
+							callback(false,r,s);
 				}
 			}));
+			return true;
 		},
 		
 		unlock: function ( url ) { 
+			if ( ! /2/.test ( $.fn.caldav.serverSupports ) )
+				return false;
 			if ( $.fn.caldav.locks[url] && $.fn.caldav.locks[url].timeout > ( $.now() - $.fn.caldav.locks[url].taken ) / 1000 )
 				var token = $.fn.caldav.locks[url].token;
 			else
