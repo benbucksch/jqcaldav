@@ -1419,6 +1419,17 @@ function keyboardSelector (e)
 	return true;
 }
 
+// get inbox events for principal
+function getInbox ( p )
+{
+	$(document).caldav('getAll',{},gotInbox,'VEVENT',$.fn.caldav.outboxMap[$.fn.caldav.data.myPrincipal]);
+}
+
+function gotInbox ( a,b,c,d)
+{
+	console.log( a,b,c,d);
+}
+
 function showVisTodos ( e )
 {
 	if ( $(e.target).prev().hasClass('completionWrapper') )
@@ -2918,7 +2929,7 @@ function addField(e)
 
 function printAttendee(a)
 {
-	// ATTENDEE;CN="Rob N. Ostensen";CUTYPE=INDIVIDUAL;EMAIL="rob@afpc.tamu.edu";PARTSTAT=ACCEPTED:mailto\:rob@afpc.tamu.edu
+	// ATTENDEE;CN="Rob N. Ostensen";CUTYPE=INDIVIDUAL;EMAIL="rob@boxacle.net";PARTSTAT=ACCEPTED:mailto\:rob@boxacle.net
 	var ret  = $('<span><span>');
 	var atts=[],props=[];
 	if ( ! a.VALUES )
@@ -2931,20 +2942,280 @@ function printAttendee(a)
 		atts =a.VALUES;
 		props = a.PROPS;
 	}
-	console.log(a);
-	console.log(props);
-	for ( var i=0; i< atts.length; i++ )
+	for ( var i=0; i < atts.length; i++ )
 	{
-		$(ret).append('<span class="value attendee '+ String(props[i]['partstat']+'').toLowerCase() +'" title="'+String(props[i]['email']+'')+'" data-value="'+atts[i]+'" contenteditable="true" >'+(props[i]['cn']?props[i]['cn']:atts[i])+'</span>');
-		
+		if (props[i] != undefined )
+			$(ret).append('<span class="value attendee '+ String(props[i]['partstat']+'').toLowerCase() +'" title="'+String(props[i]['email']?props[i]['email']:atts[i].replace(/^mailto:/i,'')+'')+'" data-value="'+atts[i]+'" data-partstatus="'+String(props[i]['partstat']+'')+'" data-schedstatus="'+String(props[i]['schedule-status']+'')+'" data-rsvp="'+String(props[i]['rsvp']+'')+'" contenteditable="true" >'+(props[i]['cn']?props[i]['cn']:atts[i].replace(/^mailto:/i,'')).replace(/^"(.*)"$/,"$1")+'</span>');	
 	}
-	var plus = $('<span class="plus">'+ui.add+'</span>').click(function(){ var n = $('<span class="attendee" contenteditable="true" ></span>');$(this).before(n);});
+	var plus = $('<span class="plus">'+ui.add+'</span>').click(function(){ var n = $('<span class="value attendee needs-action" contenteditable="true" ></span>');$(this).before(n);$(this).prev().focus();});
+	var freebusy = $('<span class="plus">'+ui.available+'</span>').click(
+			function(e)
+			{
+				$(e.target).hide();
+				var n = $('<div id="scheduling" ><span id="resolve">'+ui.resolve+'</span><ul id="schedusers"></ul><ul id="schedtime"></ul></div>');
+				var vcs = $($('#calpopupe').data('event')).data('ics');
+				var attendee = vcs.vcalendar[vcs.TYPE].attendee;
+				var atts = [], props = [];
+			  if ( ! attendee.VALUES )
+			  {
+			    atts.push  ( attendee.VALUE );
+			    props.push ( attendee.PROP  );
+			  }
+			  else
+			  {
+			    atts  = attendee.VALUES;
+			    props = attendee.PROPS;
+			  }
+				for ( var i=0; i < atts.length; i++ )
+				{
+					var u = (props[i]['cn']?props[i]['cn']:atts[i].replace(/^mailto:/i,'')).replace(/^"(.*)"$/,"$1");
+					$('#schedusers',n).append('<li class="suser'+i+'" user="'+u+'">'+u+'</li>');
+				}
+				var start = Zero().parsePrettyDate($('#calpopupe .ESTART + .value').text()).add('h',-7);
+				var begin = new Date(start.getTime());
+				var end = new Date(start.getTime());
+				end = end.add('h',102);
+				var hrs ='';
+				var vector = [];
+				for ( var i=0; i < 96; i++,start.add('h',1) )
+				{
+					hrs = hrs + '<li class="sday'+start.getUTCDate()+' shour'+start.getUTCHours()+'" data-month="'+months[start.getUTCMonth()]+'" data-date="'+start.getUTCDate()+'" data-hour="'+start.getUTCHours()+'" data-time="'+start.DateString()+'"></li>';
+					for ( var j=i*4; j < (i+1)*4; j++ )
+						vector[j] = 0;
+				}
+				$('#schedtime',n).append(hrs);
+				$('#schedtime',n).data('begin',begin);
+				$('#schedtime',n).data('vector',vector);
+
+				$('#resolve',n).click(function(e)
+						{
+							var vector = $('#schedtime',n).data('vector');
+							var begin  = $('#schedtime',n).data('begin');
+							var start  = Zero().parsePrettyDate($('#calpopupe .ESTART + .value').text());
+							var end    = Zero().parsePrettyDate($('#calpopupe .EEND + .value').text());
+							var s = parseInt(((start - begin)/60000)/15);
+							var l = parseInt(((end - start)/60000)/15);
+							for ( var i = s; i < vector.length - l; i++ )
+							{
+								if ( vector.slice(i,i+l).indexOf(1) == -1 )
+									break;
+							}
+							if ( i < vector.length - l )
+							{
+								var ns = new Date (start.getTime () + (( i-s ) * 15 * 60000));
+								var li = $('#schedtime li.sday'+ns.getUTCDate()+'.shour'+ns.getUTCHours());
+								$('#schedtime .sched').detach().appendTo(li);
+								$('#schedtime .sched').removeClass('start0 start1 start2 start3');
+								if ( i%4 != 0 )
+									$('#schedtime .sched').addClass('start'+(i%4));
+								var ne = new Date ( ns.getTime() + ( end - start ));
+								$('#calpopupe .ESTART + .value').text(ns.prettyDate());
+								$('#calpopupe .EEND + .value').text(ne.prettyDate());
+								$('#schedtime .sched').removeClass('conflict');
+							}
+						});
+				$('#schedtime li',n).click(function(e)
+						{
+							var es = Zero().parsePrettyDate($('#calpopupe .ESTART + .value').text());
+							var ee = Zero().parsePrettyDate($('#calpopupe .EEND + .value').text());
+							if ( e.target.nodeName == 'li' )
+								var li = $(e.target);
+							else
+								var li = $(e.target).closest('li');
+							var nt = Zero().parseDate($(li).data('time'));
+							var diff = nt.getTime() - es.getTime();
+							$('#calpopupe .ESTART + .value').text((new Date(es.getTime() + diff)).prettyDate());
+							$('#calpopupe .EEND + .value').text((new Date(ee.getTime() + diff)).prettyDate());
+							$('#schedtime .sched').detach().appendTo(li);
+							$('#schedtime .sched').removeClass('start0 start1 start2 start3');
+							var times = $('#schedtime').data('fb');
+							es = es.getTime()+diff;
+							ee = ee.getTime()+diff;
+							var offset = 'start' + Math.round((new Date(es)).getUTCMinutes()/15);
+							$('#schedtime .sched').addClass(offset);
+							$('#schedtime .sched').removeClass('conflict');
+							for ( var i=0; i < times.length; i++ )
+							{
+								if ( ( times[i].start >= es && times[i].end <= es ) || ( times[i].start >= ee && times[i].end <= ee ) ||
+									( times[i].start >= es && times[i].end <= ee ) || ( times[i].start <= es && times[i].end >= ee ) )
+									$('#schedtime .sched').addClass('conflict');
+							}
+						});
+				var es = Zero().parsePrettyDate($('#calpopupe .ESTART + .value').data('value'));
+				var ee = Zero().parsePrettyDate($('#calpopupe .EEND + .value').data('value'));
+				len  = parseInt(((ee.getTime()-es.getTime())*4)/3600000)/4;
+				var offset = 'start' + Math.round(es.getUTCMinutes()/15);
+				$('#schedtime li.sday'+es.getUTCDate()+'.shour'+es.getUTCHours(),n).append('<span class="sched '+offset+'" data-hours="'+len+'"></span>');
+				var ic = new iCal(vcs.PARENT.icsTemplateVfreebusy);
+				var c = ic.ics[0];
+				c.vcalendar.vfreebusy.uid      = ic.newField('uid',guid());
+				c.vcalendar.vfreebusy.dtstamp.UPDATE((new Date()));
+				c.vcalendar.vfreebusy.dtstart.UPDATE(begin);
+				c.vcalendar.vfreebusy.dtend.UPDATE(end);
+				c.vcalendar.vfreebusy.attendee = vcs.vcalendar[vcs.TYPE].attendee;
+				var txt = String(ic);
+				//$.ajaxSetup({async:true,headers:{'Content-type':'text/calendar'}});
+				$.POST({url:$.fn.caldav.outboxMap[$.fn.caldav.data.myPrincipal],data:txt,username:$.fn.caldav.options.username,password:$.fn.caldav.options.password,
+					contentType:'text/calendar',
+					complete: function(r,s)
+					{
+						$.ajaxSetup.headers = {};
+						if ( s == "success" )
+						{
+							var responses = $('response',r.responseXML);
+							var vcs = $($('#calpopupe').data('event')).data('ics');
+							var attendee = vcs.vcalendar[vcs.TYPE].attendee;
+							var es = Zero().parsePrettyDate($('#calpopupe .ESTART + .value').data('value')).getTime();
+							var ee = Zero().parsePrettyDate($('#calpopupe .EEND + .value').data('value')).getTime();
+							var atts = [];
+							if ( ! attendee.VALUES )
+								atts.push  ( attendee.VALUE );
+							else
+								atts = attendee.VALUES;
+							var times = [] ;
+							var vector = $('#schedtime').data('vector') ;
+							var sbegin = $('#schedtime').data('begin');
+							for ( var i=0; i < responses.length; i++ )
+							{
+								var href = $('href',responses[i]).text();
+								var suser = 'suser' + atts.indexOf(href);
+								var rstatus = $('request-status',responses[i]).text();
+								var cdata = $('calendar-data',responses[i]).text();
+								if ( /2.0/.test( rstatus ) )
+								{
+									var ic = new iCal(cdata);
+									var ics = ic.ics[0];
+									if ( ics.vcalendar[ics.TYPE]['freebusy'] == undefined )
+										continue;
+									if ( ics.vcalendar[ics.TYPE].freebusy.VALUES != undefined )
+										var fb = ics.vcalendar[ics.TYPE].freebusy.VALUES;
+									else
+										var fb = [ics.vcalendar[ics.TYPE].freebusy.VALUE];
+									for ( var j=0; j < fb.length; j++ )
+									{
+										var parts = String(fb[j]).split('/');
+										var begin = Zero().parseDate(parts[0]);
+										var end = Zero().parseDate(parts[1]);
+										var offset = 'start' + Math.round(begin.getUTCMinutes()/15);
+										times.push({start:parseInt(begin.getTime()),end:parseInt(end.getTime()),duration:end.getTime()-begin.getTime()});
+										$('#schedtime .sday'+begin.getUTCDate()+'.shour'+begin.getUTCHours()).append('<span class="'+suser+' '+offset+'" data-hours="'+parseInt((end.getTime()-begin.getTime())*4/3600000)/4+'"></span>');
+										if ( ( begin >= es && end <= es ) || ( begin >= ee && end <= ee ) ||
+												( begin >= es && end <= ee ) || ( begin <= es && end >= ee ) )
+											$('#schedtime .sched').addClass('conflict');
+										var s = parseInt(((begin - sbegin)/60000)/15);
+										var e = parseInt(((end - sbegin)/60000)/15);
+										for ( var x = s; x < e; x++ )
+											vector[x] = 1;
+									}
+									if ( debug ) 
+										console.log(ics);
+								}
+								else
+									$('#schedtime .' + suser ).addClass('warning');
+							}
+							$('#schedtime').data('fb',times);
+							$('#schedtime').data('vector',vector);
+						}
+					}});
+				popupOverflowVisi();
+				$(this).after(n);
+			});
+	$('.attendee').die('focus');
+	$('.attendee').die('blur');
+	$('.attendee').live('focus',function (e){var t = $(e.target).text(); var eml=$(e.target).data('value'); if ( eml) eml = eml.replace(/^mailto:/,'');else return; if ( ! t.match(eml) ) { $(e.target).text($.trim(t)+' '+eml);}});
+	$('.attendee').live('blur',function (e)
+		{
+			var t = $(e.target).text(); 
+			var eml=$(e.target).data('value');
+			if (!eml )
+			{
+				var el = t.split( ' ' );
+				var cn='';
+				for ( var j=0; j < el.length; j++ )
+				{
+					if ( /@/.test(el[j]) )
+					{
+						eml = String(el[j]).replace( /^mailto:/, '' );
+						eml = eml.replace( /[<>"']/g, '' );
+					}
+					else
+						cn = cn + ' ' + el[j];
+				}
+				$(e.target).data('value',eml);
+				$(e.target).text(cn);
+				return ;
+			}
+			else 
+			{
+				oeml=eml.replace(/^mailto:/,''); 
+				var el = t.split( ' ' );
+				var cn='';
+				for ( var j=0; j < el.length; j++ )
+				{
+					if ( /@/.test(el[j]) )
+					{
+						eml = String(el[j]).replace( /^mailto:/, '' );
+						eml = eml.replace( /[<>"']/g, '' );
+					}
+					else
+						cn = cn + ' ' + el[j];
+				}
+				if ( oeml != eml ) 
+				{
+					$(e.target).data('value',eml);
+				}
+				$(e.target).text(cn);
+			}
+		});
 	$(ret).append(plus);
+	if ( /calendar-auto-schedule/.test ( $.fn.caldav.serverSupports ) )
+		$(ret).append(freebusy);
 	return ret;
 }
 
-function attendeeEdited ( valarm , data, event ) 
+function attendeeEdited ( element, attendee ) 
 {
+	var atnds = $('.attendee',element);
+	var atts = [], props = [];
+  if ( ! attendee.VALUES )
+  {
+    atts.push  ( attendee.VALUE );
+    props.push ( attendee.PROP  );
+  }
+  else
+  {
+    atts  = attendee.VALUES;
+    props = attendee.PROPS;
+  }
+	for ( var i=0; i < atnds.length; i++ )
+	{
+		var p = $(atnds[i]).data();
+		if ( p['value'] && atts.indexOf(p['value']) )
+		{
+			var a = atts.indexOf(p['value']);
+			if ( props[a] != $(atnds[i]).text() )
+			{
+			}
+			// ATTENDEE;CN="Rob N. Ostensen";CUTYPE=INDIVIDUAL;EMAIL="rob@boxacle.net";PARTSTAT=ACCEPTED:mailto\:rob@boxacle.net
+			
+		}
+		else
+		{
+			var e = $(element).text().split( ' ' );
+			var cn,eml;
+			for ( var j=0; j < e.length; j++ )
+			{
+				if ( /@/.test(e[j]) )
+					eml = String(e[j]).replace( /^mailto:/, '' ).replace( /[<>"']/g, '' );
+				else
+					cn = cn + ' ' + e[j];
+			}
+			var np = {cn:cn,cutype:'INDIVIDUAL',email:eml,partstat:'NEEDS-ACTION',rsvp:'TRUE'};
+			if ( /calendar-auto-schedule/.test ( $.fn.caldav.serverSupports ) )
+				np['schdeule-agent']='SERVER';
+			//attendee.UPDATE('mailto:' +eml,np);
+		}
+	}
 }
 
 function printAlarm(a)
@@ -2981,9 +3252,10 @@ function printAlarm(a)
 				var avalue = alarms[A].trigger.DATE.prettyDate();
 				var type = 'on date';
 			}
-			//else if ( alarms[A]['x-apple-proximity'] )
-			//{
-			//}
+			else if ( alarms[A]['x-apple-proximity'] )
+			{
+				continue ;
+			}
 			else 
 				continue ;
 			var atext = '';
@@ -3201,6 +3473,11 @@ function eventEdited (e)
 					continue ;
 				else
 					delete d.vcalendar[type][props[x]];
+			}
+			else if ( props[x] == 'attendee' )
+			{
+				//d.vcalendar[type][props[x]].UPDATE ( $(element) );
+				attendeeEdited ( $(element), d.vcalendar[type][props[x]] );
 			}
 			else if ( props[x] == 'rrule' )
 				d.vcalendar[type][props[x]].UPDATE ( $(element) );
@@ -3925,7 +4202,10 @@ function calstyle ()
 	'.calpopup .value:hover { outline: 1px solid #AAA; resize: both;}' + "\n" +
 	'.calpopup .value:focus { outline: none; -moz-box-shadow: 1px 1px 3px #888; -webkit-box-shadow: 1px 1px 3px #888; box-shadow: 1px 1px 3px #888; resize: none; }' + "\n" +
 	'.calpopup .value:focus:hover { resize:both; }' + "\n" +
-	'.calpopup .attendee.accepted:before { content: "&#10003;"; } \n' + 
+	'.calpopup .attendee.accepted:before { content: "\\2713"; color: white; background-color: green; -moz-border-radius:.55em; -webkit-border-radius:.5em; border-radius:.5em; display: inline-block; width: 1em; height: 1em; margin:.2em; text-align: center; padding: .05em ; font-weight: bold; } \n' + 
+	'.calpopup .attendee.maybe:before { content: "!"; color: white; background-color: blue; -moz-border-radius:.55em; -webkit-border-radius:.5em; border-radius:.5em; display: inline-block; width: 1em; height: 1em; margin:.2em; text-align: center; padding: .05em ; font-weight: bold; } \n' + 
+	'.calpopup .attendee.needs-action:before { content: "!"; color: white; background-color: grey; -moz-border-radius:.55em; -webkit-border-radius:.5em; border-radius:.5em; display: inline-block; width: 1em; height: 1em; margin:.2em; text-align: center; padding: .05em ; font-weight: bold; } \n' + 
+	'.calpopup .attendee.declined:before { content: "\\2717"; color: white; background-color: red; -moz-border-radius:.55em; -webkit-border-radius:.5em; border-radius:.5em; display: inline-block; width: 1em; height: 1em; margin:.2em; text-align: center; padding: .05em ; font-weight: bold; } \n' + 
 	'.calpopup .recurrence { resize: none; outline: none; margin:0; padding:0; padding-right: 2px; padding-left: 4px; min-width: 3em; min-height: 1em; display: block; float: left; margin-top: 6px; margin-bottom: 2px; max-height: 1em; position: absolute; left: 7.5em; overflow: hidden; }' + "\n" +
 	'.calpopup .recurrence:hover,.calpopup .recurrence.focus { max-height: none; background: #E3E3E3; -moz-box-shadow: 1px 1px 3px #888; -webkit-box-shadow: 1px 1px 3px #888; box-shadow: 1px 1px 3px #888; overflow: visible; z-index: 120; } \n' +
 	'.calpopup .recurrence .repeat:before { content: attr(text); } \n' + 
@@ -3934,8 +4214,65 @@ function calstyle ()
 	'.calpopup .recurrence .byrule { clear: left; } \n' + 
 	'.calpopup .alarm { resize: none; outline: none; margin:0; padding:0; padding-right: 2px; padding-left: 4px; min-width: 3em; min-height: 1em; display: block; float: left; margin-top: 6px; margin-bottom: 2px; }' + "\n" +
 	'.calpopup .alarm .value { resize: none; outline: none; margin:0; padding:0; padding-right: .1em; padding-left: .1em; display: inline; float: none; }' + "\n" +
-	'.calpopup .alarm + .plus { display: block; float: left; padding-right: 2px; padding-left: 4px; margin-top: 6px; margin-bottom: 2px; text-decoration: underline; color: #00A; } ' + "\n" +
+	'.calpopup .plus { display: block; float: left; padding-right: 2px; padding-left: 4px; margin-top: 6px; margin-bottom: 2px; text-decoration: underline; color: #00A; } ' + "\n" +
 	'.alarm span { resize: none; outline: none; margin:0; padding:0; padding-right: .1em; padding-left: .1em; }' + "\n" +
+
+	'#scheduling { position: absolute; display: -webkit-box; display: -moz-box; display: box; background: white; width: 42em; padding: .5em; -moz-box-shadow: 1px 1px 3px #888; -webkit-box-shadow: 1px 1px 3px #888; box-shadow: 1px 1px 3px #888; padding-top: .25em; line-height: 160%; } ' +
+	'#schedusers { margin: 0; padding:0; padding-right: 1em; padding-top: 2em; -moz-box-shadow-right: 1px 1px 3px white; -webkit-box-shadow-right: 1px 1px 3px white; box-shadow-right: 1px 1px 3px white; } ' +
+	'#schedtime  { -webkit-box-flex: 3; display: -webkit-box; display: -moz-box; display: box; margin: 0; padding:0; padding-top: 2em; position: relative;  overflow-x: scroll; } ' +
+	
+	
+	'#scheduling .suser0  { color: blue;    } ' +
+	'#scheduling .suser1  { color: green;   } ' +
+	'#scheduling .suser2  { color: magenta; } ' +
+	'#scheduling .suser3  { color: purple;  } ' +
+	'#scheduling .suser4  { color: cyan;    } ' +
+	'#scheduling .suser5  { color: orange;  } ' +
+	'#scheduling .suser6  { color: amber;   } ' +
+	'#scheduling .suser7  { color: rose;    } ' +
+	'#scheduling .suser8  { color: teal;    } ' +
+	'#scheduling .suser9  { color: pink;    } ' +
+	
+	'#schedtime li { margin: 0; padding:0; width: 1.5em;  overflow: visible; } ' +
+	'#schedtime li:nth-child(2n) { background: #DDD; } ' +
+	'#schedtime li:nth-child(1)::after { content: attr(data-month) "," attr(data-date); display: inline-block; position: relative; top: -2.4em; } ' +
+	'#schedtime li[data-hour="0"]::after { content: attr(data-month) "," attr(data-date); display: inline-block; position: absolute; top: 0; } ' +
+	'#schedtime li::before { content: attr(data-hour); display: inline-block; position: absolute; top: .9em; width: 1.5em; text-align: center; font-size: 90%; } ' +
+	'#schedtime li span  { min-width:0.375em; height: 1.6em; position: absolute; } ' +
+	'#schedtime li span.sched  { min-width:0.375em; outline: 1px solid #444; position: absolute; height: auto; top: 2em; bottom: 1px; background: none;} ' +
+	'#schedtime li span.sched.conflict { outline-color: red; } ' +
+  '#schedtime li span.start1 { margin-left: 0.375em; } '+
+  '#schedtime li span.start2 { margin-left: 0.75em; } '+
+  '#schedtime li span.start3 { margin-left: 1.275em; } '+
+  '#schedtime li span[data-hours*=".25"] { padding-right: 0; } '+
+  '#schedtime li span[data-hours*=".5"] { padding-right: .375em; } '+
+  '#schedtime li span[data-hours*=".75"] { padding-right: .75em; } '+
+  '#schedtime li span[data-hours^="0"]  { width: 0.375em; padding-right: 0; } '+
+  '#schedtime li span[data-hours^="1"]  { width:  1.5em; } '+
+  '#schedtime li span[data-hours^="2"]  { width:    3em; } '+
+  '#schedtime li span[data-hours^="3"]  { width:  4.5em; } '+
+  '#schedtime li span[data-hours^="4"]  { width:    6em; } '+
+  '#schedtime li span[data-hours^="5"]  { width:  7.5em; } '+
+  '#schedtime li span[data-hours^="6"]  { width:    9em; } '+
+  '#schedtime li span[data-hours^="7"]  { width: 10.5em; } '+
+  '#schedtime li span[data-hours^="8"]  { width:   12em; } '+
+  '#schedtime li span[data-hours^="9"]  { width: 13.5em; } '+
+  '#schedtime li span[data-hours^="10"] { width:   15em; } '+
+  '#schedtime li span[data-hours^="11"] { width: 16.5em; } '+
+  '#schedtime li span[data-hours^="12"] { width:   18em; } '+
+  '#schedtime .hfraction3 { width: 1.5em; } '+
+	'#schedtime .suser0  { top:    2em;  background: blue;    } ' +
+	'#schedtime .suser1  { top:  3.6em;  background: green;   } ' +
+	'#schedtime .suser2  { top:  5.2em;  background: magenta; } ' +
+	'#schedtime .suser3  { top:  6.8em;  background: purple;  } ' +
+	'#schedtime .suser4  { top:  8.4em;  background: cyan;    } ' +
+	'#schedtime .suser5  { top:   10em;  background: orange;  } ' +
+	'#schedtime .suser6  { top: 11.6em;  background: amber;   } ' +
+	'#schedtime .suser7  { top: 13.2em;  background: rose;    } ' +
+	'#schedtime .suser8  { top: 14.8em;  background: teal;    } ' +
+	'#schedtime .suser9  { top: 16.4em;  background: pink;    } ' +
+
+                            //  17  16
 
 	//'.calpopup .label[extra] { outline: 1px solid blue; content: "XX" ; }' + "\n" +
 	//'.calpopup .label.EEND[extra] + .value { color: white; content: ""; }' + "\n" +
@@ -4301,6 +4638,7 @@ var iCal = function ( text ) {
 	this.icsTemplateVevent = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//jqCalDav\nCALSCALE:GREGORIAN\nBEGIN:VEVENT\nSUMMARY:"+ui['New Event']+"\nDTEND:19700101\nTRANSP:TRANSPARENT\nDTSTART:19700101\nDTSTAMP:19700101T000000Z\nSEQUENCE:0\nEND:VEVENT\nEND:VCALENDAR";
 	this.icsTemplateVtodo = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//jqCalDav\nCALSCALE:GREGORIAN\nBEGIN:VTODO\nSUMMARY:"+ui['New Todo']+"\nDTEND;VA\nTRANSP:TRANSPARENT\nDTSTAMP:19700101T000000Z\nSEQUENCE:0\nDUE;VALUE=DATE:19700101\nSTATUS:NEEDS-ACTION\nEND:VTODO\nEND:VCALENDAR";
 	this.icsTemplateVjournal = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//jqCalDav\nCALSCALE:GREGORIAN\nBEGIN:VJOURNAL\nSUMMARY:"+ui['New Journal']+"\nDTSTAMP:19700101T000000Z\nSEQUENCE:0\nEND:VJOURNAL\nEND:VCALENDAR";
+	this.icsTemplateVfreebusy = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//jqCalDav\nMETHOD:REQUEST\nBEGIN:VFREEBUSY\nDTSTAMP:19700101T000000Z\nDTSTART:19700101T000000Z\nDTEND:19700101T000000Z\nEND:VFREEBUSY\nEND:VCALENDAR";
 
 	this.components = { 
 		vcalendar:{required:['version','prodid',['vevent','vtodo','vjournal','vfreebusy']],optional:['calscale','method','vtimezone']},
@@ -4339,7 +4677,7 @@ var iCal = function ( text ) {
 		tzoffsetfrom:{max:1,visible:false,type:'integer'},
 		tzoffsetto:{max:1,visible:false,type:'integer'},
 		tzurl:{max:1,visible:false,type:'uri'},
-		organizer:{max:1,visible:true,type:'text'},
+		organizer:{max:1,visible:true,type:'schedule'},
 		url:{max:1,visible:true,type:'uri'},
 		uid:{max:1,visible:false,type:'text'},
 		action:{max:1,visible:false,type:'text'},
@@ -4354,7 +4692,7 @@ var iCal = function ( text ) {
 		comment:{max:-1,visible:true,type:'text'},
 		resources:{max:-1,visible:true,type:'text'},
 		categories:{max:-1,visible:true,type:'text'},
-		attendee:{max:-1,visible:true,type:'text'},
+		attendee:{max:-1,visible:true,type:'schedule'},
 		contact:{max:-1,visible:true,type:'text'},
 		exdate:{max:-1,visible:false,type:'date'},
 		tzname:{max:-1,visible:false,type:'text'},
@@ -4762,6 +5100,56 @@ var iCal = function ( text ) {
 					this.PROP = props;
 			}
 		};
+		this.SCHEDULE = function (t,p)
+		{
+			t = t.replace ( /\\([\\.,;:])/g, '$1' );
+			if ( arguments[1] instanceof Object )
+			{
+				var props = arguments[1];
+				if ( arguments[2] != undefined )
+					p = arguments[2];
+				else
+					p = props;
+			}
+			else if ( arguments.length > 1 )
+				var props = arguments[1];
+			if ( this.VALUES )
+			{
+				if ( props == undefined ) 
+					props = null;
+				if ( this.PROPS == undefined )
+				{
+					this.PROPS = new Array ;
+					this.PROPS.push(this.PROP!=undefined?this.PROP:null);
+				}
+				if ( this.VALUES.length == 0  ) 
+				{
+					this.VALUES.push(this.VALUE);
+					this.VALUES.push(t);
+					this.PROPS.push(props);
+				}
+				else if ( p && this.VALUES.indexOf(p) > -1 ) 
+				{
+					this.VALUES[this.VALUES.indexOf(p)] = t;
+					this.PROPS[this.VALUES.indexOf(p)] = props;
+				}
+				else
+				{
+					this.VALUES.push(t);
+					this.PROPS.push(props);
+				}
+			}
+			else
+			{
+				if ( this.FIELDS && this.FIELDS.values )
+					for ( var i in valueNames )
+						if ( t == valueNames[i] )
+							t = i;
+				this.VALUE=t;
+				if ( props != undefined ) 
+					this.PROP = props;
+			}
+		};
 		this.INTEGER = function (t){this.VALUE=Number(t);}
 		this.SEQUENCE = function (){this.VALUE=Number(this.VALUE)+1;}
 		this.PRINT = {
@@ -4784,6 +5172,17 @@ var iCal = function ( text ) {
 					var t = this.VALUE; 
 				if ( valueNames[t] )
 					t = valueNames[t];
+				if ( t != undefined )
+				return t.replace(/\\n/g,"\n");},
+			schedule:function(){
+				if ( arguments.length > 0 && this.VALUES && this.VALUES.length > 1 ) 
+					var t = this.VALUES[arguments[0]]; 
+				else 
+					var t = this.VALUE; 
+				if ( valueNames[t] )
+					t = valueNames[t];
+				if ( this.FIELD == 'organizer' && this.PROP['cn'] != undefined )
+					t = this.PROP['cn'].replace(/^"(.*)"$/,"$1");
 				if ( t != undefined )
 				return t.replace(/\\n/g,"\n");},
 			date:function(){
@@ -4892,6 +5291,9 @@ var iCal = function ( text ) {
 					break;
 				case 'recurrence':
 					var update = this.SETRECURRENCE;
+					break;
+				case 'schedule':
+					var update = this.SCHEDULE;
 					break;
 				case 'integer':
 				case 'number':
@@ -5900,21 +6302,28 @@ function dateAdd ( d, field, amount )
 	switch ( field )
 	{
 		case 'y':
+		case 'year':
 			ret.setUTCFullYear(d.getUTCFullYear()+amount);
 			break ;
 		case 'm':
+		case 'month':
 			ret.setUTCMonth(d.getUTCMonth()+amount);
 			break ;
 		case 'W':
+		case 'Week':
 			ret.setUTCDate(d.getUTCDate()+(7*amount));
 			break ;
 		case 'w':
+		case 'weeks':
 			ret.setWeek(d.getWeek()+amount);
 			break ;
 		case 'd':
+		case 'days':
 			ret.setUTCDate(d.getUTCDate()+amount);
 			break ;
 		case 'D':
+		case 'Day':
+		case 'day':
 			ret.setUTCDate(d.getUTCDate()-d.getDay());
 			if ( ( d.getDay() <= amount && amount >= 0 ) || amount < 0 )
 				ret.setUTCDate(ret.getUTCDate()+amount);
@@ -5922,12 +6331,16 @@ function dateAdd ( d, field, amount )
 				ret.setUTCDate(ret.getUTCDate()+amount+7);
 			break ;
 		case 'h':
+		case 'hour':
 			ret.setUTCHours(d.getUTCHours()+amount);
 			break ;
 		case 'M':
+		case 'Minute':
+		case 'minute':
 			ret.setUTCMinutes(d.getUTCMinutes()+amount);
 			break ;
 		case 's':
+		case 'seconds':
 			ret.setUTCSeconds(d.getUTCSeconds()+amount);
 			break ;
 		default :

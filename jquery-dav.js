@@ -38,6 +38,7 @@ function wwajax (conf)
 
 jQuery.extend ({
     options : function( origSettings ) { 
+		$.ajaxSetup.headers = {};
 		var s = jQuery.extend(true, {}, jQuery.ajaxSettings,{type:'OPTIONS'},origSettings);
 				return jQuery.ajax ( { beforeSend: function (r){var h = s.headers;for (var i in h)r.setRequestHeader(i,h[i])},
 									 cache: s.cache,
@@ -51,7 +52,24 @@ jQuery.extend ({
 									 }
 						);
 			},
+    POST : function( origSettings ) { 
+		$.ajaxSetup.headers = {};
+		var s = jQuery.extend(true, {}, jQuery.ajaxSettings,{type:'POST'},origSettings);
+				return jQuery.ajax ( { beforeSend: function (r){var h = s.headers;for (var i in h)r.setRequestHeader(i,h[i])},
+									 cache: s.cache,
+                   data: s.data,
+									 contentType: s.contentType,
+									 password: encodeURIComponent(s.password),
+									 username: encodeURIComponent(s.username),
+									 type: 'POST',
+                   url: s.url,
+									 success: s.success,
+									 complete: s.complete,
+									 }
+						);
+			},
     head : function( origSettings ) { 
+		$.ajaxSetup.headers = {};
 		var s = jQuery.extend(true, {}, jQuery.ajaxSettings,{type:'OPTIONS'},origSettings);
 				return jQuery.ajax ( { beforeSend: function (r){var h = s.headers;for (var i in h)r.setRequestHeader(i,h[i])},
 									 cache: s.cache,
@@ -66,6 +84,7 @@ jQuery.extend ({
 						);
 			},
 	  propfind : function( origSettings ) { 
+		$.ajaxSetup.headers = {};
 		var s = jQuery.extend(true, {}, jQuery.ajaxSettings,{contentType:'text/xml',type:'PROPFIND'},origSettings);
 				return jQuery.ajax ( { beforeSend: function (r){var h = s.headers;for (var i in h)r.setRequestHeader(i,h[i])},
 									 cache: s.cache,
@@ -81,6 +100,7 @@ jQuery.extend ({
 						);
 		 },
 		proppatch : function( origSettings ) { 
+		$.ajaxSetup.headers = {};
 		var s = jQuery.extend(true, {}, jQuery.ajaxSettings,{contentType:'text/xml',type:'PROPPATCH'},origSettings);
 				return jQuery.ajax ( { beforeSend: function (r){var h = s.headers;for (var i in h)r.setRequestHeader(i,h[i])},
 									 cache: s.cache,
@@ -96,6 +116,7 @@ jQuery.extend ({
 						);
 		 },
 		acl : function( origSettings ) { 
+		$.ajaxSetup.headers = {};
 		var s = jQuery.extend(true, {}, jQuery.ajaxSettings,{contentType:'text/xml',type:'ACL'},origSettings);
 				return jQuery.ajax ( { beforeSend: function (r){var h = s.headers;for (var i in h)r.setRequestHeader(i,h[i])},
 									 cache: s.cache,
@@ -112,6 +133,7 @@ jQuery.extend ({
 		 },
 
     report : function( origSettings ) { 
+		$.ajaxSetup.headers = {};
 		var s = jQuery.extend(true, {}, jQuery.ajaxSettings,{contentType:'text/xml',type:'REPORT'},origSettings);
 				return jQuery.ajax ( { beforeSend: function (r){var h = s.headers;for (var i in h)r.setRequestHeader(i,h[i])},
 					         cache: s.cache,
@@ -127,6 +149,7 @@ jQuery.extend ({
 						);
 			},
     mkcol : function( origSettings ) { 
+		$.ajaxSetup.headers = {};
 		var s = jQuery.extend(true, {}, jQuery.ajaxSettings,{contentType:'text/xml',type:'MKCOL'},origSettings);
 				return jQuery.ajax ( { beforeSend: function (r){var h = s.headers;for (var i in h)r.setRequestHeader(i,h[i])},
 									 cache: s.cache,
@@ -142,6 +165,7 @@ jQuery.extend ({
 						);
 			},
     mkcalendar : function( origSettings ) { 
+		$.ajaxSetup.headers = {};
 		var s = jQuery.extend(true, {}, jQuery.ajaxSettings,{contentType:'text/xml',type:'MKCALENDAR'},origSettings);
 				return jQuery.ajax ( { beforeSend: function (r){var h = s.headers;for (var i in h)r.setRequestHeader(i,h[i])},
 									 cache: s.cache,
@@ -157,6 +181,7 @@ jQuery.extend ({
 						);
 			},
 		move : function( origSettings ) { 
+		$.ajaxSetup.headers = {};
 		var s = jQuery.extend(true, {}, jQuery.ajaxSettings,origSettings,{type:'MOVE'});
 				return jQuery.ajax ( { beforeSend: function (r){var h = s.headers;for (var i in h)r.setRequestHeader(i,h[i])}, 
 									 contentType: s.contentType,
@@ -170,6 +195,7 @@ jQuery.extend ({
 						);
 			},
 		del : function( origSettings ) { 
+		$.ajaxSetup.headers = {};
 		var s = jQuery.extend(true, {}, jQuery.ajaxSettings,origSettings,{type:'DELETE'});
 				return jQuery.ajax ( { beforeSend: function (r){var h = s.headers;for (var i in h)r.setRequestHeader(i,h[i])}, 
 									 contentType: s.contentType,
@@ -183,6 +209,7 @@ jQuery.extend ({
 						);
 			},
 		put : function( origSettings ) { 
+		$.ajaxSetup.headers = {};
 		var s = jQuery.extend(true, {}, jQuery.ajaxSettings,{type:'PUT'},origSettings);
 				return jQuery.ajax ( { beforeSend: function (r){var h = s.headers;for (var i in h)r.setRequestHeader(i,h[i])},
 									 cache: s.cache,
@@ -198,7 +225,8 @@ jQuery.extend ({
 						);
 			},
 		lock : function( origSettings ) { 
-		var s = jQuery.extend(true, {}, jQuery.ajaxSettings,{type:'LOCK'},origSettings);
+		$.ajaxSetup.headers = {};
+		var s = jQuery.extend(true, {}, jQuery.ajaxSettings,{contentType:'text/xml',type:'LOCK'},origSettings);
 				return jQuery.ajax ( { beforeSend: function (r){var h = s.headers;for (var i in h)r.setRequestHeader(i,h[i])},
 									 cache: s.cache,
 									 contentType: s.contentType,
@@ -213,7 +241,8 @@ jQuery.extend ({
 						);
 			},
 		unlock : function( origSettings ) { 
-		var s = jQuery.extend(true, {}, jQuery.ajaxSettings,{type:'UNLOCK'},origSettings);
+		$.ajaxSetup.headers = {};
+		var s = jQuery.extend(true, {}, jQuery.ajaxSettings,{contentType:'text/xml',type:'UNLOCK'},origSettings);
 				return jQuery.ajax ( { beforeSend: function (r){var h = s.headers;for (var i in h)r.setRequestHeader(i,h[i])},
 									 cache: s.cache,
 									 contentType: s.contentType,
@@ -228,6 +257,7 @@ jQuery.extend ({
 						);
 			},
 		bind : function( origSettings ) { 
+		$.ajaxSetup.headers = {};
 		var s = jQuery.extend(true, {}, jQuery.ajaxSettings,{contentType:'text/xml',type:'BIND'},origSettings);
 				return jQuery.ajax ( { beforeSend: function (r){var h = s.headers;for (var i in h)r.setRequestHeader(i,h[i])},
 									 cache: s.cache,
@@ -243,6 +273,7 @@ jQuery.extend ({
 						);
 			},
 		unbind : function( origSettings ) { 
+		$.ajaxSetup.headers = {};
 		var s = jQuery.extend(true, {}, jQuery.ajaxSettings,{contentType:'text/xml',type:'UNBIND'},origSettings);
 				return jQuery.ajax ( { beforeSend: function (r){var h = s.headers;for (var i in h)r.setRequestHeader(i,h[i])},
 									 cache: s.cache,
@@ -652,7 +683,8 @@ jQuery.extend ({
 						if ( typeof(callback) == 'function' )
 							callback(r,s);
 					}
-				}
+				},
+				error: function (r,s){$.fn.caldav('spinner',false);}
 			}));
 		},
 
@@ -684,7 +716,8 @@ jQuery.extend ({
 								{
 									$(this).caldav('gotPrincipals',r,callback);
 								} 
-							}
+							},
+				error: function (r,s){$.fn.caldav('spinner',false);}
 			}));
 			return this;
 		},
@@ -724,7 +757,8 @@ jQuery.extend ({
 						$.fn.caldav('spinner',false);
 							 	if (s=='success')
 									$(this).caldav('gotProperties',r,callback);
-							}
+							},
+				error: function (r,s){$.fn.caldav('spinner',false);}
 			}));
 			return this;
 		},
@@ -815,12 +849,13 @@ jQuery.extend ({
 						else
 							$(this).caldav( 'parseEvents', r, start, end );
 					} 
-				}
+				},
+				error: function (r,s){$.fn.caldav('spinner',false);}
 			}));
 			return this;
 		},
 
-		parseEvents : function ( r, start, end ) { 
+		parseEvents : function ( r, start, end, callback) { 
 			var entries = $('response prop *['+$.fn.caldav.xmlNSfield+'=calendar-data]',r.responseXML);
 			var e = new Array;
 			var href,etag;
@@ -835,7 +870,113 @@ jQuery.extend ({
 				}
 			}
 			if ( e.length > 0 )
-				$.fn.caldav.options.events( e ,r.cal, start, end );
+			{
+				if ( typeof callback == "function" )
+					callback( e ,r.cal, start, end );
+				else
+					$.fn.caldav.options.events( e ,r.cal, start, end );
+			}
+			return this;
+		},
+
+		getAll: function ( params, callback, types, inbox ) {
+			var requestTiming = new Date().getTime();
+			$.fn.caldav('spinner',true);
+			if ( inbox == undefined )
+				var url = inbox;
+			else
+				var url = $.fn.caldav.outboxMap[$.fn.caldav.data.myPrincipal];
+			var tt=[],t = '<x0:comp-filter name="VEVENT"></x0:comp-filter>';
+			if ( types != undefined )
+			{
+				if ( typeof types != "object" ) 
+					tt.push(types);
+				else 
+					tt=types;
+				t= '';
+				for ( var i = 0; i < tt.length; i++)
+					t=t+ '<x0:comp-filter name="'+tt[i]+'"></x0:comp-filter>';
+			}
+			$.report ($.extend(true,{},$.fn.caldav.options,params,{url:url,headers:{depth:1},data:'<?xml version="1.0" encoding="utf-8"?>' + "\n" +
+				'<x0:calendar-query xmlns:x0="urn:ietf:params:xml:ns:caldav" xmlns:x1="DAV:">'+
+				'  <x1:prop>'+
+				'    <x0:calendar-data/>'+
+				'    <x1:resourcetype/>'+
+				'    <x1:getetag/>'+
+				'  </x1:prop>'+
+				'  <x0:filter>'+
+				'    <x0:comp-filter name="VCALENDAR">'+t+
+				'    </x0:comp-filter>'+
+				'  </x0:filter>'+
+				'</x0:calendar-query>'
+				,complete: function (r,s){ 
+					//if ( cal != undefined ) { r.cal = 0 + cal; }
+					$.fn.caldav('spinner',false);
+				 	if (s=='success')
+					{
+						cal = undefined;
+						if (  $('response prop *['+$.fn.caldav.xmlNSfield+'=calendar-data]',r.responseXML).closest('propstat').find('status').text().match(/404/) )
+						{
+							var hrefs = [];
+							var updates = $('href',r.responseXML);
+							for ( var i=0; i< updates.length; i++ )
+								hrefs.push($(updates[i]).text());
+							$(this).caldav( 'multiget', params.url, cal, hrefs, undefined, undefined, callback );
+						}
+						else
+							$(this).caldav( 'parseEvents', r, undefined, undefined, callback );
+					} 
+				},
+				error: function (r,s){$.fn.caldav('spinner',false);}
+			}));
+			return this;
+		},
+
+		getInvites: function ( params, callback, address ) {
+			var requestTiming = new Date().getTime();
+			$.fn.caldav('spinner',true);
+			$.report ($.extend(true,{},$.fn.caldav.options,params,{headers:{depth:1},data:'<?xml version="1.0" encoding="utf-8"?>' + "\n" +
+				'<x0:calendar-query xmlns:x0="urn:ietf:params:xml:ns:caldav" xmlns:x1="DAV:">'+
+				'  <x1:prop>'+
+				'    <x0:calendar-data/>'+
+				'    <x1:resourcetype/>'+
+				'    <x1:getetag/>'+
+				'  </x1:prop>'+
+				'  <x0:filter>'+
+				'    <x0:comp-filter name="VCALENDAR">'+
+				'      <x0:comp-filter name="VEVENT">'+
+				'        <x0:prop-filter name="ATTENDEE">'+
+				(address?'             <C:text-match collation="i;ascii-casemap">'+address+'</C:text-match>':'')+
+				'          <x0:param-filter name="PARTSTAT">'+
+				'             <x0:text-match collation="i;ascii-casemap">NEEDS-ACTION</x0:text-match>' +
+				'          </x0:param-filter>'+
+				'        </x0:prop-filter>'+
+				'      </x0:comp-filter>'+
+				'    </x0:comp-filter>'+
+				'  </x0:filter>'+
+				'</x0:calendar-query>'
+				,complete: function (r,s){ $.fn.caldav.eventTiming.push(new Date().getTime() - requestTiming); 
+				if ( $.fn.caldav.eventTiming.length > $.fn.caldav.calendarData.length * 2 ) { var at =0; for ( var i=0;i<$.fn.caldav.eventTiming.length;i++)at+=$.fn.caldav.eventTiming[i];
+					$.fn.caldav.eventAverageTime = at / $.fn.caldav.eventTiming.length;
+					var trash = $.fn.caldav.eventTiming.shift();}
+					if ( cal != undefined ) { r.cal = 0 + cal; }
+					$.fn.caldav('spinner',false);
+				 	if (s=='success')
+					{
+						if (  $('response prop *['+$.fn.caldav.xmlNSfield+'=calendar-data]',r.responseXML).closest('propstat').find('status').text().match(/404/) )
+						{
+							var hrefs = [];
+							var updates = $('href',r.responseXML);
+							for ( var i=0; i< updates.length; i++ )
+								hrefs.push($(updates[i]).text());
+							$(this).caldav( 'multiget', params.url, cal, hrefs, start, end, callback );
+						}
+						else
+							$(this).caldav( 'parseEvents', r, start, end, callback );
+					} 
+				},
+				error: function (r,s){$.fn.caldav('spinner',false);}
+			}));
 			return this;
 		},
 
@@ -1028,7 +1169,7 @@ jQuery.extend ({
 					'<D:lockscope><D:exclusive/></D:lockscope>'+
 						'<D:locktype><D:write/></D:locktype>'+
 						'<D:owner>'+
-							'<D:href>'+$.fn.caldav.data.principalHome +'</D:href>'+
+							'<D:href>'+$.fn.caldav.data.myPrincipal +'</D:href>'+
 						'</D:owner>'+
 				'</D:lockinfo>';
 			$.lock ($.extend(true,{},$.fn.caldav.options,{url:url},{headers:{Depth:0,Timeout:'Second-'+to},contentType:'text/xml; charset="utf-8"',
