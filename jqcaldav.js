@@ -2957,7 +2957,6 @@ function addField(e)
 
 function printAttendee(a)
 {
-	// ATTENDEE;CN="Rob N. Ostensen";CUTYPE=INDIVIDUAL;EMAIL="rob@boxacle.net";PARTSTAT=ACCEPTED:mailto\:rob@boxacle.net
 	var ret  = $('<span><span>');
 	var atts=[],props=[];
 	if ( a == undefined )
@@ -2988,22 +2987,21 @@ function printAttendee(a)
 				var n = $('<div id="scheduling" ><span id="resolve" class="button">'+ui.resolve+'</span><span class="close button">'+ui.done+'</span><ul id="schedusers"></ul><ul id="schedtime"></ul></div>');
 				$('.close',n).click(function(e){$('#scheduling').remove();return false;});
 				var vcs = $($('#calpopupe').data('event')).data('ics');
-				var attendee = vcs.vcalendar[vcs.TYPE].attendee;
-				var atts = [], props = [];
-			  if ( ! attendee.VALUES )
-			  {
-			    atts.push  ( attendee.VALUE );
-			    props.push ( attendee.PROP  );
-			  }
-			  else
-			  {
-			    atts  = attendee.VALUES;
-			    props = attendee.PROPS;
-			  }
+				var attendee;
+				var atts = $(e.target).parent().children('.attendee');
 				for ( var i=0; i < atts.length; i++ )
 				{
-					var u = (props[i]['cn']?props[i]['cn']:atts[i].replace(/^mailto:/i,'')).replace(/^"(.*)"$/,"$1");
-					$('#schedusers',n).append('<li class="suser'+i+'" user="'+u+'">'+u+'</li>');
+					//var u = (props[i]['cn']?props[i]['cn']:atts[i].replace(/^mailto:/i,'')).replace(/^"(.*)"$/,"$1");
+					var u = $.trim($(atts[i]).text());
+					if ( u != '' && $.trim($(atts[i]).data('email')) != '' )
+					{
+						$('#schedusers',n).append('<li class="suser'+i+'" user="'+u+'">'+u+'</li>');
+						if ( attendee == undefined )
+							attendee = vcs.PARENT.newField('attendee','mailto:'+$.trim($(atts[i]).data('email')).replace(/^mailto:/i,'').replace(/^"(.*)"$/,"$1"),
+								{cn:u});
+						else
+							attendee.UPDATE('mailto:'+$.trim($(atts[i]).data('email')).replace(/^mailto:/i,'').replace(/^"(.*)"$/,"$1"),{cn:u});
+					}
 				}
 				var start = Zero().parsePrettyDate($('#calpopupe .ESTART + .value').text()).add('h',-7);
 				var begin = new Date(start.getTime());
@@ -3086,9 +3084,8 @@ function printAttendee(a)
 				c.vcalendar.vfreebusy.dtstamp.UPDATE((new Date()));
 				c.vcalendar.vfreebusy.dtstart.UPDATE(begin);
 				c.vcalendar.vfreebusy.dtend.UPDATE(end);
-				c.vcalendar.vfreebusy.attendee = vcs.vcalendar[vcs.TYPE].attendee;
+				c.vcalendar.vfreebusy.attendee = attendee;
 				var txt = String(ic);
-				//$.ajaxSetup({async:true,headers:{'Content-type':'text/calendar'}});
 				$.POST({url:$.fn.caldav.outboxMap[$.fn.caldav.data.myPrincipal],data:txt,username:$.fn.caldav.options.username,password:$.fn.caldav.options.password,
 					contentType:'text/calendar',
 					complete: function(r,s)
@@ -3098,27 +3095,21 @@ function printAttendee(a)
 						{
 							var responses = $('response',r.responseXML);
 							var vcs = $($('#calpopupe').data('event')).data('ics');
-							var attendee = vcs.vcalendar[vcs.TYPE].attendee;
 							var es = Zero().parsePrettyDate($('#calpopupe .ESTART + .value').data('value')).getTime();
 							var ee = Zero().parsePrettyDate($('#calpopupe .EEND + .value').data('value')).getTime();
-							var atts = [];
-							if ( ! attendee.VALUES )
-								atts.push  ( attendee.VALUE );
-							else
-								atts = attendee.VALUES;
 							var times = [] ;
 							var vector = $('#schedtime').data('vector') ;
 							var sbegin = $('#schedtime').data('begin');
 							for ( var i=0; i < responses.length; i++ )
 							{
 								var href = $('href',responses[i]).text();
-								var suser = 'suser' + atts.indexOf(href);
 								var rstatus = $('request-status',responses[i]).text();
 								var cdata = $('calendar-data',responses[i]).text();
 								if ( /2.0/.test( rstatus ) )
 								{
 									var ic = new iCal(cdata);
 									var ics = ic.ics[0];
+									var suser = $('#schedusers li[user="'+ics.vcalendar[ics.TYPE].attendee.PROP['cn']+'"]').attr('class');
 									if ( ics.vcalendar[ics.TYPE]['freebusy'] == undefined )
 										continue;
 									if ( ics.vcalendar[ics.TYPE].freebusy.VALUES != undefined )
@@ -3237,6 +3228,15 @@ function attendeeEdited ( element, attendee )
 		attendee.UPDATE('mailto:' +eml,np);
 		return true;
 	}
+	for ( var i=0; i < atts.length; i++ )
+	{
+		if ( $('.value[data-value="'+atts[i]+'"]').length == 0 || ( props[i] == null && ! /^mailto/.test(atts[i]) ) )
+		{
+			atts.splice(i,1);
+			props.splice(i,1);
+			edited = true;
+		}
+	}
 	for ( var i=0; i < atnds.length; i++ )
 	{
 		var p = $(atnds[i]).data();
@@ -3263,7 +3263,6 @@ function attendeeEdited ( element, attendee )
 				atts[a] = 'mailto:'+p.email;
 				edited = true;
 			}
-			// ATTENDEE;CN="Rob N. Ostensen";CUTYPE=INDIVIDUAL;EMAIL="rob@boxacle.net";PARTSTAT=ACCEPTED:mailto\:rob@boxacle.net
 		}
 		else
 		{
@@ -3278,10 +3277,10 @@ function attendeeEdited ( element, attendee )
 				}
 			}
 			if ( eml == '' && $(atnds[i]).data('email') )
-				eml = $.trim($(atnds[i]).data('email'));
+				eml = $.trim($(atnds[i]).data('email')).replace( /^mailto:/, '' ).replace( /[<>"']/g, '' );
 			cn = e.join(' ');
 			var np = {cn:cn,cutype:'INDIVIDUAL',email:eml,partstat:'NEEDS-ACTION',rsvp:'TRUE'};
-			if ( /calendar-auto-schedule/.test ( $.fn.caldav.serverSupports ) )
+			if ( /calendar-auto-schedule/.test ( $.fn.caldav.serverSupports ) && eml != $.fn.caldav.principals[$.fn.caldav.principalMap[$.fn.caldav.data.myPrincipal]].email )
 				np['schdeule-agent']='SERVER';
 			attendee.UPDATE('mailto:' +eml,np);
 			edited = true;
@@ -3565,8 +3564,10 @@ function eventEdited (e)
 			else if ( props[x] == 'organizer' )
 				organizerEdited ( $(element), d.vcalendar[type][props[x]] );
 			else if ( props[x] == 'attendee' )
+			{
 				if ( attendeeEdited ( $(element), d.vcalendar[type][props[x]] ) == false )
 					continue;
+			}
 			else if ( props[x] == 'rrule' )
 				d.vcalendar[type][props[x]].UPDATE ( $(element) );
 			else
@@ -3921,7 +3922,7 @@ function buildcal(d)
 	$('#calsettings',sidebar).click(calSettings); 
 	$('#calsubscribe',sidebar).click(subscribeCalendar); 
 	$(calwrap).append(sidebar);
-	$(calwrap).append('<div id="calcenter" ><div id="calheader" tabindex="6"><span id="gototoday" class="button" >'+ui.today+'</span><span id="weekview" class="button" >'+ui.week+'</span><span id="refresh" class="button" >'+ui.refresh+'</span><span id="calmonthname">' + months[s.getMonth()] + '</span><span id="calyearname">' + s.getFullYear() + '</span><span id="logout" class="button" >'+ui.logout+'</span></div>');
+	$(calwrap).append('<div id="calcenter" ><div id="calheader" tabindex="6"><span id="gototoday" class="button" >'+ui.today+'</span><span id="weekview" class="button" >'+ui.week+'</span><span id="refresh" class="button" >&#8635;</span><span id="calmonthname">' + months[s.getMonth()] + '</span><span id="calyearname">' + s.getFullYear() + '</span><span id="logout" class="button" >'+ui.logout+'</span></div>');
 	$('#refresh',calwrap).click(function(){calendarSync(); return false;} );
 	$('#gototoday',calwrap).click(function(){var d = new Date(); scrollCal ( d );return false;} );
 	$('#logout',calwrap).click(function(){ logoutClicked(); return false;} );
@@ -4238,7 +4239,7 @@ function calstyle ()
 	"#calh .days td { display: table-cell; float: none; }\n" + 
 	'#gototoday { position: absolute; left: 0em; font-size: 12pt; width: 4em;}' + "\n" +
 	'#weekview { position: absolute; left: 7em; font-size: 12pt; width: 4em;}' + "\n" +
-	'#refresh { position: absolute; left: 14em; font-size: 12pt; width: 4em;}' + "\n" +
+	'#refresh { position: absolute; left: 14em; font-size: 12pt; font-weight: bold; width: 1em; padding: 0.1em .25em 0.1em .25em; height: 1.19em; }' + "\n" +
 	'#logout { position: absolute; right: 4em; font-size: 12pt; width: 4em;}' + "\n" +
 	'#calt { width:100%; border-spacing:0; padding:0; margin:0; border:0; table-layout: fixed; }' + "\n" + 
 	'#calsidebar { float: left; /* -moz-box-flex: 1; -webkit-box-flex: 1; box-flex: 1; */ position: relative; width: 15%; min-height: 6em; height: 100%; background-color: #EFEFFF; '+
