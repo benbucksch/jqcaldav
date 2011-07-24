@@ -708,6 +708,7 @@ jQuery.extend ({
 				'  </x1:property-search>'+
 				'  <x1:prop>'+
 				'    <x1:displayname/>'+
+				'    <x0:calendar-user-address-set/>'+
 				'  </x1:prop>'+
 				'</x1:principal-property-search>'
 				,complete: function (r,s){ 

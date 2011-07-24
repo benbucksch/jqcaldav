@@ -42,7 +42,7 @@ function getTZ ( d )
 	return false;
 }
 
-var defaults={ui:{calendar:"Calendars",todos:"To Do","show":"Show","sort":"Sort","add":"Add",settings:"Settings",subscribe:"Subscribe",today:"Today",week:"Week",month:"Month",start:"Day Starts",end:"Day Ends",twentyFour:"24 Hour Time",username:'Username',password:'Password','go':'go','New Event':'New Event','New Todo':'New Todo','New Journal':'New Journal',"alarm":"alarm","done":"Done","delete":"Delete","name":"name","color":"color","description":"description","url":"url","privileges":"privileges","logout":"Logout","new calendar":"New Calendar","yes":"yes","no":"no","logout error":"Error logging out, please CLOSE or RESTART your browser!","owner":"Owner","subscribed":"Subscribed","lock failed":"failed to acquire lock, may not be able to save changes",loading:'working','update frequency':'update frequency',usealarms:"Enable Alarms","listSeparator":",","manual":"manual","bind":"bind","unbind":"unbind","refresh":"refresh","path":"Path","source":"Source"},
+var defaults={ui:{calendar:"Calendars",todos:"To Do","show":"Show","sort":"Sort","add":"Add",settings:"Settings",subscribe:"Subscribe",today:"Today",week:"Week",month:"Month",start:"Day Starts",end:"Day Ends",twentyFour:"24 Hour Time",username:'Username',password:'Password','go':'go','New Event':'New Event','New Todo':'New Todo','New Journal':'New Journal',"alarm":"alarm","done":"Done","delete":"Delete","name":"name","color":"color","description":"description","url":"url","privileges":"privileges","logout":"Logout","new calendar":"New Calendar","yes":"yes","no":"no","logout error":"Error logging out, please CLOSE or RESTART your browser!","owner":"Owner","subscribed":"Subscribed","lock failed":"failed to acquire lock, may not be able to save changes",loading:'working','update frequency':'update frequency',usealarms:"Enable Alarms","listSeparator":",","manual":"manual","bind":"bind","unbind":"unbind","refresh":"refresh","path":"Path","source":"Source","available":"Show Availibility","resolve":"Next Availible"},
 	months:["January","February","March","April","May","June","July","August","September","October","November","December"],
 	weekdays:["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
 	dropquestion:["Do you want to move",["All occurences","This one occurence"]],
@@ -1267,6 +1267,13 @@ function completePrincipal(e)
 	{
 		$(e.target).text($(e.target).prev().find('.selected').text());
 		$(e.target).attr('data-principal',$(e.target).prev().find('.selected').attr('data-href'));
+
+		$(e.target).attr('data-email',$(e.target).prev().find('.selected').attr('data-mail'));
+		$(e.target).data('email',$(e.target).prev().find('.selected').attr('data-mail'));
+		$(e.target).data('value',$(e.target).prev().find('.selected').attr('data-mail'));
+		$(e.target).data('new-email',$(e.target).prev().find('.selected').attr('data-mail'));
+		$(e.target).data('new-text',$(e.target).prev().find('.selected').text());
+
 		$(e.target).prev().children('.completion').empty();
 		$(e.target).removeData('matches');
 		$(e.target).blur();
@@ -1277,6 +1284,11 @@ function completePrincipal(e)
 	{
 		$(e.target).text($(e.target).data('matches')[0].name);
 		$(e.target).attr('data-principal',$(e.target).data('matches')[0].href);
+		
+		$(e.target).attr('data-email',$(e.target).data('matches')[0].email);
+		$(e.target).data('new-email',$(e.target).data('email')[0].email);
+		$(e.target).data('new-text',$(e.target).data('matches')[0].name);
+
 		$(e.target).prev().children('.completion').empty();
 		$(e.target).blur();
 		e.preventDefault();
@@ -1327,8 +1339,8 @@ function completePrincipal(e)
 				var m = $('response',a);
 				for (var i=0;i<m.length;i++)
 				{
-					matches.push({name:$('displayname',m[i]).text(),href:$('href',m[i]).text()});
-					text += '<div data-href="'+$('href',m[i]).text()+'">' + $('displayname',m[i]).text() + '</div>';
+					matches.push({name:$('displayname',m[i]).text(),href:$('>href:eq(0)',m[i]).text(),mail:$("href:contains('mailto')",m[i]).text()});
+					text += '<div data-href="'+$('href',m[i]).text()+'" data-mail="'+$("href:contains('mailto')",m[i]).text()+'">' + $('displayname',m[i]).text() + '</div>';
 				}
 				$(e.target).data('matches',matches);
 				var off = $(e.target).position();
@@ -1337,6 +1349,9 @@ function completePrincipal(e)
 				$(e.target).prev().children('.completion').children().first().addClass('selected');
 				$(e.target).prev().children('.completion').children().click(function(a){$(e.target).text(a.target.textContent);
 					$(e.target).attr('data-principal',$(a.target).attr('href'));
+					$(e.target).attr('data-email',$(a.target).data('email'));
+					$(e.target).data('email',$(a.target).data('email'));
+					$(e.target).data('new-text',$(a.target).text());
 					$(a.target).parent().empty();
 					a.stopPropagation();
 					a.preventDefault();
@@ -2871,6 +2886,19 @@ function addField(e)
 				$('.action,.length,.related',txt).bind('click, focus',alarmFieldClick);
 				var cp = $(this).closest('li').before(txt);
 			}
+			else if ( $(this).text() == fieldNames.organizer )
+			{
+				var txt = $('<li><span class="label">'+fieldNames.organizer+'</span><span class="value" contenteditable="true" data-value="" spellcheck="true">'+$.fn.caldav.principals[$.fn.caldav.principalMap[$.fn.caldav.data.myPrincipal]].name+'</span></li>');
+				var cp = $(this).closest('li').before(txt);
+			}
+			else if ( $(this).text() == fieldNames.attendee )
+			{
+				var txt = $('<li><span class="label">'+fieldNames.organizer+'</span><span class="value" contenteditable="true" data-value="" spellcheck="true">'+$.fn.caldav.principals[$.fn.caldav.principalMap[$.fn.caldav.data.myPrincipal]].name+'</span></li>');
+				var cp = $(this).closest('li').before(txt);
+				var txt = $('<li><span class="label">'+$(this).text()+'</span><span class="value" contenteditable="true" spellcheck="true"></span></li>');
+				$('.value',txt).replaceWith(printAttendee());
+				var cp = $(this).closest('li').before(txt);
+			}
 			else if ( $(this).text() == fieldNames.rrule )
 			{
 				var nr = recurrence ('FREQ=YEARLY');
@@ -2932,7 +2960,13 @@ function printAttendee(a)
 	// ATTENDEE;CN="Rob N. Ostensen";CUTYPE=INDIVIDUAL;EMAIL="rob@boxacle.net";PARTSTAT=ACCEPTED:mailto\:rob@boxacle.net
 	var ret  = $('<span><span>');
 	var atts=[],props=[];
-	if ( ! a.VALUES )
+	if ( a == undefined )
+	{
+		atts.push($.fn.caldav.principals[$.fn.caldav.principalMap[$.fn.caldav.data.myPrincipal]].email);
+		props.push({partstat:'ACCEPTED',cn:$.fn.caldav.principals[$.fn.caldav.principalMap[$.fn.caldav.data.myPrincipal]].name,rsvp:'TRUE',
+			email:$.fn.caldav.principals[$.fn.caldav.principalMap[$.fn.caldav.data.myPrincipal]].email});
+	}
+	else if ( ! a.VALUES )
 	{
 		atts.push(a.VALUE);
 		props.push(a.PROP);
@@ -2945,14 +2979,14 @@ function printAttendee(a)
 	for ( var i=0; i < atts.length; i++ )
 	{
 		if (props[i] != undefined )
-			$(ret).append('<span class="value attendee '+ String(props[i]['partstat']+'').toLowerCase() +'" title="'+String(props[i]['email']?props[i]['email']:atts[i].replace(/^mailto:/i,'')+'')+'" data-value="'+atts[i]+'" data-partstatus="'+String(props[i]['partstat']+'')+'" data-schedstatus="'+String(props[i]['schedule-status']+'')+'" data-rsvp="'+String(props[i]['rsvp']+'')+'" contenteditable="true" >'+(props[i]['cn']?props[i]['cn']:atts[i].replace(/^mailto:/i,'')).replace(/^"(.*)"$/,"$1")+'</span>');	
+			$(ret).append('<span class="value attendee '+ String(props[i]['partstat']+'').toLowerCase() +'" title="'+String(props[i]['email']?props[i]['email']:atts[i].replace(/^mailto:/i,'')+'')+'" data-value="'+atts[i]+'" data-original="'+atts[i]+'" data-cn="'+String(props[i]['cn']+'')+'" data-email="'+String(props[i]['email']+'')+'" data-partstatus="'+String(props[i]['partstat']+'')+'" data-schedstatus="'+String(props[i]['schedule-status']+'')+'" data-rsvp="'+String(props[i]['rsvp']+'')+'" contenteditable="true" >'+(props[i]['cn']?props[i]['cn']:atts[i].replace(/^mailto:/i,'')).replace(/^"(.*)"$/,"$1")+'</span>');	
 	}
-	var plus = $('<span class="plus">'+ui.add+'</span>').click(function(){ var n = $('<span class="value attendee needs-action" contenteditable="true" ></span>');$(this).before(n);$(this).prev().focus();});
+	var plus = $('<span class="plus">'+ui.add+'</span>').click(function(){ var n = $('<span class="value attendee needs-action" contenteditable="true" ></span>');$(n).bind('keydown',completePrincipal);$(this).before(n);$(this).prev().focus();});
 	var freebusy = $('<span class="plus">'+ui.available+'</span>').click(
 			function(e)
 			{
-				$(e.target).hide();
-				var n = $('<div id="scheduling" ><span id="resolve">'+ui.resolve+'</span><ul id="schedusers"></ul><ul id="schedtime"></ul></div>');
+				var n = $('<div id="scheduling" ><span id="resolve" class="button">'+ui.resolve+'</span><span class="close button">'+ui.done+'</span><ul id="schedusers"></ul><ul id="schedtime"></ul></div>');
+				$('.close',n).click(function(e){$('#scheduling').remove();return false;});
 				var vcs = $($('#calpopupe').data('event')).data('ics');
 				var attendee = vcs.vcalendar[vcs.TYPE].attendee;
 				var atts = [], props = [];
@@ -3122,50 +3156,27 @@ function printAttendee(a)
 			});
 	$('.attendee').die('focus');
 	$('.attendee').die('blur');
-	$('.attendee').live('focus',function (e){var t = $(e.target).text(); var eml=$(e.target).data('value'); if ( eml) eml = eml.replace(/^mailto:/,'');else return; if ( ! t.match(eml) ) { $(e.target).text($.trim(t)+' '+eml);}});
+	$('.attendee').live('focus',attendeeFocus);
+	$('.attendee',ret).bind('keydown',completePrincipal);
 	$('.attendee').live('blur',function (e)
 		{
+			popupOverflowAuto();
+			$('.completionWrapper',$(e.target).parent()).remove();
 			var t = $(e.target).text(); 
-			var eml=$(e.target).data('value');
-			if (!eml )
-			{
 				var el = t.split( ' ' );
-				var cn='';
+				var cn,eml;
 				for ( var j=0; j < el.length; j++ )
 				{
 					if ( /@/.test(el[j]) )
 					{
 						eml = String(el[j]).replace( /^mailto:/, '' );
 						eml = eml.replace( /[<>"']/g, '' );
+						el.splice(j,1);
 					}
-					else
-						cn = cn + ' ' + el[j];
 				}
-				$(e.target).data('value',eml);
+				cn = el.join(' ');
+				$(e.target).data('email',eml);
 				$(e.target).text(cn);
-				return ;
-			}
-			else 
-			{
-				oeml=eml.replace(/^mailto:/,''); 
-				var el = t.split( ' ' );
-				var cn='';
-				for ( var j=0; j < el.length; j++ )
-				{
-					if ( /@/.test(el[j]) )
-					{
-						eml = String(el[j]).replace( /^mailto:/, '' );
-						eml = eml.replace( /[<>"']/g, '' );
-					}
-					else
-						cn = cn + ' ' + el[j];
-				}
-				if ( oeml != eml ) 
-				{
-					$(e.target).data('value',eml);
-				}
-				$(e.target).text(cn);
-			}
 		});
 	$(ret).append(plus);
 	if ( /calendar-auto-schedule/.test ( $.fn.caldav.serverSupports ) )
@@ -3173,10 +3184,28 @@ function printAttendee(a)
 	return ret;
 }
 
+function attendeeFocus (e)
+{
+	popupOverflowVisi();
+	var t = $(e.target).text(); 
+	var eml=$(e.target).data('value'); 
+	$('.completionWrapper',$(e.target).parent()).remove();
+	$(e.target).before ( '<div class="completionWrapper"><div class="completion"></div></div>');
+	if ( eml ) 
+		eml = eml.replace(/^mailto:/,'');
+	else 
+		return; 
+	if ( ! t.match(eml) ) 
+	{ 
+		$(e.target).text($.trim(t)+' '+eml); 
+	}
+}
+
 function attendeeEdited ( element, attendee ) 
 {
 	var atnds = $('.attendee',element);
 	var atts = [], props = [];
+	var edited = false;
   if ( ! attendee.VALUES )
   {
     atts.push  ( attendee.VALUE );
@@ -3187,35 +3216,92 @@ function attendeeEdited ( element, attendee )
     atts  = attendee.VALUES;
     props = attendee.PROPS;
   }
+	if ( atnds.length == 0 )
+	{
+		var e = $.trim($(atnds[i]).text()).split( ' ' );
+		var cn,eml ;
+		for ( var j=0; j < e.length; j++ )
+		{
+			if ( /@/.test(e[j]) )
+			{
+				eml = String(e[j]).replace( /^mailto:/, '' ).replace( /[<>"']/g, '' );
+				e.splice(j,1);
+			}
+		}
+		if ( eml == '' && $(atnds[i]).data('email') )
+			eml = $.trim($(atnds[i]).data('email'));
+		cn = e.join(' ');
+		var np = {cn:cn,cutype:'INDIVIDUAL',email:eml,partstat:'NEEDS-ACTION',rsvp:'TRUE'};
+		if ( /calendar-auto-schedule/.test ( $.fn.caldav.serverSupports ) )
+			np['schdeule-agent']='SERVER';
+		attendee.UPDATE('mailto:' +eml,np);
+		return true;
+	}
 	for ( var i=0; i < atnds.length; i++ )
 	{
 		var p = $(atnds[i]).data();
-		if ( p['value'] && atts.indexOf(p['value']) )
+		if ( props[a] == undefined )
+			props[a] = {};
+		if ( p['value'] && atts.indexOf(p['value']) > -1 )
 		{
 			var a = atts.indexOf(p['value']);
-			if ( props[a] != $(atnds[i]).text() )
+			if ( $.trim($(atnds[i]).text()) == '' )
 			{
+				atts.splice(a,1);
+				props.splice(a,1);
+				edited = true;
+				continue;
+			}
+			if ( props[a]['cn'] != $.trim($(atnds[i]).text()) )
+			{
+				edited = true;
+				props[a]['cn'] = $.trim($(atnds[i]).text()); 
+			}
+			if ( props[a].email != $.trim(p.email) )
+			{
+				props[a].email = $.trim(p.email);
+				atts[a] = 'mailto:'+p.email;
+				edited = true;
 			}
 			// ATTENDEE;CN="Rob N. Ostensen";CUTYPE=INDIVIDUAL;EMAIL="rob@boxacle.net";PARTSTAT=ACCEPTED:mailto\:rob@boxacle.net
-			
 		}
 		else
 		{
-			var e = $(element).text().split( ' ' );
-			var cn,eml;
+			var e = $.trim($(atnds[i]).text()).split( ' ' );
+			var cn,eml = '' ;
 			for ( var j=0; j < e.length; j++ )
 			{
 				if ( /@/.test(e[j]) )
+				{
 					eml = String(e[j]).replace( /^mailto:/, '' ).replace( /[<>"']/g, '' );
-				else
-					cn = cn + ' ' + e[j];
+					e.splice(j,1);
+				}
 			}
+			if ( eml == '' && $(atnds[i]).data('email') )
+				eml = $.trim($(atnds[i]).data('email'));
+			cn = e.join(' ');
 			var np = {cn:cn,cutype:'INDIVIDUAL',email:eml,partstat:'NEEDS-ACTION',rsvp:'TRUE'};
 			if ( /calendar-auto-schedule/.test ( $.fn.caldav.serverSupports ) )
 				np['schdeule-agent']='SERVER';
-			//attendee.UPDATE('mailto:' +eml,np);
+			attendee.UPDATE('mailto:' +eml,np);
+			edited = true;
 		}
 	}
+	return edited;
+}
+
+function printOrganizer(o)
+{
+	return $('<span class="value" data-cn="'+ (o.PROP?o.PROP.cn:'')  +'" data-value="'+o.VALUE+'" >'+o.VALUE+'</span>' );
+}
+
+function organizerEdited(e,o)
+{
+	if ( typeof o.PROP == "object" )
+		o.PROP.cn = $(e).text();
+	else
+		o.PROP = {cn:$(e).text()};
+	o.VALUE = $(e).text();
 }
 
 function printAlarm(a)
@@ -3455,6 +3541,8 @@ function eventEdited (e)
 	for ( var x in props )
 	{
 		var label = fieldNames[props[x]];
+		if ( label == undefined )
+			continue;
 		var element = $('span:contains('+label+') + span',cp);
 		if ( $(element).length )
 		{
@@ -3467,18 +3555,18 @@ function eventEdited (e)
 				continue ;
 			if ( d.vcalendar[type][props[x]] == $(element).text() )
 				continue ;
-			if ( $(element).text() == '' )
+			if ( $.trim($(element).text()) == '' )
 			{
 				if ( d.PARENT.components.vevent.required.indexOf ( props[x] ) > -1 )
 					continue ;
 				else
 					delete d.vcalendar[type][props[x]];
 			}
+			else if ( props[x] == 'organizer' )
+				organizerEdited ( $(element), d.vcalendar[type][props[x]] );
 			else if ( props[x] == 'attendee' )
-			{
-				//d.vcalendar[type][props[x]].UPDATE ( $(element) );
-				attendeeEdited ( $(element), d.vcalendar[type][props[x]] );
-			}
+				if ( attendeeEdited ( $(element), d.vcalendar[type][props[x]] ) == false )
+					continue;
 			else if ( props[x] == 'rrule' )
 				d.vcalendar[type][props[x]].UPDATE ( $(element) );
 			else
@@ -4217,9 +4305,11 @@ function calstyle ()
 	'.calpopup .plus { display: block; float: left; padding-right: 2px; padding-left: 4px; margin-top: 6px; margin-bottom: 2px; text-decoration: underline; color: #00A; } ' + "\n" +
 	'.alarm span { resize: none; outline: none; margin:0; padding:0; padding-right: .1em; padding-left: .1em; }' + "\n" +
 
-	'#scheduling { position: absolute; display: -webkit-box; display: -moz-box; display: box; background: white; width: 42em; padding: .5em; -moz-box-shadow: 1px 1px 3px #888; -webkit-box-shadow: 1px 1px 3px #888; box-shadow: 1px 1px 3px #888; padding-top: .25em; line-height: 160%; } ' +
-	'#schedusers { margin: 0; padding:0; padding-right: 1em; padding-top: 2em; -moz-box-shadow-right: 1px 1px 3px white; -webkit-box-shadow-right: 1px 1px 3px white; box-shadow-right: 1px 1px 3px white; } ' +
-	'#schedtime  { -webkit-box-flex: 3; display: -webkit-box; display: -moz-box; display: box; margin: 0; padding:0; padding-top: 2em; position: relative;  overflow-x: scroll; } ' +
+	'#scheduling { position: absolute; display: -webkit-box; display: -moz-box; display: box; background: white; width: 42em; padding: .5em; -moz-box-shadow: 1px 1px 3px #888; -webkit-box-shadow: 1px 1px 3px #888; box-shadow: 1px 1px 3px #888; padding-top: .25em; line-height: 160%; padding-bottom: 2em; } ' +
+	'#scheduling .button { position: absolute; padding: .2em; line-height: 100%; }' +
+	'#scheduling .close { bottom: .25em; } '+
+	'#schedusers { margin: 0; margin-top: 1em; padding:0; padding-right: 1em; padding-top: 2em; -moz-box-shadow-right: 1px 1px 3px white; -webkit-box-shadow-right: 1px 1px 3px white; box-shadow-right: 1px 1px 3px white; min-width: 9em; } ' +
+	'#schedtime  { -webkit-box-flex: 3; display: -webkit-box; display: -moz-box; display: box; margin: 0; margin-top: 1em; padding:0; padding-top: 2em; position: relative;  overflow-x: scroll; } ' +
 	
 	
 	'#scheduling .suser0  { color: blue;    } ' +
@@ -5181,7 +5271,7 @@ var iCal = function ( text ) {
 					var t = this.VALUE; 
 				if ( valueNames[t] )
 					t = valueNames[t];
-				if ( this.FIELD == 'organizer' && this.PROP['cn'] != undefined )
+				if ( this.FIELD == 'organizer' && this.PROP && this.PROP['cn'] != undefined )
 					t = this.PROP['cn'].replace(/^"(.*)"$/,"$1");
 				if ( t != undefined )
 				return t.replace(/\\n/g,"\n");},
