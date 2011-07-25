@@ -698,18 +698,18 @@ jQuery.extend ({
 		
 		searchPrincipals: function ( params, property ,name, callback ) { 
 			$.fn.caldav('spinner',true);
-			$.report ($.extend(true,{},$.fn.caldav.options,params,{data:'<?xml version="1.0" encoding="utf-8"?>' + "\n" +
+			$.report ($.extend(true,{},$.fn.caldav.options,params,{url:$.fn.caldav.data.principalCollection,data:'<?xml version="1.0" encoding="utf-8"?>' + "\n" +
 				'<x1:principal-property-search xmlns:x0="urn:ietf:params:xml:ns:caldav" xmlns:x1="DAV:">'+
-				'  <x1:property-search>'+
-				'    <x1:prop>'+
-				'  	  <x1:'+ property +'/>'+
-				'    </x1:prop>'+
-				'    <x1:match>'+ name +'</x1:match>'+
-				'  </x1:property-search>'+
-				'  <x1:prop>'+
-				'    <x1:displayname/>'+
-				'    <x0:calendar-user-address-set/>'+
-				'  </x1:prop>'+
+				'<x1:property-search>'+
+				'<x1:prop>'+
+				'<x1:'+ property +'/>'+
+				'</x1:prop>'+
+				'<x1:match>'+ name +'</x1:match>'+
+				'</x1:property-search>'+
+				'<x1:prop>'+
+				'<x1:displayname/>'+
+				'<x0:calendar-user-address-set/>'+
+				'</x1:prop>'+
 				'</x1:principal-property-search>'
 				,complete: function (r,s){ 
 					$.fn.caldav('spinner',false);
@@ -886,7 +886,7 @@ jQuery.extend ({
 			if ( inbox == undefined )
 				var url = inbox;
 			else
-				var url = $.fn.caldav.outboxMap[$.fn.caldav.data.myPrincipal];
+				var url = $.fn.caldav.inboxMap[$.fn.caldav.data.myPrincipal];
 			var tt=[],t = '<x0:comp-filter name="VEVENT"></x0:comp-filter>';
 			if ( types != undefined )
 			{

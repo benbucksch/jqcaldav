@@ -42,7 +42,7 @@ function getTZ ( d )
 	return false;
 }
 
-var defaults={ui:{calendar:"Calendars",todos:"To Do","show":"Show","sort":"Sort","add":"Add",settings:"Settings",subscribe:"Subscribe",today:"Today",week:"Week",month:"Month",start:"Day Starts",end:"Day Ends",twentyFour:"24 Hour Time",username:'Username',password:'Password','go':'go','New Event':'New Event','New Todo':'New Todo','New Journal':'New Journal',"alarm":"alarm","done":"Done","delete":"Delete","name":"name","color":"color","description":"description","url":"url","privileges":"privileges","logout":"Logout","new calendar":"New Calendar","yes":"yes","no":"no","logout error":"Error logging out, please CLOSE or RESTART your browser!","owner":"Owner","subscribed":"Subscribed","lock failed":"failed to acquire lock, may not be able to save changes",loading:'working','update frequency':'update frequency',usealarms:"Enable Alarms","listSeparator":",","manual":"manual","bind":"bind","unbind":"unbind","refresh":"refresh","path":"Path","source":"Source","available":"Show Availibility","resolve":"Next Availible"},
+var defaults={ui:{calendar:"Calendars",todos:"To Do","show":"Show","sort":"Sort","add":"Add",settings:"Settings",subscribe:"Subscribe",today:"Today",week:"Week",month:"Month",start:"Day Starts",end:"Day Ends",twentyFour:"24 Hour Time",username:'Username',password:'Password','go':'go','New Event':'New Event','New Todo':'New Todo','New Journal':'New Journal',"alarm":"alarm","done":"Done","delete":"Delete","name":"name","color":"color","description":"description","url":"url","privileges":"privileges","logout":"Logout","new calendar":"New Calendar","yes":"yes","no":"no","logout error":"Error logging out, please CLOSE or RESTART your browser!","owner":"Owner","subscribed":"Subscribed","lock failed":"failed to acquire lock, may not be able to save changes",loading:'working','update frequency':'update frequency',usealarms:"Enable Alarms","listSeparator":",","manual":"manual","bind":"bind","unbind":"unbind","refresh":"refresh","path":"Path","source":"Source","available":"Show Availibility","resolve":"Next Availible","inviteFrom":"from","invitations":"Invitations","accept":"accept","maybe":"maybe","decline":"decline"},
 	months:["January","February","March","April","May","June","July","August","September","October","November","December"],
 	weekdays:["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
 	dropquestion:["Do you want to move",["All occurences","This one occurence"]],
@@ -216,6 +216,7 @@ function gotCalendars ()
 		$(window).resize ( resize);
 		$('#wcal').animate({scrollTop: ($('#calt tr:first')[0].clientHeight + 1)},250);
 		$('#calpopup').removeData('clicked');
+		getInbox();
 		resize();
 		s = $('*['+$.fn.caldav.xmlNSfield+'=calendar-subscriptions]:first',ph).text();
 		if ( s.length > 20 )
@@ -250,6 +251,7 @@ function calendarSync ()
 		// the dates used here are ONLY for client side so we know when to insert returned events 
 		$(document).caldav('syncCollection',i,$('#wcal').data('firstweek'),$('#wcal').data('lastweek'));
 	}
+	getInbox();
 }
 
 function eventPut(r,s)
@@ -1437,12 +1439,24 @@ function keyboardSelector (e)
 // get inbox events for principal
 function getInbox ( p )
 {
-	$(document).caldav('getAll',{},gotInbox,'VEVENT',$.fn.caldav.outboxMap[$.fn.caldav.data.myPrincipal]);
+	if ( $.fn.caldav.inboxMap && $.fn.caldav.inboxMap[$.fn.caldav.data.myPrincipal] )
+		$(document).caldav('getAll',{},gotInbox,'VEVENT',$.fn.caldav.inboxMap[$.fn.caldav.data.myPrincipal]);
 }
 
-function gotInbox ( a,b,c,d)
+function gotInbox ( e )
 {
-	console.log( a,b,c,d);
+	for ( var i=0;i<e.length;i++ )
+	{
+		if ( e[i].text.length < 10 )
+			continue ;
+		var em = new String(e[i].text);
+		var parsed = new iCal ( em );
+		parsed.eTag =e[i].etag;
+		for ( var ev in parsed.ics )
+		{
+			insertInvite ( e[i].href, parsed.ics[ev] );
+		}
+	}
 }
 
 function showVisTodos ( e )
@@ -1948,6 +1962,151 @@ function insertTodo ( href, icsObj, c  )
 	todoSort($('#caltodo ul' ));
 }
 
+function insertInvite ( href, icsObj )
+{
+	var type = icsObj.TYPE;
+	var desc = '';
+	desc += icsObj.vcalendar[type].summary.VALUE; 
+	if ( icsObj.vcalendar[type].uid )
+		var uid = icsObj.vcalendar[type].uid.VALUE;
+	else
+		var uid = '';
+	if ( icsObj.vcalendar[type].dtstart )
+		var sortorder = icsObj.vcalendar[type].dtstart.DATE.getTime();
+	else
+		var sortorder = 1;
+	var from = '' ;
+	if ( icsObj.vcalendar[type].organizer ) 
+		from = String ( icsObj.vcalendar[type].organizer );
+	if ( $('#calinvites .event[href="'+href+'"]').length > 0 )
+	{
+		// TODO update existing invite if etag changed 
+		return; 
+	}
+	var entry = $('<li class="event calendar0" data-time="' + sortorder + '" href="' + href + '" uid="' + uid + '" data-from="'+from+'" draggable="true" >'+desc+'</li>');
+	$(entry).attr('status',icsObj.vcalendar[type].status);
+	/* // TODO make invites draggable to accept ( drop on calendar to accept and insert )
+	   // probably will have to find the existing event by UID and move it if it exists
+	$(entry)[0].addEventListener('dragstart',calDragStart,true);
+	$(entry)[0].addEventListener('dragend',calDragEnd,true);
+	*/
+	$(entry).data('ics', icsObj );
+	$(entry).hover(eventHover,eventMouseout);
+	$(entry).click(inviteClick); 
+	$(entry).appendTo($('#calinvites'));
+}
+
+function inviteClick(e)
+{
+	$('#calpopupe').remove();
+	$('#wcal').removeData('popup');
+	e.stopPropagation();
+	eventHover(e);
+	var cp = $($('#wcal').data('popup'));
+	var href = $($(cp).data('event')).attr('href');
+	var cals = $(document).caldav('calendars');
+	var c = $($(cp).data('event')).attr('class').match(/calendar(\d+)/)[1];
+	$('#calpopup').clone(true).attr('id','calpopupe').removeClass('left right bottom').appendTo('#calwrap');
+	$('#wcal').data('popup','#calpopupe');
+	$('#calpopupe').data('overflow',0);
+	$('#calpopup').hide();
+	var lh = $('#calpopupe').innerHeight() - $('#calpopupe').height();
+	if ( $('#calpopupe > ul').outerHeight()  + lh * 1.5 + 10 > $('#calpopupe').height() )
+		$('#calpopupe').height($('#calpopupe > ul').outerHeight()  + lh * 1.5 + 10);
+	$('#calpopupe').data('fields',fieldNames);
+	$('#calpopupe').css('opacity',1);
+	$('#calpopupe').append('<div class="button accept" tabindex="0">'+ui.accept+'</div>');
+	$('#calpopupe').append('<div class="button maybe" tabindex="0">'+ui.maybe+'</div>');
+	$('#calpopupe').append('<div class="button decline" tabindex="0">'+ui.decline+'</div>');
+	if ( debug ) 
+	{
+		$('#calpopupe').append('<div class="button tweak" style="position:absolute;bottom:5px;left:70px; width:40px;" tabindex="0">tweak</div>'); // for debugging, not translated
+		$('#calpopupe .tweak').bind ('click',
+				function (e)
+				{
+					var cp = $($('#wcal').data('popup'));
+					var cal = cals[c];
+					var src  = $('<textarea id="eventsource" style="position:absolute;top:0;left:0;background:grey; overflow-y: auto; white-space: pre;" cols="80" rows="30" contenteditable="true" ></textarea>');
+					var save = $('<div id="eventsave" style="position:absolute;bottom:25px;left:70px; width:40px;" class="button">save</div>');
+					var d = $($(cp).data('event')).data('ics');
+					$(src).text(d.PARENT.printiCal());
+					$(save).click(function(e){
+						var ics = new iCal ( $('#eventsource').val()).ics[0];
+						var cp = $($('#wcal').data('popup'));
+						var href = $($(cp).data('event')).attr('href');
+						var c = $($(cp).data('event')).attr('class').match(/calendar(\d+)/)[1];
+						$('[href="'+href+'"]').fadeOut('fast',function (){$(cp).remove();  } );
+						$(document).caldav('putEvent',{url:href},ics.PARENT.printiCal (  )); 
+						insertEvent(href,ics,c,$('#wcal').data('firstweek'),$('#wcal').data('lastweek'));});
+					$('#calpopupe').append(src);
+					$('#calpopupe').append(save);
+				}
+			);
+	}
+	$('#calpopupe .button').bind ('click keypress',function (e) {
+			if ( e.keyCode > 0 )
+				if ( e.keyCode != 32 || e.keyCode != 13 )
+					return ;
+			var evt = $($('#calpopupe').data('event'));
+			var ics = $(evt).data('ics');
+			var attendees = ics.vcalendar[ics.TYPE]['attendee'];
+			if ( typeof attendees != "object" )
+			{
+				if ( debug )
+					console.log('attendee missing from event');
+				return;
+			}
+			var partstat;
+			if ( $(e.target).text() == ui.accept )
+				partstat = 'ACCEPTED';
+			if ( $(e.target).text() == ui.maybe )
+				partstat = 'TENTATIVE';
+			if ( $(e.target).text() == ui.decline )
+				partstat = 'DECLINED';
+			var a = attendees.VALUES;
+			var myp = $.fn.caldav.principalMap[$.fn.caldav.data.myPrincipal];
+			for ( var i=0; i < a.length; i++ )
+			{
+				if ( $.fn.caldav.principalMap[a[i]] == myp )
+					attendees.PROPS[i]['partstat'] = partstat;
+			}
+			console.log(ics.PARENT.toString());
+			var existing = $('#wcal .event[uid="'+ics.vcalendar[ics.TYPE].uid+'"], #caltodo .event[uid="'+ics.vcalendar[ics.TYPE].uid+'"]');
+			if ( existing.length > 0 && $(existing).parents('#calinvites').length == 0 )
+			{
+				var href = $(existing).attr('href');
+				$(existing).data('ics',ics);
+				$(document).caldav('putEvent',{url:href},ics.PARENT.printiCal()); 
+			}
+			else
+			{
+				var href = $(e.target).attr('href').replace(/^.*\//,'');
+				var cal = String($('#callist .selected').attr('class')).replace(/.*calendar([0-9]+).*/,"$1");
+				if ( $.fn.caldav.calendarData[cal].principal == $.fn.caldav.data.myPrincipal )
+					href = $.fn.caldav.calendarData[cal].href + href;
+				else
+					href = $.fn.caldav.calendarData[0].href + href;
+				$(document).caldav('putNewEvent',{url:href},ics.PARENT.printiCal()); 
+				insertEvent();
+				if ( ics.TYPE == 'vevent' )
+	        insertEvent(href,ics,cal,$('#wcal').data('firstweek' ),$('#wcal').data('lastweek'));
+        if ( ics.TYPE == 'vtodo' )
+					insertTodo(href,ics,cal,$('#wcal').data('firstweek' ),$('#wcal').data('lastweek'));
+			}
+			$(document).unbind('click',$('#wcal').data('edit_click')); 
+			$(document).unbind('keydown',$('#wcal').data('edit_keyup')); 
+		}
+		);
+	
+	
+	
+	draggable ( $('#calpopupe') );
+	$('#calpopupe').show();
+	$('#wcal').data('clicked', e.target);
+	$(document).click( $('#wcal').data('edit_click') ); 
+	$(document).keyup( $('#wcal').data('edit_keyup') ); 
+}
+
 function updateIcs ( href, ics , cal )
 {   
 	var t,cald = $('.jqcaldav:eq(0)').data('ics'+cal); 
@@ -2396,19 +2555,19 @@ function newevent (e)
 			}
 			);
 	var ul = $('<ul></ul>');
-	$(ul).append('<li><span class="label">'+fieldNames.summary+'</span><span class="value">'+ui[ics.vcalendar['v'+type].summary.VALUE]+'</span></li>');
+	$(ul).append('<li><span class="label summary">'+fieldNames.summary+'</span><span class="value">'+ui[ics.vcalendar['v'+type].summary.VALUE]+'</span></li>');
 	if ( type == 'event' ) 
 	{
 		d.setUTCHours((new Date()).getHours());
-		$(ul).append('<li><span class="label">'+fieldNames.dtstart+'</span><span class="value">'+d.prettyDate() +'</span></li>');
+		$(ul).append('<li><span class="label ESTART">'+fieldNames.dtstart+'</span><span class="value">'+d.prettyDate() +'</span></li>');
 		d.setUTCHours(d.getUTCHours()+1);
-		$(ul).append('<li><span class="label">'+fieldNames.dtend+'</span><span class="value">'+d.prettyDate() +'</span></li>');
+		$(ul).append('<li><span class="label EEND">'+fieldNames.dtend+'</span><span class="value">'+d.prettyDate() +'</span></li>');
 	}
 	else if ( type == 'todo' ) 
 	{
 	var d = new Date();
 		d.setUTCDate((new Date()).getDate()+1);
-		$(ul).append('<li><span class="label">'+fieldNames.due+'</span><span class="value">'+d.prettyDate() +'</span></li>');
+		$(ul).append('<li><span class="label due">'+fieldNames.due+'</span><span class="value">'+d.prettyDate() +'</span></li>');
 	}
 	$(pop).append(ul);
 	var off = $(e.target).offset();
@@ -2961,8 +3120,8 @@ function printAttendee(a)
 	var atts=[],props=[];
 	if ( a == undefined )
 	{
-		atts.push($.fn.caldav.principals[$.fn.caldav.principalMap[$.fn.caldav.data.myPrincipal]].email);
-		props.push({partstat:'ACCEPTED',cn:$.fn.caldav.principals[$.fn.caldav.principalMap[$.fn.caldav.data.myPrincipal]].name,rsvp:'TRUE',
+		atts.push('mailto:'+$.fn.caldav.principals[$.fn.caldav.principalMap[$.fn.caldav.data.myPrincipal]].email);
+		props.push({partstat:'ACCEPTED',cn:$.fn.caldav.principals[$.fn.caldav.principalMap[$.fn.caldav.data.myPrincipal]].name,rsvp:'FALSE',
 			email:$.fn.caldav.principals[$.fn.caldav.principalMap[$.fn.caldav.data.myPrincipal]].email});
 	}
 	else if ( ! a.VALUES )
@@ -2978,7 +3137,7 @@ function printAttendee(a)
 	for ( var i=0; i < atts.length; i++ )
 	{
 		if (props[i] != undefined )
-			$(ret).append('<span class="value attendee '+ String(props[i]['partstat']+'').toLowerCase() +'" title="'+String(props[i]['email']?props[i]['email']:atts[i].replace(/^mailto:/i,'')+'')+'" data-value="'+atts[i]+'" data-original="'+atts[i]+'" data-cn="'+String(props[i]['cn']+'')+'" data-email="'+String(props[i]['email']+'')+'" data-partstatus="'+String(props[i]['partstat']+'')+'" data-schedstatus="'+String(props[i]['schedule-status']+'')+'" data-rsvp="'+String(props[i]['rsvp']+'')+'" contenteditable="true" >'+(props[i]['cn']?props[i]['cn']:atts[i].replace(/^mailto:/i,'')).replace(/^"(.*)"$/,"$1")+'</span>');	
+			$(ret).append('<span class="value attendee '+ String(props[i]['partstat']+'').toLowerCase() +'" title="'+String(props[i]['email']?props[i]['email']:atts[i].replace(/^mailto:/i,'')+'')+'" data-value="'+atts[i]+'" data-original="'+atts[i]+'" data-cn="'+String(props[i]['cn']+'')+'" data-email="'+String(props[i]['email']+'')+'" data-partstat="'+String(props[i]['partstat']+'')+'" data-schedstatus="'+String(props[i]['schedule-status']+'')+'" data-rsvp="'+String(props[i]['rsvp']+'')+'" contenteditable="true" >'+(props[i]['cn']?props[i]['cn']:atts[i].replace(/^mailto:/i,'')).replace(/^"(.*)"$/,"$1")+'</span>');	
 	}
 	var plus = $('<span class="plus">'+ui.add+'</span>').click(function(){ var n = $('<span class="value attendee needs-action" contenteditable="true" ></span>');$(n).bind('keydown',completePrincipal);$(this).before(n);$(this).prev().focus();});
 	var freebusy = $('<span class="plus">'+ui.available+'</span>').click(
@@ -2996,11 +3155,15 @@ function printAttendee(a)
 					if ( u != '' && $.trim($(atts[i]).data('email')) != '' )
 					{
 						$('#schedusers',n).append('<li class="suser'+i+'" user="'+u+'">'+u+'</li>');
+						var user;
+						//if ( $.trim($(atts[i]).data('value')) != '' )
+						//	user =$.trim($(atts[i]).data('value'));
+						//else
+							user = 'mailto:'+$.trim($(atts[i]).data('email')).replace(/^mailto:/i,'').replace(/^"(.*)"$/,"$1");
 						if ( attendee == undefined )
-							attendee = vcs.PARENT.newField('attendee','mailto:'+$.trim($(atts[i]).data('email')).replace(/^mailto:/i,'').replace(/^"(.*)"$/,"$1"),
-								{cn:u});
+							attendee = vcs.PARENT.newField('attendee',user,{cn:u});
 						else
-							attendee.UPDATE('mailto:'+$.trim($(atts[i]).data('email')).replace(/^mailto:/i,'').replace(/^"(.*)"$/,"$1"),{cn:u});
+							attendee.UPDATE(user,{cn:u});
 					}
 				}
 				var start = Zero().parsePrettyDate($('#calpopupe .ESTART + .value').text()).add('h',-7);
@@ -3084,6 +3247,7 @@ function printAttendee(a)
 				c.vcalendar.vfreebusy.dtstamp.UPDATE((new Date()));
 				c.vcalendar.vfreebusy.dtstart.UPDATE(begin);
 				c.vcalendar.vfreebusy.dtend.UPDATE(end);
+				c.vcalendar.vfreebusy.organizer = ic.newField('organizer',$.fn.caldav.data.myPrincipal,{cn:$.fn.caldav.principals[$.fn.caldav.principalMap[$.fn.caldav.data.myPrincipal]].name});
 				c.vcalendar.vfreebusy.attendee = attendee;
 				var txt = String(ic);
 				$.POST({url:$.fn.caldav.outboxMap[$.fn.caldav.data.myPrincipal],data:txt,username:$.fn.caldav.options.username,password:$.fn.caldav.options.password,
@@ -3112,18 +3276,20 @@ function printAttendee(a)
 									var suser = $('#schedusers li[user="'+ics.vcalendar[ics.TYPE].attendee.PROP['cn']+'"]').attr('class');
 									if ( ics.vcalendar[ics.TYPE]['freebusy'] == undefined )
 										continue;
-									if ( ics.vcalendar[ics.TYPE].freebusy.VALUES != undefined )
-										var fb = ics.vcalendar[ics.TYPE].freebusy.VALUES;
-									else
-										var fb = [ics.vcalendar[ics.TYPE].freebusy.VALUE];
+									var fb = [];
+									var fbd = ics.vcalendar[ics.TYPE].freebusy.DATA;
+									for ( var t in fbd )
+									{
+										if ( ! /^FREE/.test(t) )
+											fb = fb.concat(fbd[t]);
+									}
 									for ( var j=0; j < fb.length; j++ )
 									{
-										var parts = String(fb[j]).split('/');
-										var begin = Zero().parseDate(parts[0]);
-										var end = Zero().parseDate(parts[1]);
+										var begin  = fb[j].start; 
+										var end    = fb[j].end;
 										var offset = 'start' + Math.round(begin.getUTCMinutes()/15);
-										times.push({start:parseInt(begin.getTime()),end:parseInt(end.getTime()),duration:end.getTime()-begin.getTime()});
-										$('#schedtime .sday'+begin.getUTCDate()+'.shour'+begin.getUTCHours()).append('<span class="'+suser+' '+offset+'" data-hours="'+parseInt((end.getTime()-begin.getTime())*4/3600000)/4+'"></span>');
+										times.push(fb[j]);
+										$('#schedtime .sday'+begin.getUTCDate()+'.shour'+begin.getUTCHours()).append('<span class="'+suser+' '+offset+' '+fb[j].type+'" data-hours="'+parseInt((end.getTime()-begin.getTime())*4/3600000)/4+'"></span>');
 										if ( ( begin >= es && end <= es ) || ( begin >= ee && end <= ee ) ||
 												( begin >= es && end <= ee ) || ( begin <= es && end >= ee ) )
 											$('#schedtime .sched').addClass('conflict');
@@ -3222,7 +3388,7 @@ function attendeeEdited ( element, attendee )
 		if ( eml == '' && $(atnds[i]).data('email') )
 			eml = $.trim($(atnds[i]).data('email'));
 		cn = e.join(' ');
-		var np = {cn:cn,cutype:'INDIVIDUAL',email:eml,partstat:'NEEDS-ACTION',rsvp:'TRUE'};
+		var np = {cn:cn,cutype:'INDIVIDUAL',email:eml,partstat:$(atnds[i]).data('partstat'),rsvp:$(atnds[i]).data('rsvp')};
 		if ( /calendar-auto-schedule/.test ( $.fn.caldav.serverSupports ) )
 			np['schdeule-agent']='SERVER';
 		attendee.UPDATE('mailto:' +eml,np);
@@ -3279,7 +3445,13 @@ function attendeeEdited ( element, attendee )
 			if ( eml == '' && $(atnds[i]).data('email') )
 				eml = $.trim($(atnds[i]).data('email')).replace( /^mailto:/, '' ).replace( /[<>"']/g, '' );
 			cn = e.join(' ');
-			var np = {cn:cn,cutype:'INDIVIDUAL',email:eml,partstat:'NEEDS-ACTION',rsvp:'TRUE'};
+			var np = {
+					cn:cn,
+					cutype:'INDIVIDUAL',
+					email:eml,
+					partstat:($(atnds[i]).data('partstat')?$(atnds[i]).data('partstat'):'NEEDS-ACTION'),
+					rsvp:($(atnds[i]).data('rsvp')?$(atnds[i]).data('rsvp'):'TRUE')
+				};
 			if ( /calendar-auto-schedule/.test ( $.fn.caldav.serverSupports ) && eml != $.fn.caldav.principals[$.fn.caldav.principalMap[$.fn.caldav.data.myPrincipal]].email )
 				np['schdeule-agent']='SERVER';
 			attendee.UPDATE('mailto:' +eml,np);
@@ -3912,6 +4084,8 @@ function buildcal(d)
 		else
 		{	$('li.selected',$(this).parent()).toggleClass('selected');$(this).parent('li').toggleClass('open');$(this).parent('li').toggleClass('closed');}});
 	$(sidebar).append(sideul);
+	var invites = $('<ul id="calinvites"  ><li class="header" >'+ui.invitations+'</li></ul>');
+	$(sidebar).append(invites);
 	$(sidebar).append('<div class="calfooter group" tabindex="2"><div id="addcalendar" class="button" >'+ui.add+'</div><div id="calsettings" class="button" >'+ui.settings+'</div><div id="calsubscribe" class="button" >'+ui.subscribe+'</div></div>');
 	if ( typeof ( startTranslating ) == "function" )
 	{
@@ -4247,24 +4421,31 @@ function calstyle ()
 		'border-right: 1px solid #AAA; overflow: hidden; margin-right: -1px; }' + "\n" +
 	'#calsidebar * { resize: none; } ' + "\n" +
 	'#calsidebar > .sidetitle { font-size: 200%; font-weight: lighter; border: none !important; border-bottom:1px solid #AAA !important; text-align: center; padding:1px 0 14pt 0; margin:0;}' + "\n" +
-	'#calsidebar > ul { position: relative; display: block; margin: 0; padding: 0px; list-style-type: none; overflow-x: hidden; overflow-y: scroll; padding-top: 1em; margin-right: -1.2em; height: 100%; } ' + "\n" +
-	'#calsidebar > ul > li { margin-left: 0; padding: 0;  padding-bottom: .5em; -webkit-transition-property: all; -webkit-transition-duration: 1.4s;  -moz-transition-property: all; -moz-transition-duration: 1.4s; transition-property: all; transition-duration: 1.4s;  } ' + "\n" +
-	'#calsidebar > ul > li:last-child { margin-bottom: 2em; } ' + "\n" +
-	'#calsidebar > ul > li > span:hover:after { content: "edit"; position: absolute: right: 0; float: right; display: block; width: 3.5em; } ' + "\n" +
-	'#calsidebar > ul > li > span { color: #666; margin:0;padding:0;padding-left: 12px; display: block; width: 100%; position: relative; font-size: 9pt; letter-spacing: -0.01em; text-transform: uppercase; '+
+	'#callist { position: relative; display: block; margin: 0; padding: 0px; list-style-type: none; overflow-x: hidden; overflow-y: scroll; padding-top: 1em; margin-right: -1.2em; max-height: 100%; } ' + "\n" +
+	'#callist > li { margin-left: 0; padding: 0;  padding-bottom: .5em; -webkit-transition-property: all; -webkit-transition-duration: 1.4s;  -moz-transition-property: all; -moz-transition-duration: 1.4s; transition-property: all; transition-duration: 1.4s;  } ' + "\n" +
+	'#callist > li:last-child { margin-bottom: 2em; } ' + "\n" +
+	'#callist > li > span:hover:after { content: "edit"; position: absolute: right: 0; float: right; display: block; width: 3.5em; } ' + "\n" +
+	'#callist > li > span { color: #666; margin:0;padding:0;padding-left: 12px; display: block; width: 100%; position: relative; font-size: 9pt; letter-spacing: -0.01em; text-transform: uppercase; '+
 		'-webkit-transition-property: all; -webkit-transition-duration: .4s; -moz-transition-property: all; -moz-transition-duration: .4s; transition-property: all; transition-duration: .4s; } ' + "\n" +
 	//'#calsidebar > ul > li.closed > span   { color: #888; } ' + "\n" +
-	'#calsidebar > ul > li.closed > ul  { height: 0px;   } ' + "\n" +
-	'#calsidebar > ul > li > span:before   { content: ""; display: block; position: absolute; left: 1px; width:0; height:0; border-color: #666 transparent transparent transparent; border-style: solid; border-width: 7px 4px 4px 4px; '+
+	'#callist > li.closed > ul  { height: 0px;   } ' + "\n" +
+	'#callist > li > span:before   { content: ""; display: block; position: absolute; left: 1px; width:0; height:0; border-color: #666 transparent transparent transparent; border-style: solid; border-width: 7px 4px 4px 4px; '+
 		'-webkit-transition-property: all; -webkit-transition-duration: .4s; -moz-transition-property: all; -moz-transition-duration: .4s; -o-transition-property: all; -o-transition-duration: .4s; transition-property: all; transition-duration: .4s; '+
 		'-webkit-transform: translate(0px, 3px) rotate(0deg) ; -moz-transform: translate(0px,3px) rotate(0deg) ; transform: rotate(0deg) ; } ' + "\n" +
-	'#calsidebar > ul > li.closed > span:before { border-color: #666 transparent transparent transparent; -webkit-transform: translate(3px, 1px) rotate(-90deg) ; -moz-transform: translate(3px, 1px) rotate(-90deg) ;  -o-transform: translate(3px, -1px) rotate(-90deg) ; -ms-transform: translate(3px, 1px) rotate(-90deg); transform: translate(3px, 1px) rotate(-90deg) ; } ' + "\n" +
-	'#calsidebar > ul li:hover { background: none; } ' + "\n" +
-	'#calsidebar > ul > li > ul { margin-left: 0em; padding-left: 0; overflow-y: hidden; resize: none; -webkit-transition-property: height; -webkit-transition-duration: .4s; '+
+	'#callist > li.closed > span:before { border-color: #666 transparent transparent transparent; -webkit-transform: translate(3px, 1px) rotate(-90deg) ; -moz-transform: translate(3px, 1px) rotate(-90deg) ;  -o-transform: translate(3px, -1px) rotate(-90deg) ; -ms-transform: translate(3px, 1px) rotate(-90deg); transform: translate(3px, 1px) rotate(-90deg) ; } ' + "\n" +
+	'#callist li:hover { background: none; } ' + "\n" +
+	'#callist > li > ul { margin-left: 0em; padding-left: 0; overflow-y: hidden; resize: none; -webkit-transition-property: height; -webkit-transition-duration: .4s; '+
 		'-moz-transition-property: all; -moz-transition-duration: .4s; transition-property: all; transition-duration: .4s;  } ' + "\n" +
-	'#calsidebar > ul > li > ul > li { margin-left: 0; padding-left: 1.5em; list-style-type: none; padding-top: .12em; padding-bottom: .12em; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; } ' + "\n" +
-	'#calsidebar > ul > li > ul > li.selected { background: #CCD; background: -moz-linear-gradient(top, #CCD 0%, #AAA 100%); background: -webkit-gradient(linear, left top, left bottom, from(#CCD), to(#AAA)); background: -webkit-linear-gradient(top, #CCD 0%, #AAA 100%); background: linear-gradient(top, #CCD 0%, #AAA 100%); text-shadow: 0 1px 1px rgba(255,255,255,0.75), 0 -1px 1px rgba(0,0,0,0.1); } ' + "\n" +
-	
+	'#callist > li > ul > li { margin-left: 0; padding-left: 1.5em; list-style-type: none; padding-top: .12em; padding-bottom: .12em; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; } ' + "\n" +
+	'#callist > li > ul > li.selected { background: #CCD; background: -moz-linear-gradient(top, #CCD 0%, #AAA 100%); background: -webkit-gradient(linear, left top, left bottom, from(#CCD), to(#AAA)); background: -webkit-linear-gradient(top, #CCD 0%, #AAA 100%); background: linear-gradient(top, #CCD 0%, #AAA 100%); text-shadow: 0 1px 1px rgba(255,255,255,0.75), 0 -1px 1px rgba(0,0,0,0.1); } ' + "\n" +
+	'#calinvites { margin: 0; padding: 0px; list-style-type: none; overflow-x: hidden; overflow-y: scroll; position: absolute;  width: 100%; bottom: .1em; padding-bottom: 1em; padding-right: 16px; } ' + "\n" +	
+	'#calinvites li { margin-right: -16px; } ' + "\n" +
+	'#calinvites li.event::after { content: "'+ui.inviteFrom+' " attr(data-from); display: block; position: relative; font-size: 90%; color: #444; } ' + "\n" +
+	'#calinvites li.event:hover { color: black; background: #DDD; } ' + "\n" +
+	'#calinvites li.header { display: block; font-size: 120%; border-bottom: 1px solid #AAA; } ' + "\n" +
+	'#calinvites li.header:nth-last-child(1) { display: none; } ' + "\n" +
+//	'#calinvites li:first-child::before { content: "'+ui.invitations+' "; display: block; position: relative; height: 1px; overflow: visible; baseline-shift: -1em; font-size: 120%; margin-top: -1em; border-bottom: 1px solid #AAA; } ' + "\n" +
+	'#calinvites li:first-child:hover { background: none; } ' + "\n" +
 	'#calsidebar > .calfooter { position: absolute; bottom:0; padding: 0; margin: 0; width: 100%; /* display: -webkit-box;display: -moz-box;display: box; -webkit-box-orient: horizontal; -webkit-box-pack: justify; -moz-box-orient: horizontal; -moz-box-pack: justify; box-orient: horizontal; box-pack: justify; */ max-height: 1.25em;  overflow: hidden; }' + "\n" +
 	'.calfooter > DIV { overflow: hidden; -webkit-transition-property: all; -webkit-transition-duration: .2s; -moz-transition-property: all; -moz-transition-duration: .2s; transition-property: all; transition-duration: .2s; }' + "\n" +
 	'.calfooter > DIV:hover { -moz-box-shadow: inset 0px 0px 3px 0px #aaa; -webkit-box-shadow: inset 0px 0px 3px 0px #aaa; box-shadow: inset 0px 0px 3px 0px #aaa;} ' + "\n" +
@@ -4274,7 +4455,7 @@ function calstyle ()
 	'#caltodo > .sidetitle { font-size: 200%; font-weight: lighter; border-bottom:1px solid #AAA; text-align: center; padding: 0 0 .6em 0; margin:0;}' + "\n" +
 	'#caltodo > .sidetitle div.button { display: block; font-size: 50%; font-weight: lighter; border: none !important; text-align: center; width: 100%; margin:0;}' + "\n" +
 	'#caltodo > .sidetitle span { display: block; float: left; width: 50%; margin:-1px; padding:0; position: relative; bottom: -0.43em;}' + "\n" +
-	'#caltodo ul { position: absolute; top: 3.6em; bottom: 0; overflow-x: hidden; overflow-y: auto; margin: 0; padding: 0px; list-style: none; } ' + "\n" +
+	'#caltodo ul { position: absolute; top: 3.6em; bottom: 0; overflow-x: hidden; overflow-y: auto; margin: 0; padding: 0px; list-style: none; width: 100%; } ' + "\n" +
 	'#caltodo ul li { overflow: hidden; display: block; margin: 0; padding: 0; padding-left: 0; margin-bottom: .75em; line-height: 1.2em; list-style-type: none;  } ' + "\n" +
 
 	'#wcal { width: 100%; overflow: scroll; float: left; overflow-x: hidden; height:24em; border-spacing:0; padding:0; margin:0; margin-left: 0.95em; margin-right: -9px; border:0; border-top: 1px solid #AAA; border-left: 1px solid #AAA; }' + "\n" + 
@@ -4796,7 +4977,7 @@ var iCal = function ( text ) {
 	{
 		var dRX = /([0-9]{4})([0-9]{2})([0-9]{2})([Tt]([0-2][0-9])([0-6][0-9])([0-9]{2}))?[Zz]?/;
 		var types = /(VEVENT|VTODO|VJOURNAL|VFREEBUSY)/;
-		var t = text.replace(/\n[\s\t]/mg,'').split ("\n");
+		var t = text.replace(/\r?\n[\s\t]/mg,'').split ("\n");
 		var ret = new Array ();
 		var ic = new Object ;
 		ic['RAW'] = text;
@@ -5061,6 +5242,71 @@ var iCal = function ( text ) {
 					this.DATE.zulu = true;
 			} 
 		};
+		this.PERIOD = function ()
+		{
+			//FREEBUSY;FBTYPE=BUSY-UNAVAILABLE:20110722T030000Z/20110722T130000Z,20110722T230000Z/20110725T130000Z,20110725T230000Z/20110726T090000Z
+			//FREEBUSY;FBTYPE=BUSY:20110725T150000Z/PT1H
+			var validDate = /^([0-9]{4})([0-9]{2})([0-9]{2})([Tt]([0-2][0-9])([0-6][0-9])([0-9]{2}))?([Zz])?$/;
+			var validDuration = /([-+])?P([0-9]+W)?([0-9]+D)?(T([0-9]+H)?([0-9]+M)?([0-9]+S)?)?/;
+			if ( arguments[1] instanceof Object )
+			{
+				var props = arguments[1];
+				if ( arguments[2] != undefined )
+					p = arguments[2];
+			}
+			else if ( arguments.length > 1 )
+				p = arguments[1];
+			if ( typeof p == 'object' && p['type'] )
+				var type = p['type'];
+			else
+				var type = 'BUSY';
+			if ( this.DATA == undefined )
+				this.DATA = {};
+			if ( this.DATA[type] == undefined )
+				this.DATA[type] = [];
+			if ( this.FB == undefined )
+			{
+				this.FB = {};
+				this.FB[type] = {};
+			}
+			else if ( this.FB[type] == undefined )
+				this.FB[type] = {};
+			var pieces = String(arguments[0]).split(',');
+			for ( var i=0; i < pieces.length; i++ )
+			{
+				var parts = pieces[i].split('/'); 
+				var start = Zero().parseDate(parts[0]); // should always start with a date
+				var end;
+				if ( validDate.test(parts[1]) ) // ends with a date
+				{
+					end = Zero().parseDate(parts[1]);
+					if ( start > end )
+					{
+						if ( debug )
+							console.log ( 'negative time period found parsing: ' + arguments[0] );
+						continue; // negative time period
+					}
+				}
+				else if ( validDuration.test(parts[1]) ) // ends with a duration
+				{
+					var duration = parseDuration(parts[1]);
+					if ( duration.negative )
+					{
+						if ( debug )
+							console.log ( 'negative time period found parsing: ' + arguments[0] );
+						continue;  // negative time period 
+					}
+					end = new Date(start.getTime());
+					end.addDuration(duration);
+				}
+				var length = end.getTime() - start.getTime();
+				var triple = {type:type,start:start,end:end,length:length};
+				if ( this.FB[type][start.getTime()] && this.FB[type][start.getTime()].length == length )
+					continue;
+				this.FB[type][start.getTime()] = triple;
+				this.DATA[type].push(triple);
+			}
+		};
 		this.SETDURATION = function (t,p)
 		{
 			if ( t.valid == undefined )
@@ -5265,6 +5511,15 @@ var iCal = function ( text ) {
 					t = valueNames[t];
 				if ( t != undefined )
 				return t.replace(/\\n/g,"\n");},
+			peroid:function(){
+				if ( arguments.length > 0 && this.VALUES && this.VALUES.length > 1 ) 
+					var t = this.VALUES[arguments[0]]; 
+				else 
+					var t = this.VALUE; 
+				if ( valueNames[t] )
+					t = valueNames[t];
+				if ( t != undefined )
+				return t.replace(/\\n/g,"\n");},
 			schedule:function(){
 				if ( arguments.length > 0 && this.VALUES && this.VALUES.length > 1 ) 
 					var t = this.VALUES[arguments[0]]; 
@@ -5272,8 +5527,8 @@ var iCal = function ( text ) {
 					var t = this.VALUE; 
 				if ( valueNames[t] )
 					t = valueNames[t];
-				if ( this.FIELD == 'organizer' && this.PROP && this.PROP['cn'] != undefined )
-					t = this.PROP['cn'].replace(/^"(.*)"$/,"$1");
+				if ( this.FIELD == 'organizer' && this.PROP && this.PROP['cn'] && this.PROP['cn'] != '' )
+					t = String(this.PROP['cn']).replace(/['"<>]/g,'');
 				if ( t != undefined )
 				return t.replace(/\\n/g,"\n");},
 			date:function(){
@@ -5328,6 +5583,10 @@ var iCal = function ( text ) {
 				for ( var i = 0; i < this.VALUES.length; i++ )
 				{
 					line = this.FIELD.toUpperCase() + this.PRINT.props.apply(this,[i]) + ':';
+					if ( this.type == 'period' )
+					{
+
+					}
 					if ( this.type == 'date' )
 					{
 						if ( this.PROPS[i] != undefined && this.PROPS[i]['tzid'] != undefined )
@@ -5385,6 +5644,9 @@ var iCal = function ( text ) {
 					break;
 				case 'schedule':
 					var update = this.SCHEDULE;
+					break;
+				case 'period':
+					var update = this.PERIOD; 
 					break;
 				case 'integer':
 				case 'number':
