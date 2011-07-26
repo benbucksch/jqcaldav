@@ -777,7 +777,7 @@ function editCalendar (e)
 		$(li).hover(function(){$($('#wcal').data('popup')).css({overflow:'visible'});},function(){$($('#wcal').data('popup')).css({overflow:'auto'});});
 		for (i=0;i<acl.length;i++)
 		{
-			$(li).append (  privilegeBox(acl[i])  );
+			$(li).append (  privilegeBox( acl[i], supported_acl ) );
 		}
 		$(li).append ( '<div class="completionWrapper"><div class="completion"></div></div><span class="value" data-principal="new principal" contenteditable="true">'+ui.add+'</span>' );
 		$('span:[data-principal="new principal"]',li).focus(function(e){$($('#wcal').data('popup')).css({overflow:'visible'});if ($(this).text()==ui.add)$(this).text('');});
@@ -898,7 +898,7 @@ function bind ( c )
 	$('#caldialog').fadeIn();
 }
 
-function privilegeBox ( acl )
+function privilegeBox ( acl, supported )
 {
 	var privd = {
 		all:['bind','unbind','unlock'],
@@ -920,11 +920,19 @@ function privilegeBox ( acl )
 			});
 
 	var box = $('<ul class="privilegeBox"></ul>');
+	var desc = '';
 	for ( var i in privd )
 	{
 		var hasPriv = $('grant ' + i ,acl).length>0?'granted':'';
 		var granted = $('grant ' + i ,acl).length>0?'yes':'no';
-		var li = $( '<li class="'+hasPriv+'" data-granted="'+granted+'" data-priv="'+i+'">'+i+'</li>');
+		if ( supported )
+		{
+			var desc = $('supported-privilege > privilege > ' + i,supported);
+			if ( desc.length == 0 )
+				continue;
+			var desc = $(desc).parent().siblings('description').text();
+		}
+		var li = $( '<li class="'+hasPriv+'" title="'+desc+'" data-granted="'+granted+'" data-priv="'+i+'">'+i+'</li>');
 		var line = $( '<ul></ul>');
 		for ( var j=0;j<privd[i].length;j++)
 		{
@@ -933,7 +941,14 @@ function privilegeBox ( acl )
 				p = 'schedule-query-freebusy';
 			var hasPriv = $('grant ' + p ,acl).length>0?'granted':'';
 			var granted = $('grant ' + p ,acl).length>0?'yes':'no';
-			$(line).append('<li class="'+hasPriv+'" data-granted="'+granted+'" data-priv="'+p+'">' + privileges[privd[i][j]] + '</li>' );
+			if ( supported )
+			{
+				var desc = $('supported-privilege > privilege > ' + p,supported);
+				if ( desc.length == 0 )
+					continue;
+				var desc = $(desc).parent().siblings('description').text();
+			}
+			$(line).append('<li class="'+hasPriv+'" title="'+desc+'" data-granted="'+granted+'" data-priv="'+p+'">' + privileges[privd[i][j]] + '</li>' );
 		}
 		$(li).append(line);
 		$(box).append(li);
@@ -4157,7 +4172,12 @@ function buildcal(d)
 	$(sidebar).append(sideul);
 	var invites = $('<ul id="calinvites"  ><li class="header" >'+ui.invitations+'</li></ul>');
 	$(sidebar).append(invites);
-	$(sidebar).append('<div class="calfooter group" tabindex="2"><div id="addcalendar" class="button" >'+ui.add+'</div><div id="calsettings" class="button" >'+ui.settings+'</div><div id="calsubscribe" class="button" >'+ui.subscribe+'</div></div>');
+	$(sidebar).append('<div class="calfooter group" tabindex="2"><div id="addcalendar" class="button" >'+ui.add+'</div><div id="calsettings" class="button" >'+ui.settings+'</div></div>');
+	if ( String($('.jqcaldav').data('calproxyurl')).length > 1  )
+	{
+		$('#calfooter',sidebar).append('<div id="calsubscribe" class="button" >'+ui.subscribe+'</div>');
+		$('#calsubscribe',sidebar).click(subscribeCalendar); 
+	}
 	if ( typeof ( startTranslating ) == "function" )
 	{
 		$('.calfooter',sidebar).append('<div id="caltranslate" class="button" >translate</div>');
@@ -4165,7 +4185,6 @@ function buildcal(d)
 	}
 	$('#addcalendar',sidebar).click(addCalendar); 
 	$('#calsettings',sidebar).click(calSettings); 
-	$('#calsubscribe',sidebar).click(subscribeCalendar); 
 	$(calwrap).append(sidebar);
 	$(calwrap).append('<div id="calcenter" ><div id="calheader" tabindex="6"><span id="gototoday" class="button" >'+ui.today+'</span><span id="weekview" class="button" >'+ui.week+'</span><span id="refresh" class="button" >&#8635;</span><span id="calmonthname">' + months[s.getMonth()] + '</span><span id="calyearname">' + s.getFullYear() + '</span><span id="logout" class="button" >'+ui.logout+'</span></div>');
 	$('#refresh',calwrap).click(function(){calendarSync(); return false;} );
