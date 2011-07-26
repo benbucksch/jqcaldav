@@ -138,6 +138,8 @@ function doit ( e )
 	}
 	if ( $('#wcal').length > 0 )
 		$('#calwrap').remove();
+	if ( $('.jqcaldav:first').data('caldavurl') == '' )
+		$('.jqcaldav:first').data('caldavurl','/');
 	$('#cal_login').fadeOut(99);
 	var loading = $('<div id="caldavloading1" style="display:none;position:fixed;left:100%;top:100%;margin-top:-1em;margin-left:-4em;text-align: center; width:4em; background-color:black;color:white;-moz-border-top-left-radius:.5em;-webkit-border-top-left-radius:.5em;border-top-left-radius:.5em;opacity:.5;z-index:100;" data-loading="0" ><span>'+ui.loading+'</span></div>').appendTo(document.body);
 	window.setTimeout(function()
