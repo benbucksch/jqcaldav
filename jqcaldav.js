@@ -2164,7 +2164,7 @@ function inviteClick(e)
 				}
 				else
 				{
-					var href = $(e.target).attr('href').replace(/^.*\//,'');
+					var href = $(evt).attr('href').replace(/^.*\//,'');
 					var cal = String($('#callist .selected').attr('class')).replace(/.*calendar([0-9]+).*/,"$1");
 					if ( $.fn.caldav.calendarData[cal].principal == $.fn.caldav.data.myPrincipal )
 						href = $.fn.caldav.calendarData[cal].href + href;
