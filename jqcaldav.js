@@ -581,16 +581,16 @@ function addSubscribedCalendar(name,color,order,description,url,i)
 	var proxyurl = $('.jqcaldav').data('calproxyurl');
 	if ( proxyurl == '' )
 		return;
-	var cparent = $('#calsidebar li:contains(Subscribed) > ul');
+	var cparent = $('#callist li:contains(Subscribed) > ul');
 	var ss = styles.getStyleSheet ( 'calstyle' );
 	ss.updateRule ( '.calendar'+i ,{ color: color }  );
 	ss.updateRule ( '.calendar'+i +':hover',{ 'background-color': color } );
 	ss.updateRule ( '.calendar'+i +'bg',{ 'background-color': color } ); 
 	if ( ! cparent.length )
 	{
-		$('<li class="open"  ><span>'+ui.subscribed+'</span><ul data-mailto="Subscribed" ></ul></li>').appendTo('#calsidebar > ul');
-		var cparent = $('#calsidebar li:contains('+ui.subscribed+') > ul');
-		$('#calsidebar li:contains('+ui.subscribed+') > span').click (function (){$('li.selected',$(this).parent()).toggleClass('selected');$(this).parent('li').toggleClass('open');$(this).parent('li').toggleClass('closed');});
+		$('<li class="open"  ><span>'+ui.subscribed+'</span><ul data-mailto="Subscribed" ></ul></li>').appendTo('#callist');
+		var cparent = $('#callist li:contains('+ui.subscribed+') > ul');
+		$('#callist li:contains('+ui.subscribed+') > span').click (function (){$('li.selected',$(this).parent()).toggleClass('selected');$(this).parent('li').toggleClass('open');$(this).parent('li').toggleClass('closed');});
 	}
 	var ce = $('<li class="calendar'+i+'" order="'+order+'" title="'+description+'"><input type="checkbox" id="calendar'+i+'" checked="true" /><span >'+name+'</span></li>');
 	$(ce).dblclick (editCalendar);
@@ -962,6 +962,7 @@ function saveCalendar (e)
 {
 	var cd = $('#caldialog');
 	var cal = $('#caldialog ul').data('calendar');
+	var acl = $('acl',cals[c].xml).clone();
 	var props ={'displayname':'name','calendar-color':'color','calendar-description':'description','calendar-order':'order'} ;
 	var ns ={'displayname':'DAV:','calendar-color':'http://apple.com/ns/ical/','calendar-description':'urn:ietf:params:xml:ns:caldav','calendar-order':'http://apple.com/ns/ical/'} ;
 	var edited = false;
@@ -981,6 +982,7 @@ function saveCalendar (e)
 	for ( var p=0; p<principals.length; p++)
 	{
 		var owner = $(principals[p]).data('principal');
+		var ace = $('ace > principal > href',acl).filter(function(o){if ($(o).text() == owner) return true; else return false;});
 		var privs = [];
 		var mod = false;
 		for ( var j in privd )
@@ -992,9 +994,22 @@ function saveCalendar (e)
 				privs.push(privd[j]);
 			if ( ( g && pg == 'no' ) || ( ! g && pg == 'yes' ) )
 				mod = true;
+			if ( g && pg == 'no' ) 
+			{
+
+				$('grant',ace).append('<privilege><'+privd[j]+'/></privilege>');
+			}
+			if ( ! g && pg == 'yes' )
+			{
+				var cpriv = $('grant > privilege > ' + privd[j] ,ace);
+				if ( $(cpriv).siblings().length == 0 )
+					$(cpriv).parent().remove();
+				else
+					$(cpriv).remove();
+			}
 		}
 		if ( mod )
-			console.log('privileges changed for ' + owner,privs);
+			console.log('privileges changed for ' + owner,$(ace).html());
 	}
 	if ( cal == 'new' )
 	{
