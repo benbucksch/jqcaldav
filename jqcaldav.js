@@ -962,7 +962,10 @@ function saveCalendar (e)
 {
 	var cd = $('#caldialog');
 	var cal = $('#caldialog ul').data('calendar');
-	var acl = $('acl',cals[c].xml).clone();
+	var cals = $(document).caldav('calendars');
+	var acl = $('acl',cals[cal].xml).clone();
+	$('ace inherited',acl).closest('ace').remove();
+	$('ace protected',acl).closest('ace').remove();
 	var props ={'displayname':'name','calendar-color':'color','calendar-description':'description','calendar-order':'order'} ;
 	var ns ={'displayname':'DAV:','calendar-color':'http://apple.com/ns/ical/','calendar-description':'urn:ietf:params:xml:ns:caldav','calendar-order':'http://apple.com/ns/ical/'} ;
 	var edited = false;
@@ -983,6 +986,22 @@ function saveCalendar (e)
 	{
 		var owner = $(principals[p]).data('principal');
 		var ace = $('ace > principal > href',acl).filter(function(o){if ($(o).text() == owner) return true; else return false;});
+		var addACE = false;
+		if ( ace.length == 0 )
+		{
+			addACE = true;
+			//ace = $('<ace><principal><href>'+owner+'</href></principal><grant></grant></ace>');
+			var ace = document.createElementNS('DAV:','ace');
+			var princpl = document.createElementNS('DAV:','principal');
+			ace.appendChild(princpl);
+			var href = document.createElementNS('DAV:','href');
+			href.appendChild(document.createTextNode(owner));
+			princpl.appendChild(href);
+			var grant = document.createElementNS('DAV:','grant');
+			ace.appendChild(grant);
+		}
+		else
+			var grant = $('grant',ace)[0];
 		var privs = [];
 		var mod = false;
 		for ( var j in privd )
@@ -996,12 +1015,16 @@ function saveCalendar (e)
 				mod = true;
 			if ( g && pg == 'no' ) 
 			{
-
-				$('grant',ace).append('<privilege><'+privd[j]+'/></privilege>');
+				var privilege = document.createElementNS('DAV:','privilege');
+				var pname = document.createElementNS('DAV:',privd[j]);
+				privilege.appendChild(pname);
+				grant.appendChild(privilege);
 			}
 			if ( ! g && pg == 'yes' )
 			{
 				var cpriv = $('grant > privilege > ' + privd[j] ,ace);
+				if ( cpriv.length == 0 )
+					continue;
 				if ( $(cpriv).siblings().length == 0 )
 					$(cpriv).parent().remove();
 				else
@@ -1009,8 +1032,26 @@ function saveCalendar (e)
 			}
 		}
 		if ( mod )
-			console.log('privileges changed for ' + owner,$(ace).html());
+		{
+			if ( addACE )
+				$(acl).append(ace);
+			else
+			{
+				var oace =$('ace > principal > href',acl).filter(function(o){if ($(o).text() == owner) return true; else return false;});
+				$(oace).replaceWith(ace);
+			}
+			console.log('privileges changed for ' + owner);
+		}
 	}
+	var s = new XMLSerializer();
+	var newacl = '<?xml version="1.0" encoding="utf-8"?>' + "\n" + s.serializeToString(acl[0]);
+	if ( debug )
+		console.log(newacl);
+	$.acl({url:cals[cal].href,username:$.fn.caldav.options.username,password:$.fn.caldav.options.password,data:newacl,
+		complete:function(r,s){
+			if (s!='success')
+				alert('error setting privileges');
+		}});
 	if ( cal == 'new' )
 	{
 		var v = $('.label:contains('+ ui.owner +') ~ .value',cd); 
@@ -1374,7 +1415,7 @@ function completePrincipal(e)
 				for (var i=0;i<m.length;i++)
 				{
 					matches.push({name:$('displayname',m[i]).text(),href:$('>href:eq(0)',m[i]).text(),mail:$("href:contains('mailto')",m[i]).text()});
-					text += '<div data-href="'+$('href',m[i]).text()+'" data-mail="'+$("href:contains('mailto')",m[i]).text()+'">' + $('displayname',m[i]).text() + '</div>';
+					text += '<div data-href="'+$('href:eq(0)',m[i]).text()+'" data-mail="'+$("href:contains('mailto')",m[i]).text()+'">' + $('displayname',m[i]).text() + '</div>';
 				}
 				$(e.target).data('matches',matches);
 				var off = $(e.target).position();
@@ -1382,11 +1423,12 @@ function completePrincipal(e)
 				$(e.target).prev().children('.completion').html(text);
 				$(e.target).prev().children('.completion').children().first().addClass('selected');
 				$(e.target).prev().children('.completion').children().click(function(a){$(e.target).text(a.target.textContent);
-					$(e.target).attr('data-principal',$(a.target).attr('href'));
+					$(e.target).attr('data-principal',$(a.target).data('href'));
 					$(e.target).attr('data-email',$(a.target).data('email'));
 					$(e.target).data('email',$(a.target).data('email'));
 					$(e.target).data('new-text',$(a.target).text());
 					$(a.target).parent().empty();
+					$(e.target).blur();
 					a.stopPropagation();
 					a.preventDefault();
 			    return false;
@@ -2356,14 +2398,14 @@ function calDrop(e)
 					{  // move the event
 						var params = { url:cals[cal[1]].url.replace(/(.*?\.[a-zA-Z]+)\/.*/,'$1'+src),
 							headers:{Destination:cals[c].url+src.replace(/^.*\//,''),Overwrite:'F','Content-type':undefined},
-							username:$('#name').val(),password:$('#pass').val()};
+							username:$.fn.caldav.options.username,password:$.fn.caldav.options.password};
 						$(document).caldav('moveEvent',params ); 
 					}
 					else
 					{  // copy the event
 						var params = { url:cals[c].url+src.replace(/^.*\//,''),
 							headers:{'If-None-Match':'*'},
-							username:$('#name').val(),password:$('#pass').val()};
+							username:$.fn.caldav.options.username,password:$.fn.caldav.options.password};
 						$(document).caldav('putNewEvent',params,ics.PARENT.toString() );
 					}
 					if ( ics.TYPE == 'vevent' )
@@ -4452,15 +4494,15 @@ function buildcal(d)
 		scrollCal($(this).parents('.timeline').data('date'));
 	});
 
-	currentTimeIndicator();
-	window.setInterval(currentTimeIndicator,3000);
 
-	var cals = $(document).caldav('calendars');
+	//var cals = $(document).caldav('calendars');
 	for ( var i=0;i<cals.length;i++)
 	{
-		$(document).caldav('getToDos', { url:cals[i].url,username:$('#user').val(),password:$('#pass').val()},i);
+		$(document).caldav('getToDos', { url:cals[i].url,username:$.fn.caldav.options.username,password:$.fn.caldav.options.password},i);
 	}
 	
+	currentTimeIndicator();
+	window.setInterval(currentTimeIndicator,3000);
 	return calwrap;
 }
 
