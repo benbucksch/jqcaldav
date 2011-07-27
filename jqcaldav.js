@@ -964,8 +964,6 @@ function saveCalendar (e)
 	var cal = $('#caldialog ul').data('calendar');
 	var cals = $(document).caldav('calendars');
 	var acl = $('acl',cals[cal].xml).clone();
-	$('ace inherited',acl).closest('ace').remove();
-	$('ace protected',acl).closest('ace').remove();
 	var props ={'displayname':'name','calendar-color':'color','calendar-description':'description','calendar-order':'order'} ;
 	var ns ={'displayname':'DAV:','calendar-color':'http://apple.com/ns/ical/','calendar-description':'urn:ietf:params:xml:ns:caldav','calendar-order':'http://apple.com/ns/ical/'} ;
 	var edited = false;
@@ -1037,6 +1035,8 @@ function saveCalendar (e)
 			console.log('privileges changed for ' + owner);
 		}
 	}
+	$('ace inherited',acl).closest('ace').remove();
+	$('ace protected',acl).closest('ace').remove();
 	var s = new XMLSerializer();
 	var newacl = '<?xml version="1.0" encoding="utf-8"?>' + "\n" + s.serializeToString(acl[0]);
 	if ( debug )
@@ -1398,7 +1398,8 @@ function completePrincipal(e)
 	}
 	else
 		s = $(e.target).text()+String.fromCharCode(e.keyCode);
-	if ( s.length > 1 )
+	var ignoreKeys=[9,13,27,33,34,35,36,37,38,39,40,45,46];
+	if ( s.length > 1 && ignoreKeys.indexOf(e.keyCode) != -1 )
 	{
 		$(document).caldav ('searchPrincipals',{url: $('.jqcaldav:first').data('caldavurl')},'displayname',s,
 			function (a)
