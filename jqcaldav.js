@@ -51,9 +51,9 @@ var defaults={ui:{calendar:"Calendars",todos:"To Do","show":"Show","sort":"Sort"
 	fieldNames:{summary:"summary",dtstart:"from",dtend:"to",duration:"duration",rrule:"repeat",rdate:"repeat on",transp:"busy",due:"due",completed:"completed",
 		status:"status",resources:"resources",priority:"priority","percent-complete":"percent complete",location:"location",geo:"coordinates",description:"description",
 		comment:"comment","class":"class",categories:"catagories",attach:"attachment",attendee:"attendee",contact:"contact",organizer:"organizer","related-to":"related to", 
-		url:"url",action:"action",repeat:"repeat",trigger:"trigger","last-modified":"last modified","request-status":"request status",'x-calendarserver-private-comment':"private comment"},
+		url:"url",action:"action",repeat:"repeat",trigger:"trigger","last-modified":"last modified","request-status":"request status",'x-calendarserver-private-comment':"private comment","x-calendarserver-access":"privacy"},
 	valueNames:{"TRANSPARENT":"transparent","OPAQUE":"opaque","TENTATIVE":"tentative","CONFIRMED":"confirmed","CANCELLED":"cancelled","NEEDS-ACTION":"needs-action",
-		"COMPLETED":"completed","IN-PROCESS":"in-process","DRAFT":"draft","FINAL":"final","CANCELLED":"cancelled","PUBLIC":"public","PRIVATE":"private",
+		"COMPLETED":"completed","IN-PROCESS":"in-process","DRAFT":"draft","FINAL":"final","CANCELLED":"cancelled","PUBLIC":"public","PRIVATE":"private","RESTRICTED":"restricted",
 		"CONFIDENTIAL":"confidential","AUDIO":"sound","DISPLAY":"message","NONE":"none","past due":"past due","upcoming":"upcoming"},
 	"durations":{"minutes before":"minutes before","hours before":"hours before","days before":"days before","weeks before":"weeks before","minutes after":"minutes after","hours after":"hours after","days after":"days after","weeks after":"weeks after","on date":"on date"},
 	"recurrenceUI":{"YEAR":"year","MONTH":"month","MONTHDAY":"day of month","YEARDAY":"day of year","WEEKNO":"week number","WEEK":"week","DAI":"day","HOUR":"hour","MINUTE":"minute","SECOND":"second","day":"day","time":"time","times":"times","until":"until","every":"every","on":"on","position0":"sixth to last","position1":"fifth to last","position2":"forth to last","position3":"third to last","position4":"second to last","position5":"last","position6":"","position7":"first","position8":"second","position9":"third","position10":"forth","position11":"fifth","position12":"sixth",	
@@ -2744,6 +2744,8 @@ function eventHover (e)
 		for ( var x in d.PARENT.components.vtodo.required){props.push(d.PARENT.components.vtodo.required[x]); }
 		for ( var x in d.PARENT.components.vtodo.optional){props.push(d.PARENT.components.vtodo.optional[x]); }
 	}
+	if ( /calendarserver-private-events/.test ( $.fn.caldav.serverSupports ) )
+		props.push('x-calendarserver-access');
 	var used = [];
 	for ( var x in props )
 	{
@@ -3096,6 +3098,8 @@ function addField(e)
 	allfields.valarm={max:-1,visible:true};
 	var possibleFields = d.PARENT.components[type].optional.slice();
 	possibleFields.push('valarm');
+	if ( /calendarserver-private-events/.test ( $.fn.caldav.serverSupports ) )
+		possibleFields.push('x-calendarserver-access');
 	var showFields = [];
 	for ( var j in possibleFields )
 	{
@@ -3809,6 +3813,8 @@ function eventEdited (e)
 		var props = d.PARENT.components.vtodo.required.concat(d.PARENT.components.vtodo.optional);
 		var missing= new Array (),type = 'vtodo';
 	}
+	if ( /calendarserver-private-events/.test ( $.fn.caldav.serverSupports ) )
+		props.push('x-calendarserver-access');
 	for ( var x in props )
 	{
 		var label = fieldNames[props[x]];

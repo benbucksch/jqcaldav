@@ -67,7 +67,12 @@ var iCal = function ( text ) {
 		link:{max:-1,visible:true,type:'uri'},
 		'related-to':{max:-1,visible:false,type:'text'},
 		'request-status':{max:-1,visible:false,type:'text'},
-		'x-calendarserver-private-comment':{max:-1,visible:true,type:'text'}, // X-properties are non standard
+		// X-properties are non standard
+		//
+		//  https://trac.calendarserver.org/browser/CalendarServer/trunk/doc/Extensions/caldav-privatecomments.txt
+		'x-calendarserver-private-comment':{max:-1,visible:true,type:'text'}, 
+		//  https://trac.calendarserver.org/browser/CalendarServer/trunk/doc/Extensions/caldav-privateevents.txt
+		'x-calendarserver-access':{max:1,visible:true,type:'text',values:{vevent:["PUBLIC","PRIVATE","CONFIDENTIAL","RESTRICTED"],vtodo:["PUBLIC","PRIVATE","CONFIDENTIAL","RESTRICTED"],vjournal:["PUBLIC","PRIVATE","CONFIDENTIAL","RESTRICTED"]}},
 	};
 
 	this.parseiCal = function ( text )
