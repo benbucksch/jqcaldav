@@ -985,12 +985,11 @@ function saveCalendar (e)
 	for ( var p=0; p<principals.length; p++)
 	{
 		var owner = $(principals[p]).data('principal');
-		var ace = $('ace > principal > href',acl).filter(function(o){if ($(o).text() == owner) return true; else return false;});
+		var ace = $('ace',acl).filter(function(){if ($('principal > href ',this).text() == owner) return true;});
 		var addACE = false;
 		if ( ace.length == 0 )
 		{
 			addACE = true;
-			//ace = $('<ace><principal><href>'+owner+'</href></principal><grant></grant></ace>');
 			var ace = document.createElementNS('DAV:','ace');
 			var princpl = document.createElementNS('DAV:','principal');
 			ace.appendChild(princpl);
@@ -1035,11 +1034,6 @@ function saveCalendar (e)
 		{
 			if ( addACE )
 				$(acl).append(ace);
-			else
-			{
-				var oace =$('ace > principal > href',acl).filter(function(o){if ($(o).text() == owner) return true; else return false;});
-				$(oace).replaceWith(ace);
-			}
 			console.log('privileges changed for ' + owner);
 		}
 	}
