@@ -2781,6 +2781,8 @@ function eventHover (e)
 		for ( var x in d.PARENT.components.vtodo.required){props.push(d.PARENT.components.vtodo.required[x]); }
 		for ( var x in d.PARENT.components.vtodo.optional){props.push(d.PARENT.components.vtodo.optional[x]); }
 	}
+	if ( /calendarserver-private-comments/.test ( $.fn.caldav.serverSupports ) )
+		props.push('x-calendarserver-private-comment');
 	if ( /calendarserver-private-events/.test ( $.fn.caldav.serverSupports ) )
 		props.push('x-calendarserver-access');
 	var used = [];
@@ -3135,6 +3137,8 @@ function addField(e)
 	allfields.valarm={max:-1,visible:true};
 	var possibleFields = d.PARENT.components[type].optional.slice();
 	possibleFields.push('valarm');
+	if ( /calendarserver-private-comments/.test ( $.fn.caldav.serverSupports ) )
+		props.push('x-calendarserver-private-comment');
 	if ( /calendarserver-private-events/.test ( $.fn.caldav.serverSupports ) )
 		possibleFields.push('x-calendarserver-access');
 	var showFields = [];
@@ -3850,6 +3854,8 @@ function eventEdited (e)
 		var props = d.PARENT.components.vtodo.required.concat(d.PARENT.components.vtodo.optional);
 		var missing= new Array (),type = 'vtodo';
 	}
+	if ( /calendarserver-private-comments/.test ( $.fn.caldav.serverSupports ) )
+		props.push('x-calendarserver-private-comment');
 	if ( /calendarserver-private-events/.test ( $.fn.caldav.serverSupports ) )
 		props.push('x-calendarserver-access');
 	for ( var x in props )
