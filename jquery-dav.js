@@ -1034,20 +1034,11 @@ jQuery.extend ({
 		},
 
 		getToDos: function ( params, cal ) { 
+			console.log( ' requesting todos for calendar('+cal+') href: ' + params.url );
+
 			$.fn.caldav('spinner',true);
 			$.report ($.extend(true,{},$.fn.caldav.options,params,{headers:{depth:1},data:'<?xml version="1.0" encoding="utf-8"?>' + "\n" +
-				'<x0:calendar-query xmlns:x0="urn:ietf:params:xml:ns:caldav" xmlns:x1="DAV:">'+
-				'  <x1:prop>'+
-				'    <x0:calendar-data/>'+
-				'    <x1:resourcetype/>'+
-				'  </x1:prop>'+
-				'  <x0:filter>'+
-				'    <x0:comp-filter name="VCALENDAR">'+
-				'      <x0:comp-filter name="VTODO">'+
-				'      </x0:comp-filter>'+
-				'    </x0:comp-filter>'+
-				'  </x0:filter>'+
-				'</x0:calendar-query>'
+				'<x0:calendar-query xmlns:x0="urn:ietf:params:xml:ns:caldav" xmlns:x1="DAV:"><x1:prop><x0:calendar-data/><x1:resourcetype/></x1:prop><x0:filter><x0:comp-filter name="VCALENDAR"><x0:comp-filter name="VTODO"></x0:comp-filter></x0:comp-filter></x0:filter></x0:calendar-query>'
 				,complete: function (r,s){ if ( cal != undefined ) { r.cal = 0 + cal; }
 					$.fn.caldav('spinner',false);
 				 	if (s=='success')

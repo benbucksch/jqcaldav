@@ -4492,7 +4492,9 @@ function buildcal(d)
 	//var cals = $(document).caldav('calendars');
 	for ( var i=0;i<cals.length;i++)
 	{
+		cals[i].url = String ( cals[i].url ).replace ( /\/\//g, '/' );
 		$(document).caldav('getToDos', { url:cals[i].url,username:$.fn.caldav.options.username,password:$.fn.caldav.options.password},i);
+		console.log( ' requesting todos for calendar('+i+') href: ' + cals[i].url );
 	}
 	
 	currentTimeIndicator();
