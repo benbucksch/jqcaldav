@@ -2678,19 +2678,19 @@ function newevent (e)
 			}
 			);
 	var ul = $('<ul></ul>');
-	$(ul).append('<li><span class="label summary">'+fieldNames.summary+'</span><span class="value">'+ui[ics.vcalendar['v'+type].summary.VALUE]+'</span></li>');
+	$(ul).append('<li><span class="label summary" data-field="summary" >'+fieldNames.summary+'</span><span class="value">'+ui[ics.vcalendar['v'+type].summary.VALUE]+'</span></li>');
 	if ( type == 'event' ) 
 	{
 		d.setUTCHours((new Date()).getHours());
-		$(ul).append('<li><span class="label ESTART">'+fieldNames.dtstart+'</span><span class="value">'+d.prettyDate() +'</span></li>');
+		$(ul).append('<li><span class="label ESTART" data-field="EEND" >'+fieldNames.dtstart+'</span><span class="value">'+d.prettyDate() +'</span></li>');
 		d.setUTCHours(d.getUTCHours()+1);
-		$(ul).append('<li><span class="label EEND">'+fieldNames.dtend+'</span><span class="value">'+d.prettyDate() +'</span></li>');
+		$(ul).append('<li><span class="label EEND" data-field="EEND" >'+fieldNames.dtend+'</span><span class="value">'+d.prettyDate() +'</span></li>');
 	}
 	else if ( type == 'todo' ) 
 	{
 	var d = new Date();
 		d.setUTCDate((new Date()).getDate()+1);
-		$(ul).append('<li><span class="label due">'+fieldNames.due+'</span><span class="value">'+d.prettyDate() +'</span></li>');
+		$(ul).append('<li><span class="label due" data-field="due" >'+fieldNames.due+'</span><span class="value">'+d.prettyDate() +'</span></li>');
 	}
 	$(pop).append(ul);
 	var off = $(e.target).offset();
@@ -3138,7 +3138,7 @@ function addField(e)
 	var possibleFields = d.PARENT.components[type].optional.slice();
 	possibleFields.push('valarm');
 	if ( /calendarserver-private-comments/.test ( $.fn.caldav.serverSupports ) )
-		props.push('x-calendarserver-private-comment');
+		possibleFields.push('x-calendarserver-private-comment');
 	if ( /calendarserver-private-events/.test ( $.fn.caldav.serverSupports ) )
 		possibleFields.push('x-calendarserver-access');
 	var showFields = [];
