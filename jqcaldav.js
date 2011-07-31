@@ -2391,13 +2391,17 @@ function calDrop(e)
 				{
 					if ( ! e.altKey )
 					{  // move the event
-						var params = { url:cals[cal[1]].url.replace(/(.*?\.[a-zA-Z]+)\/.*/,'$1'+src),
+						if ( debug )
+							console.log(' moving ' + src + ' to ' + cals[c].url+src.replace(/^.*\//,'') );
+						var params = { url: window.location.protocol + '//' + window.location.hostname + (window.location.port?':'+window.location.port:'')+ src,
 							headers:{Destination:cals[c].url+src.replace(/^.*\//,''),Overwrite:'F','Content-type':undefined},
 							username:$.fn.caldav.options.username,password:$.fn.caldav.options.password};
 						$(document).caldav('moveEvent',params ); 
 					}
 					else
 					{  // copy the event
+						if ( debug )
+							console.log(' copying ' + src + ' to ' + cals[c].url+src.replace(/^.*\//,'') );
 						var params = { url:cals[c].url+src.replace(/^.*\//,''),
 							headers:{'If-None-Match':'*'},
 							username:$.fn.caldav.options.username,password:$.fn.caldav.options.password};
@@ -2416,8 +2420,13 @@ function calDrop(e)
 				var src = $(old).attr('href');
 				var ics = $(old).data('ics');
 				var c = $(old).attr('class').match(/calendar(\d+)/)[1];
+				var newc = $('#callist li.selected'); 
+				newc = $(newc).attr('class').match(/calendar(\d+)/)[1];
+				var cals = $(document).caldav('calendars');
 				if ( $(np).length == 0 ) 
 				{
+					if ( c == newc && ! e.altKey )
+						return;
 					np = $(e.cTarget).closest('#caltodo');
 					var nics = new iCal('vtodo').ics[0];
 					var ve = nics.vcalendar.vtodo;
@@ -2432,11 +2441,14 @@ function calDrop(e)
 							ve[i] = ics.vcalendar[ics.TYPE][i];
 					}
 					if ( ics.vcalendar[ics.TYPE].dtend )
-					nics.vcalendar.vtodo.due.UPDATE ( ics.vcalendar[ics.TYPE].dtend );
-					src = String(src).replace ( /(\.[a-zA-Z]*)$/, '-1$1');
+						nics.vcalendar.vtodo.due.UPDATE ( ics.vcalendar[ics.TYPE].dtend );
+					ve['uid'].VALUE = guid();
+					src = cals[newc].url+src.replace(/^.*\//,'');
+					if ( c == newc )
+						String(src).replace ( /(\.[a-zA-Z]*)$/, '-1$1');
 					var params = { url:src};
 					$(document).caldav('putNewEvent',params,nics.PARENT.toString() ); 
-					insertTodo(src,nics,c,$('#wcal').data('firstweek' ),$('#wcal').data('lastweek'));
+					insertTodo(src,nics,newc,$('#wcal').data('firstweek' ),$('#wcal').data('lastweek'));
 				}
 				else
 				{
@@ -2521,6 +2533,7 @@ function calDrop(e)
 						}
 						nics.vcalendar.vevent.dtstart.UPDATE ( (new Date(d1.getTime())) );
 						nics.vcalendar.vevent.dtend.UPDATE ( d1.add('h',1) );
+						ve['uid'].VALUE = guid();
 						src = String(src).replace ( /(\.[a-zA-Z]*)$/, '-1$1');
 						var params = { url:src};
 						$(document).caldav('putNewEvent',params,nics.PARENT.toString() ); 
@@ -4606,13 +4619,40 @@ function calstyle ()
 	'.calfooter > DIV { overflow: hidden; -webkit-transition-property: all; -webkit-transition-duration: .2s; -moz-transition-property: all; -moz-transition-duration: .2s; transition-property: all; transition-duration: .2s; }' + "\n" +
 	'.calfooter > DIV:hover { -moz-box-shadow: inset 0px 0px 3px 0px #aaa; -webkit-box-shadow: inset 0px 0px 3px 0px #aaa; box-shadow: inset 0px 0px 3px 0px #aaa;} ' + "\n" +
 	
-	'#caltodo {  float: right;  width: 15%;  overflow-x: hidden; min-height: 6em; height: 100%; background-color: #EFEFFF; border-left: 1px solid #AAA; margin-left: -1px; margin-right: 0; '+
+	'#caltodo { position: relative; float: right;  width: 15%;  overflow-x: hidden; min-height: 6em; height: 100%; background-color: #EFEFFF; border-left: 1px solid #AAA; margin-left: -1px; margin-right: 0; '+
 		'background-image: url(\'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAABCAYAAAAW/mTzAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAN1wAADdcBQiibeAAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAAAUSURBVAiZY/z06dN/BiTAy8vLCABHcQP/jGwD2gAAAABJRU5ErkJggg==\'); }' + "\n" +
 	'#caltodo > .sidetitle { font-size: 200%; font-weight: lighter; border-bottom:1px solid #AAA; text-align: center; padding: 0 0 .6em 0; margin:0;}' + "\n" +
 	'#caltodo > .sidetitle div.button { display: block; font-size: 50%; font-weight: lighter; border: none !important; text-align: center; width: 100%; margin:0;}' + "\n" +
 	'#caltodo > .sidetitle span { display: block; float: left; width: 50%; margin:-1px; padding:0; position: relative; bottom: -0.43em;}' + "\n" +
 	'#caltodo ul { position: absolute; top: 3.6em; bottom: 0; overflow-x: hidden; overflow-y: auto; margin: 0; padding: 0px; list-style: none; width: 100%; } ' + "\n" +
 	'#caltodo ul li { overflow: hidden; display: block; margin: 0; padding: 0; padding-left: 0; margin-bottom: .75em; line-height: 1.2em; list-style-type: none;  } ' + "\n" +
+	
+	'li[priority="1"]::after { display: block; position: relative; left: 100%; width: .7em; margin-left: -0.7em; top: -0.8em; height: .3em; border-top: .15em solid #444; border-bottom: .15em solid #444; content: " " } ' +
+	'li[priority="1"]::before { display: block; position: absolute; left: 100%; width: .7em; margin-left: -0.7em; margin-top: -0.05em; height: .2em; border-top: .15em solid #444; content: " " } ' +
+
+	'li[priority="2"]::after { display: block; position: relative; left: 100%; width: .7em; margin-left: -0.7em; top: -0.8em; height: .3em; border-top: .15em solid #444; border-bottom: .15em solid #444; content: " " } ' +
+	'li[priority="2"]::before { display: block; position: absolute; left: 100%; width: .7em; margin-left: -0.7em; margin-top: -0.05em; height: .2em; border-top: .15em solid #444; content: " " } ' +
+
+	'li[priority="3"]::after { display: block; position: relative; left: 100%; width: .7em; margin-left: -0.7em; top: -0.8em; height: .3em; border-top: .15em solid #444; border-bottom: .15em solid #444; content: " " } ' +
+	'li[priority="3"]::before { display: block; position: absolute; left: 100%; width: .7em; margin-left: -0.7em; margin-top: -0.05em; height: .2em; border-top: .15em solid #444; content: " " } ' +
+
+	'li[priority="4"]::after { display: block; position: relative; left: 100%; width: .7em; margin-left: -0.7em; top: -0.8em; height: .3em; border-top: .15em solid #444; border-bottom: .15em solid #444; content: " " } ' +
+	'li[priority="4"]::before { display: block; position: absolute; left: 100%; width: .7em; margin-left: -0.7em; margin-top: -0.05em; height: .2em; border-top: .15em solid #444; content: " " } ' +
+
+	'li[priority="5"]::after { display: block; position: relative; left: 100%; width: .7em; margin-left: -0.7em; top: -0.8em; height: .3em; border-top: .15em solid #444; border-bottom: .15em solid #444; content: " " } ' +
+	'li[priority="5"]::before { display: block; position: absolute; left: 100%; width: .7em; margin-left: -0.7em; margin-top: -0.05em; height: .2em; border-top: .15em solid #999; content: " " } ' +
+
+	'li[priority="6"]::after { display: block; position: relative; left: 100%; width: .7em; margin-left: -0.7em; top: -0.8em; height: .3em; border-top: .15em solid #999; border-bottom: .15em solid #444; content: " " } ' +
+	'li[priority="6"]::before { display: block; position: absolute; left: 100%; width: .7em; margin-left: -0.7em; margin-top: -0.05em; height: .2em; border-top: .15em solid #999; content: " " } ' +
+
+	'li[priority="7"]::after { display: block; position: relative; left: 100%; width: .7em; margin-left: -0.7em; top: -0.8em; height: .3em; border-top: .15em solid #999; border-bottom: .15em solid #444; content: " " } ' +
+	'li[priority="7"]::before { display: block; position: absolute; left: 100%; width: .7em; margin-left: -0.7em; margin-top: -0.05em; height: .2em; border-top: .15em solid #999; content: " " } ' +
+
+	'li[priority="8"]::after { display: block; position: relative; left: 100%; width: .7em; margin-left: -0.7em; top: -0.8em; height: .3em; border-top: .15em solid #999; border-bottom: .15em solid #444; content: " " } ' +
+	'li[priority="8"]::before { display: block; position: absolute; left: 100%; width: .7em; margin-left: -0.7em; margin-top: -0.05em; height: .2em; border-top: .15em solid #999; content: " " } ' +
+
+	'li[priority="9"]::after { display: block; position: relative; left: 100%; width: .7em; margin-left: -0.7em; top: -0.8em; height: .3em; border-top: .15em solid #999; border-bottom: .15em solid #444; content: " " } ' +
+	'li[priority="9"]::before { display: block; position: absolute; left: 100%; width: .7em; margin-left: -0.7em; margin-top: -0.05em; height: .2em; border-top: .15em solid #999; content: " " } ' +
 
 	'#wcal { width: 100%; overflow: scroll; float: left; overflow-x: hidden; height:24em; border-spacing:0; padding:0; margin:0; margin-left: 0.95em; margin-right: -9px; border:0; border-top: 1px solid #AAA; border-left: 1px solid #AAA; }' + "\n" + 
 	
