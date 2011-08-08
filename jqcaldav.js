@@ -2055,7 +2055,7 @@ function insertInvite ( href, icsObj )
 	if ( $('#calinvites .event[href="'+href+'"]').length > 0 )
 	{
 		// TODO update existing invite if etag changed 
-		('#calinvites .event[href="'+href+'"]').remove();
+		$('#calinvites .event[href="'+href+'"]').remove();
 		//return; 
 	}
 	var entry = $('<li class="event calendar0" data-method="'+ icsObj.vcalendar.method +'" data-time="' + sortorder + '" href="' + href + '" uid="' + uid + '" data-from="'+from+'" draggable="true" >'+desc+'</li>');
@@ -2664,7 +2664,6 @@ function newevent (e)
 	if ( $(e.target).closest('td').length > 0 )
 	{
 		var dte = $(e.target).closest('td').attr('id').match(/day_(\d+)/)[1];
-		console.log('new day');
 		d = (new Date()).parseDate(dte);
 		type = 'event';
 	}
@@ -2696,9 +2695,9 @@ function newevent (e)
 	if ( type == 'event' ) 
 	{
 		d.setUTCHours((new Date()).getHours());
-		$(ul).append('<li><span class="label ESTART" data-field="EEND" >'+fieldNames.dtstart+'</span><span class="value">'+d.prettyDate() +'</span></li>');
+		$(ul).append('<li><span class="label ESTART" data-field="from" >'+fieldNames.dtstart+'</span><span class="value">'+d.prettyDate() +'</span></li>');
 		d.setUTCHours(d.getUTCHours()+1);
-		$(ul).append('<li><span class="label EEND" data-field="EEND" >'+fieldNames.dtend+'</span><span class="value">'+d.prettyDate() +'</span></li>');
+		$(ul).append('<li><span class="label EEND" data-field="to" >'+fieldNames.dtend+'</span><span class="value">'+d.prettyDate() +'</span></li>');
 	}
 	else if ( type == 'todo' ) 
 	{
@@ -3860,7 +3859,7 @@ function eventEdited (e)
 		var datefields = {from:'dtstart',to:'dtend',due:'due',completed:'completed'};
 	if ( d.vcalendar.vevent != undefined )
 	{
-		var props = d.PARENT.components.vevent.required.concat(d.PARENT.components.vevent.optional);
+		var props = d.PARENT.components.vevent.required.concat(d.PARENT.components.vevent.optional).concat(['ESTART','EEND']);
 		var missing= new Array (),type = 'vevent';
 	}	
 	else if ( d.vcalendar.vtodo != undefined )

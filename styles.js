@@ -196,11 +196,11 @@ function calstyle ()
 	'#callist > li > ul > li { margin-left: 0; padding-left: 1.5em; list-style-type: none; padding-top: .12em; padding-bottom: .12em; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; } ' + "\n" +
 	'#callist > li > ul > li.selected { background: #CCD; background: -moz-linear-gradient(top, #CCD 0%, #AAA 100%); background: -webkit-gradient(linear, left top, left bottom, from(#CCD), to(#AAA)); background: -webkit-linear-gradient(top, #CCD 0%, #AAA 100%); background: linear-gradient(top, #CCD 0%, #AAA 100%); text-shadow: 0 1px 1px rgba(255,255,255,0.75), 0 -1px 1px rgba(0,0,0,0.1); } ' + "\n" +
 	'#invitewrap { margin: 0; padding: 0px; overflow: hidden; position: relative; width: 100%; height: 100%; padding-top: 1.25em; padding-bottom: 1.2em; } ' + "\n" +	
-	'#calinvites { margin: 0; padding: 0px; list-style-type: none; overflow-x: hidden; overflow-y: scroll; width: 100%; bottom: .1em; padding-bottom: 1em; padding-right: 16px; max-height: 100%; } ' + "\n" +	
+	'#calinvites { margin: 0; padding: 0px; list-style-type: none; overflow-x: hidden; overflow-y: scroll; width: 100%; bottom: .1em; padding-bottom: 1em; padding-right: 16px; max-height: 100%; min-height: 5em; } ' + "\n" +	
 	'#calinvites li { margin-right: -16px; } ' + "\n" +
 	'#calinvites li.event::after { content: "'+ui.inviteFrom+' " attr(data-from); display: block; position: relative; font-size: 90%; color: #444; } ' + "\n" +
 	'#calinvites li.event:hover { color: black; background: #DDD; } ' + "\n" +
-	'#calinvites li.header { display: block; font-size: 120%; border-bottom: 1px solid #AAA; background: #DDD; position: absolute; z-index: 100; width: 100%; margin-top: -1.225em; } ' + "\n" +
+	'#calinvites li.header { display: block; font-size: 120%; border-bottom: 1px solid #AAA; background: #DDD; position: absolute; z-index: 100; width: 100%; top: 0; } ' + "\n" +
 	'#calinvites li.header:hover { background: #DDD; } ' + "\n" +
 	'#calinvites li.header:nth-last-child(1) { display: none; } ' + "\n" +
 //	'#calinvites li:first-child::before { content: "'+ui.invitations+' "; display: block; position: relative; height: 1px; overflow: visible; baseline-shift: -1em; font-size: 120%; margin-top: -1em; border-bottom: 1px solid #AAA; } ' + "\n" +
