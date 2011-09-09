@@ -3188,7 +3188,7 @@ function addField(e)
 				var val = ($.fn.caldav.principals[$.fn.caldav.principalMap[$.fn.caldav.data.myPrincipal]].email?
 					'mailto:'+$.fn.caldav.principals[$.fn.caldav.principalMap[$.fn.caldav.data.myPrincipal]].email:
 					$.fn.caldav.principals[$.fn.caldav.principalMap[$.fn.caldav.data.myPrincipal]].href);
-				var txt = $('<li><span class="label">'+fieldNames.organizer+'</span><span class="value" contenteditable="true" data-cn="'+
+				var txt = $('<li><span class="label" data-field="'+fieldNames.organizer+'" >'+fieldNames.organizer+'</span><span class="value" contenteditable="true" data-cn="'+
 					$.fn.caldav.principals[$.fn.caldav.principalMap[$.fn.caldav.data.myPrincipal]].name+'" data-value="'+
 					val+'" spellcheck="true">'+$.fn.caldav.principals[$.fn.caldav.principalMap[$.fn.caldav.data.myPrincipal]].name+'</span></li>');
 				var cp = $(this).closest('li').before(txt);
@@ -3198,11 +3198,11 @@ function addField(e)
 				var val = ($.fn.caldav.principals[$.fn.caldav.principalMap[$.fn.caldav.data.myPrincipal]].email?
 					'mailto:'+$.fn.caldav.principals[$.fn.caldav.principalMap[$.fn.caldav.data.myPrincipal]].email:
 					$.fn.caldav.principals[$.fn.caldav.principalMap[$.fn.caldav.data.myPrincipal]].href);
-				var txt = $('<li><span class="label">'+fieldNames.organizer+'</span><span class="value" contenteditable="true" data-cn="'+
+				var txt = $('<li><span class="label" data-field="'+fieldNames.organizer+'" >'+fieldNames.organizer+'</span><span class="value" contenteditable="true" data-cn="'+
 					$.fn.caldav.principals[$.fn.caldav.principalMap[$.fn.caldav.data.myPrincipal]].name+'" data-value="'+val
 					+'" spellcheck="true">'+$.fn.caldav.principals[$.fn.caldav.principalMap[$.fn.caldav.data.myPrincipal]].name+'</span></li>');
 				var cp = $(this).closest('li').before(txt);
-				var txt = $('<li><span class="label">'+$(this).text()+'</span><span class="value" contenteditable="true" spellcheck="true"></span></li>');
+				var txt = $('<li><span class="label" data-field="'+fieldNames.attendee+'" >'+$(this).text()+'</span><span class="value" contenteditable="true" spellcheck="true"></span></li>');
 				$('.value',txt).replaceWith(printAttendee());
 				var cp = $(this).closest('li').before(txt);
 			}
@@ -3241,6 +3241,29 @@ function addField(e)
 					$('.value',txt).replaceWith(plus);
 					var cp = $(this).closest('li').before(txt);
 					$('.action,.length,.related',cp).bind('click, focus',alarmFieldClick);
+				}
+				else if ( $(this).text() == fieldNames.organizer )
+				{
+					var val = ($.fn.caldav.principals[$.fn.caldav.principalMap[$.fn.caldav.data.myPrincipal]].email?
+						'mailto:'+$.fn.caldav.principals[$.fn.caldav.principalMap[$.fn.caldav.data.myPrincipal]].email:
+						$.fn.caldav.principals[$.fn.caldav.principalMap[$.fn.caldav.data.myPrincipal]].href);
+					var txt = $('<li><span class="label" data-field="'+fieldNames.organizer+'" >'+fieldNames.organizer+'</span><span class="value" contenteditable="true" data-cn="'+
+						$.fn.caldav.principals[$.fn.caldav.principalMap[$.fn.caldav.data.myPrincipal]].name+'" data-value="'+
+						val+'" spellcheck="true">'+$.fn.caldav.principals[$.fn.caldav.principalMap[$.fn.caldav.data.myPrincipal]].name+'</span></li>');
+					var cp = $(this).closest('li').before(txt);
+				}
+				else if ( $(this).text() == fieldNames.attendee )
+				{
+					var val = ($.fn.caldav.principals[$.fn.caldav.principalMap[$.fn.caldav.data.myPrincipal]].email?
+						'mailto:'+$.fn.caldav.principals[$.fn.caldav.principalMap[$.fn.caldav.data.myPrincipal]].email:
+						$.fn.caldav.principals[$.fn.caldav.principalMap[$.fn.caldav.data.myPrincipal]].href);
+					var txt = $('<li><span class="label" data-field="'+fieldNames.organizer+'" >'+fieldNames.organizer+'</span><span class="value" contenteditable="true" data-cn="'+
+						$.fn.caldav.principals[$.fn.caldav.principalMap[$.fn.caldav.data.myPrincipal]].name+'" data-value="'+val
+						+'" spellcheck="true">'+$.fn.caldav.principals[$.fn.caldav.principalMap[$.fn.caldav.data.myPrincipal]].name+'</span></li>');
+					var cp = $(this).closest('li').before(txt);
+					var txt = $('<li><span class="label" data-field="'+fieldNames.attendee+'" >'+$(this).text()+'</span><span class="value" contenteditable="true" spellcheck="true"></span></li>');
+					$('.value',txt).replaceWith(printAttendee());
+					var cp = $(this).closest('li').before(txt);
 				}
 				else if ( $(this).text() == fieldNames.rrule )
 				{
@@ -4354,7 +4377,7 @@ function buildcal(d)
 	if ( settings.todoShow )
 		var show = settings.todoShow;
 	else
-		var show = "completed,cancelled,past due,upcoming,needs-action,in-process";
+		var show = "COMPLETED,CANCELLED,past due,upcoming,NEEDS-ACTION,IN-PROCESS";
 	if ( settings.todoSort )
 		var sort = settings.todoSort;
 	else
