@@ -1402,7 +1402,7 @@ function completePrincipal(e)
 	else
 		s = $(e.target).text()+String.fromCharCode(e.keyCode);
 	var ignoreKeys=[9,13,27,33,34,35,36,37,38,39,40,45,46];
-	if ( s.length > 1 && ignoreKeys.indexOf(e.keyCode) != -1 )
+	if ( s.length > 1 && ignoreKeys.indexOf(e.keyCode) == -1 )
 	{
 		$(document).caldav ('searchPrincipals',{url: $('.jqcaldav:first').data('caldavurl')},'displayname',s,
 			function (a)
