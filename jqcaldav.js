@@ -42,7 +42,7 @@ function getTZ ( d )
 	return false;
 }
 
-var defaults={ui:{calendar:"Calendars",todos:"To Do","show":"Show","sort":"Sort","add":"Add",settings:"Settings",subscribe:"Subscribe",today:"Today",week:"Week",month:"Month",start:"Day Starts",end:"Day Ends",twentyFour:"24 Hour Time",username:'Username',password:'Password','go':'go','New Event':'New Event','New Todo':'New Todo','New Journal':'New Journal',"alarm":"alarm","done":"Done","delete":"Delete","name":"name","color":"color","description":"description","url":"url","privileges":"privileges","logout":"Logout","new calendar":"New Calendar","yes":"yes","no":"no","logout error":"Error logging out, please CLOSE or RESTART your browser!","owner":"Owner","subscribed":"Subscribed","lock failed":"failed to acquire lock, may not be able to save changes",loading:'working','update frequency':'update frequency',usealarms:"Enable Alarms","listSeparator":",","manual":"manual","bind":"bind","unbind":"unbind","refresh":"refresh","path":"Path","source":"Source","available":"Show Availibility","resolve":"Next Availible","inviteFrom":"from","invitations":"Invitations","accept":"accept","maybe":"maybe","decline":"decline"},
+var defaults={ui:{calendar:"Calendars",todos:"To Do","show":"Show","sort":"Sort","add":"Add",settings:"Settings",subscribe:"Subscribe",today:"Today",week:"Week",month:"Month",start:"Day Starts",end:"Day Ends",twentyFour:"24 Hour Time",username:'Username',password:'Password','go':'go','New Event':'New Event','New Todo':'New Todo','New Journal':'New Journal',"alarm":"alarm","done":"Done","delete":"Delete","name":"name","color":"color","description":"description","url":"url","privileges":"privileges","logout":"Logout","new calendar":"New Calendar","yes":"yes","no":"no","logout error":"Error logging out, please CLOSE or RESTART your browser!","owner":"Owner","subscribed":"Subscribed","lock failed":"failed to acquire lock, may not be able to save changes",loading:'working','update frequency':'update frequency',usealarms:"Enable Alarms","listSeparator":",","manual":"manual","bind":"bind","unbind":"unbind","refresh":"refresh","user":"User","path":"Path","source":"Source","available":"Show Availibility","resolve":"Next Availible","inviteFrom":"from","invitations":"Invitations","accept":"accept","maybe":"maybe","decline":"decline"},
 	months:["January","February","March","April","May","June","July","August","September","October","November","December"],
 	weekdays:["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
 	dropquestion:["Do you want to move",["All occurences","This one occurence"]],
@@ -769,15 +769,18 @@ function editCalendar (e)
 	for ( var i in props )
 		$(ul).append ('<li><span class="label">'+ui[props[i]]+'</span><span class="value" data-prop="' + props[i] + 
 				'" data-value="' + cals[c][i] + '" contenteditable="true">'+ cals[c][i] +'</span></li>');
-	if ( ! noprivs )
+	if ( ! noprivs && ( cals[c].perms['read'] || cals[c].perms['read-acl'] ) )
 	{
+		var write = false;
+		if ( cals[c].perms['write'] || cals[c].perms['write-acl'] )
+			write = true;
 		var acl = $('acl > ace:has(href)',cals[c].xml);
 		var supported_acl = $('supported-privilege-set',cals[c].xml);
 		var li = $('<li><span class="label" privileges="true" >'+ui.privileges+'</span></li>'); 
 		$(li).hover(function(){$($('#wcal').data('popup')).css({overflow:'visible'});},function(){$($('#wcal').data('popup')).css({overflow:'auto'});});
 		for (i=0;i<acl.length;i++)
 		{
-			$(li).append (  privilegeBox( acl[i], supported_acl ) );
+			$(li).append (  privilegeBox( acl[i], supported_acl , write ) );
 		}
 		$(li).append ( '<div class="completionWrapper"><div class="completion"></div></div><span class="value" data-principal="new principal" contenteditable="true">'+ui.add+'</span>' );
 		$('span:[data-principal="new principal"]',li).focus(function(e){$($('#wcal').data('popup')).css({overflow:'visible'});if ($(this).text()==ui.add)$(this).text('');});
@@ -787,7 +790,7 @@ function editCalendar (e)
 				if ($(this).text()=='')$(this).text(ui.add);
 				if ( $(this).attr('data-principal').length > 1 && $(this).attr('data-principal') != "new principal" )
 				{
-					$(this).prev().before(privilegeBox($('<ace><principal><href>'+$(this).attr('data-principal')+'</href></principal></ace>')));
+					$(this).prev().before(privilegeBox($('<ace><principal><href>'+$(this).attr('data-principal')+'</href></principal></ace>'),supported_acl,true));
 					$(this).attr('data-principal','new principal');
 					$(this).removeData('principal');
 					$(this).text(ui.add);
@@ -804,7 +807,7 @@ function editCalendar (e)
 	draggable ( $('#caldialog') );
 	$('#caldialog').show();
 	$('#caldialog li span:contains(name) + span').focus();
-	if ( cals[c].bound == false )
+	if ( /bind/.test ( $.fn.caldav.serverSupports ) )
 		$('#caldialog').append('<div class="button bind" tabindex="0">'+ui['bind']+'</div>');
 	//else
 	//	$('#caldialog').append('<div class="button unbind" tabindex="0">'+ui['unbind']+'</div>');
@@ -868,11 +871,15 @@ function bind ( c )
 	var cals = $(document).caldav('calendars');
 	$('#caldialog').empty();
 	var ul = $('<ul data-calendar="' + c + '" ></ul>');
-	var props = {"name":"name","path":"path","source":"source"};
+	var props = {"name":"name","user":"user","source":"source"};
 	for ( var i in props )
 		$(ul).append ('<li><span class="label">'+ui[props[i]]+'</span><span class="value ' + props[i] + '" data-prop="' + props[i] + 
 				'" contenteditable="true">'+ i +'</span></li>');
 	$('#caldialog').append(ul);
+	$('#caldialog span.user').data('principal',$.fn.caldav.principals[$.fn.caldav.principalMap[$.fn.caldav.data.myPrincipal]].href);
+	$('#caldialog span.user').text($.fn.caldav.principals[$.fn.caldav.principalMap[$.fn.caldav.data.myPrincipal]].name);
+	$('#caldialog span.user').before('<div class="completionWrapper"><div class="completion"></div></div>');
+	$('#caldialog span.user').keydown(completePrincipal);
 	$('#caldialog').css({overflow:'auto'});
 	$('#caldialog').append('<div class="button done" tabindex="0">'+ui['done']+'</div>');
 	if ( (0+c) > -1 )
@@ -885,8 +892,10 @@ function bind ( c )
 			if ( $(this).hasClass('done') )
 			{
 				var name = $('#caldialog span.name').text();
-				var path = $('#caldialog span.path').text();
+				var path = $('#caldialog span.user').data('principal');
 				var source = $('#caldialog span.source').text();
+				if ( debug )
+					console.log('bind', name, path , source );
 				$(document).caldav('bind', name, path , source );
 				$(e.target).closest('.calpopup').fadeOut();
 				$('#wcal').removeData('popup'); 
@@ -898,8 +907,10 @@ function bind ( c )
 	$('#caldialog').fadeIn();
 }
 
-function privilegeBox ( acl, supported )
+function privilegeBox ( acl, supported, write )
 {
+	if ( write !== true )
+		write = false
 	var privd = {
 		all:['bind','unbind','unlock'],
 		read:['acl','free-busy','privileges'],
@@ -953,7 +964,8 @@ function privilegeBox ( acl, supported )
 		$(li).append(line);
 		$(box).append(li);
 	}
-	$('li',box).click(function (){$(this).toggleClass('granted');return false});
+	if ( write )
+		$('li',box).click(function (){$(this).toggleClass('granted');return false});
 	$(who).append(box);
 	return who;
 }
@@ -980,70 +992,73 @@ function saveCalendar (e)
 			edited = true;
 		}
 	}
-	var privd = ['all','bind','unbind','unlock','read','read-acl','read-free-busy','read-privileges','write','write-content','write-properties','write-acl','schedule-send','schedule-send-invite','schedule-send-reply','schedule-send-freebusy','schedule-deliver','schedule-deliver-invite','schedule-deliver-reply','schedule-query-freebusy'];
-	
-	var principals = $('.label:contains('+ ui.privileges +') ~ .privilegeOwner',cd);
-	for ( var p=0; p<principals.length; p++)
+	if ( cals[cal] && ( cals[cal].all || cals[cal].perms.write || cals[cal].perms['write-acl'] ) )
 	{
-		var owner = $(principals[p]).data('principal');
-		var ace = $('ace',acl).filter(function(){if ($('principal > href ',this).text() == owner) return true;});
-		var addACE = false;
-		if ( ace.length == 0 )
+		var privd = ['all','bind','unbind','unlock','read','read-acl','read-free-busy','read-privileges','write','write-content','write-properties','write-acl','schedule-send','schedule-send-invite','schedule-send-reply','schedule-send-freebusy','schedule-deliver','schedule-deliver-invite','schedule-deliver-reply','schedule-query-freebusy'];
+		
+		var principals = $('.label:contains('+ ui.privileges +') ~ .privilegeOwner',cd);
+		for ( var p=0; p<principals.length; p++)
 		{
-			addACE = true;
-			var ace = document.createElementNS('DAV:','ace');
-			var princpl = document.createElementNS('DAV:','principal');
-			ace.appendChild(princpl);
-			var href = document.createElementNS('DAV:','href');
-			href.appendChild(document.createTextNode(owner));
-			princpl.appendChild(href);
-			var grant = document.createElementNS('DAV:','grant');
-			ace.appendChild(grant);
-		}
-		else
-			var grant = $('grant',ace)[0];
-		var privs = [];
-		var mod = false;
-		for ( var j in privd )
-		{
-			var cp = $('li[data-priv="'+privd[j] +'"]',principals[p]);
-			var g = $(cp).hasClass('granted');
-			var pg = $(cp).data('granted');
-			if ( g )
-				privs.push(privd[j]);
-			if ( ( g && pg == 'no' ) || ( ! g && pg == 'yes' ) )
-				mod = true;
-			if ( g && pg == 'no' ) 
+			var owner = $(principals[p]).data('principal');
+			var ace = $('ace',acl).filter(function(){if ($('principal > href ',this).text() == owner) return true;});
+			var addACE = false;
+			if ( ace.length == 0 )
 			{
-				var privilege = document.createElementNS('DAV:','privilege');
-				var pname = document.createElementNS('DAV:',privd[j]);
-				privilege.appendChild(pname);
-				grant.appendChild(privilege);
+				addACE = true;
+				var ace = document.createElementNS('DAV:','ace');
+				var princpl = document.createElementNS('DAV:','principal');
+				ace.appendChild(princpl);
+				var href = document.createElementNS('DAV:','href');
+				href.appendChild(document.createTextNode(owner));
+				princpl.appendChild(href);
+				var grant = document.createElementNS('DAV:','grant');
+				ace.appendChild(grant);
 			}
-			if ( ! g && pg == 'yes' )
+			else
+				var grant = $('grant',ace)[0];
+			var privs = [];
+			var mod = false;
+			for ( var j in privd )
 			{
-				var cpriv = $('grant > privilege > ' + privd[j] ,ace);
-				if ( cpriv.length == 0 )
-					continue;
-				if ( $(cpriv).siblings().length == 0 )
-					$(cpriv).parent().remove();
-				else
-					$(cpriv).remove();
+				var cp = $('li[data-priv="'+privd[j] +'"]',principals[p]);
+				var g = $(cp).hasClass('granted');
+				var pg = $(cp).data('granted');
+				if ( g )
+					privs.push(privd[j]);
+				if ( ( g && pg == 'no' ) || ( ! g && pg == 'yes' ) )
+					mod = true;
+				if ( g && pg == 'no' ) 
+				{
+					var privilege = document.createElementNS('DAV:','privilege');
+					var pname = document.createElementNS('DAV:',privd[j]);
+					privilege.appendChild(pname);
+					grant.appendChild(privilege);
+				}
+				if ( ! g && pg == 'yes' )
+				{
+					var cpriv = $('grant > privilege > ' + privd[j] ,ace);
+					if ( cpriv.length == 0 )
+						continue;
+					if ( $(cpriv).siblings().length == 0 )
+						$(cpriv).parent().remove();
+					else
+						$(cpriv).remove();
+				}
+			}
+			if ( mod )
+			{
+				if ( addACE )
+					$(acl).append(ace);
+				console.log('privileges changed for ' + owner);
 			}
 		}
-		if ( mod )
-		{
-			if ( addACE )
-				$(acl).append(ace);
-			console.log('privileges changed for ' + owner);
-		}
+		$('ace inherited',acl).closest('ace').remove();
+		$('ace protected',acl).closest('ace').remove();
+		var s = new XMLSerializer();
+		var newacl = '<?xml version="1.0" encoding="utf-8"?>' + "\n" + s.serializeToString(acl[0]);
+		if ( debug )
+			console.log(newacl);
 	}
-	$('ace inherited',acl).closest('ace').remove();
-	$('ace protected',acl).closest('ace').remove();
-	var s = new XMLSerializer();
-	var newacl = '<?xml version="1.0" encoding="utf-8"?>' + "\n" + s.serializeToString(acl[0]);
-	if ( debug )
-		console.log(newacl);
 	if ( cal == 'new' )
 	{
 		var v = $('.label:contains('+ ui.owner +') ~ .value',cd); 
@@ -1082,14 +1097,21 @@ function saveCalendar (e)
 	}
 	else
 	{
-		$.acl({url:cals[cal].href,username:$.fn.caldav.options.username,password:$.fn.caldav.options.password,data:newacl,
-			complete:function(r,s){
-				if (s!='success')
-					alert('error setting privileges');
-			}});
+		if ( cals[cal].perms.all || cals[cal].perms.write || cals[cal].perms['write-acl'] )
+			$.acl({url:cals[cal].href,username:$.fn.caldav.options.username,password:$.fn.caldav.options.password,data:newacl,
+				complete:function(r,s){
+					if (s!='success')
+						alert('error setting privileges');
+						else
+						{
+							var na = $(newacl);
+							$('acl',$.fn.caldav.calendarData[cal].xml).replaceWith(na);
+						}
+				}});
 		if ( modified['calendar-color'] != undefined )
 		{
 			var color = modified['calendar-color'].value;
+			$.fn.caldav.calendarData[cal].color = color;
 			var ss = styles.getStyleSheet ( 'calstyle' );
 			ss.updateRule ( '.calendar'+cal ,{ color: color }  );
 			ss.updateRule ( '.calendar'+cal +':hover',{ 'background-color': color } );
@@ -1098,10 +1120,14 @@ function saveCalendar (e)
 		if ( modified['calendar-order'] != undefined )
 		{
 			$('#callist .calendar' + cal).attr('order',modified['calendar-order'].value);
+			$.fn.caldav.calendarData[cal].order = modified['calendar-order'].value;
 			eventSort( $('#callist .calendar' + cal).parent() );
 		}
 		if ( modified['calendar-description'] != undefined )
+		{
 			$('#callist .calendar' + cal).attr('title',modified['calendar-description'].value);
+			$.fn.caldav.calendarData[cal].desc = modified['calendar-description'].value;
+		}
 	}
 	if ( edited )
 	{
@@ -1170,12 +1196,12 @@ function deletedCalendar (c, r,s)
 
 function editPrincipal (e)
 {
-	console.log(e);
 	var ul = $('<ul data-calendar="' + e.href + '" ></ul>');
+	$(ul).data('c',e.cal);
 	var props ={'name':'name','desc':'description'} ;
-	var cals = $(document).caldav('calendars');
+	var cals = $.fn.caldav.collectionData;
 	var noprivs = false;
-	if ( cals[e.cal] == undefined )
+	if ( cals[e.cal] == undefined || ! cals[e.cal].perms['read-acl'] )
 		noprivs = true;
 	else
 		var c = e.cal;
@@ -1184,15 +1210,19 @@ function editPrincipal (e)
 				'" data-value="' + (e[i]?e[i]:'') + '" contenteditable="true">'+ (e[i]?e[i]:'') +'</span></li>');
 	if ( ! noprivs )
 	{
+		var write = false;
+		if ( cals[c].perms['all'] || cals[c].perms['write'] || cals[c].perms['write-acl'] )
+			write = true
 		var acl = $('acl > ace:has(href)',cals[c].xml);
 		var supported_acl = $('supported-privilege-set',cals[c].xml);
 		var li = $('<li><span class="label" privileges="true" >'+ui.privileges+'</span></li>'); 
 		$(li).hover(function(){$($('#wcal').data('popup')).css({overflow:'visible'});},function(){$($('#wcal').data('popup')).css({overflow:'auto'});});
 		for (i=0;i<acl.length;i++)
 		{
-			$(li).append (  privilegeBox(acl[i])  );
+			$(li).append (  privilegeBox(acl[i],supported_acl,write)  );
 		}
-		$(li).append ( '<div class="completionWrapper"><div class="completion"></div></div><span class="value" data-principal="new principal" contenteditable="true">'+ui.add+'</span>' );
+		if ( write )
+			$(li).append ( '<div class="completionWrapper"><div class="completion"></div></div><span class="value" data-principal="new principal" contenteditable="true">'+ui.add+'</span>' );
 		$('span:[data-principal="new principal"]',li).focus(function(e){$($('#wcal').data('popup')).css({overflow:'visible'});if ($(this).text()==ui.add)$(this).text('');});
 		$('span:[data-principal="new principal"]',li).blur(function(e)
 			{
@@ -1200,7 +1230,8 @@ function editPrincipal (e)
 				if ($(this).text()=='')$(this).text(ui.add);
 				if ( $(this).attr('data-principal').length > 1 && $(this).attr('data-principal') != "new principal" )
 				{
-					$(this).prev().before(privilegeBox($('<ace><principal><href>'+$(this).attr('data-principal')+'</href></principal></ace>')));
+					var default_acl = $('ace:has(authenticated)',cals[c].xml);
+					$(this).prev().before(privilegeBox($('<ace><principal><href>'+$(this).data('principal')+'</href></principal></ace>'),supported_acl,true));
 					$(this).attr('data-principal','new principal');
 					$(this).removeData('principal');
 					$(this).text(ui.add);
@@ -1248,10 +1279,17 @@ function savePrincipal (e)
 {
 	var cd = $('#caldialog');
 	var cal = $('#caldialog ul').data('calendar');
+	var c = $('#caldialog ul').data('c');
+	var cals = $.fn.caldav.collectionData;
 	var props ={'displayname':'name','calendar-description':'description'} ;
 	var ns ={'displayname':'DAV:','calendar-color':'http://apple.com/ns/ical/','calendar-description':'urn:ietf:params:xml:ns:caldav','calendar-order':'http://apple.com/ns/ical/'} ;
 	var edited = false;
+	var write = false;
 	var modified = {};
+	if ( cals[c] )
+		var acl = $('acl',cals[c].xml).clone();
+	else
+		var acl = [];
 	for ( var i in props ) 
 	{
 		var v = $('.label:contains('+ ui[props[i]] +') ~ .value',cd); 
@@ -1261,26 +1299,74 @@ function savePrincipal (e)
 			edited = true;
 		}
 	}
-	var privd = ['all','bind','unbind','unlock','read','read-acl','read-free-busy','read-privileges','write','write-content','write-properties','write-acl','schedule-send','schedule-send-invite','schedule-send-reply','schedule-send-freebusy','schedule-deliver','schedule-deliver-invite','schedule-deliver-reply','schedule-query-freebusy'];
-	
-	var principals = $('.label:contains('+ ui.privileges +') ~ .privilegeOwner',cd);
-	for ( var p=0; p<principals.length; p++)
+	if ( cals[c].perms['all'] || cals[c].perms['write'] || cals[c].perms['write-acl'] )
 	{
-		var owner = $(principals[p]).data('principal');
-		var privs = [];
-		var mod = false;
-		for ( var j in privd )
+		write = true;
+		var privd = ['all','bind','unbind','unlock','read','read-acl','read-free-busy','read-privileges','write','write-content','write-properties','write-acl','schedule-send','schedule-send-invite','schedule-send-reply','schedule-send-freebusy','schedule-deliver','schedule-deliver-invite','schedule-deliver-reply','schedule-query-freebusy'];
+		
+		var principals = $('.label:contains('+ ui.privileges +') ~ .privilegeOwner',cd);
+		for ( var p=0; p<principals.length; p++)
 		{
-			var cp = $('li[data-priv="'+privd[j] +'"]',principals[p]);
-			var g = $(cp).hasClass('granted');
-			var pg = $(cp).data('granted');
-			if ( g )
-				privs.push(privd[j]);
-			if ( ( g && pg == 'no' ) || ( ! g && pg == 'yes' ) )
-				mod = true;
+			var owner = $(principals[p]).data('principal');
+			var ace = $('ace',acl).filter(function(){if ($('principal > href ',this).text() == owner) return true;});
+			var addACE = false;
+			if ( ace.length == 0 )
+			{
+				addACE = true;
+				var ace = document.createElementNS('DAV:','ace');
+				var princpl = document.createElementNS('DAV:','principal');
+				ace.appendChild(princpl);
+				var href = document.createElementNS('DAV:','href');
+				href.appendChild(document.createTextNode(owner));
+				princpl.appendChild(href);
+				var grant = document.createElementNS('DAV:','grant');
+				ace.appendChild(grant);
+			}
+			else
+				var grant = $('grant',ace)[0];
+			var privs = [];
+			var mod = false;
+			for ( var j in privd )
+			{
+				var cp = $('li[data-priv="'+privd[j] +'"]',principals[p]);
+				var g = $(cp).hasClass('granted');
+				var pg = $(cp).data('granted');
+				if ( g )
+					privs.push(privd[j]);
+				if ( ( g && pg == 'no' ) || ( ! g && pg == 'yes' ) )
+					mod = true;
+				if ( g && pg == 'no' ) 
+				{
+					var privilege = document.createElementNS('DAV:','privilege');
+					var pname = document.createElementNS('DAV:',privd[j]);
+					privilege.appendChild(pname);
+					grant.appendChild(privilege);
+				}
+				if ( ! g && pg == 'yes' )
+				{
+					var cpriv = $('grant > privilege > ' + privd[j] ,ace);
+					if ( cpriv.length == 0 )
+						continue;
+					if ( $(cpriv).siblings().length == 0 )
+						$(cpriv).parent().remove();
+					else
+						$(cpriv).remove();
+				}
+			}
+			if ( mod )
+			{
+				if ( addACE )
+					$(acl).append(ace);
+				console.log('privileges changed for ' + owner);
+				edited = true;
+			}
 		}
-		if ( mod )
-			console.log('privileges changed for ' + owner,privs);
+		$('ace inherited',acl).closest('ace').remove();
+		$('ace protected',acl).closest('ace').remove();
+		var s = new XMLSerializer();
+		var newacl = '<?xml version="1.0" encoding="utf-8"?>' + "\n" + s.serializeToString(acl[0]);
+		if ( debug )
+			console.log(newacl);
 	}
 	if ( cal == 'new' )
 	{
@@ -1318,9 +1404,17 @@ function savePrincipal (e)
 	else
 	{
 		if ( modified['displayname'] != undefined )
+		{
 			$('#callist ul[data-principal="'+cal+'"]').parent().children('span').text(modified['displayname'].value); 
+			$.fn.caldav.principals[c].displayName = modified['displayname'].value;
+			$.fn.caldav.collectionData[c].displayName = modified['displayname'].value;
+		}
 		if ( modified['calendar-description'] != undefined )
+		{
 			$('#callist ul[data-principal="'+cal+'"]').parent().children('span').attr('title',modified['calendar-description'].value);
+			$.fn.caldav.principals[c].desc = modified['calendar-description'].value;
+			$.fn.caldav.collectionData[c].desc = modified['calendar-description'].value;
+		}
 	}
 	if ( edited )
 	{
@@ -1329,6 +1423,17 @@ function savePrincipal (e)
 			$(document).caldav('makeCalendar', {url:url},cal,modified);
 		else
 			$(document).caldav('updateCollection', {},cal,modified);
+		if ( write && mod )
+			$.acl({url:cals[c].href,username:$.fn.caldav.options.username,password:$.fn.caldav.options.password,data:newacl,
+				complete:function(r,s){
+					if (s!='success')
+						alert('error setting privileges');
+					else
+					{
+						var na = $(newacl);
+						$('acl',$.fn.caldav.collectionData[c].xml).replaceWith(na);
+					}
+				}});
 	}
 	return true;
 }
@@ -1341,6 +1446,7 @@ function completePrincipal(e)
 		$(e.target).attr('data-principal',$(e.target).prev().find('.selected').attr('data-href'));
 
 		$(e.target).attr('data-email',$(e.target).prev().find('.selected').attr('data-mail'));
+		$(e.target).data('principal',$(e.target).prev().find('.selected').attr('data-href'));
 		$(e.target).data('email',$(e.target).prev().find('.selected').attr('data-mail'));
 		$(e.target).data('value',$(e.target).prev().find('.selected').attr('data-mail'));
 		$(e.target).data('new-email',$(e.target).prev().find('.selected').attr('data-mail'));
@@ -1725,6 +1831,7 @@ function insertEvent ( href, icsObj, c, start, end , current)
 {
 	var desc = '';
 	var now = (new Date()).getTime();
+	var cals = $(document).caldav('calendars');
 	if ( typeof end != "object" &&  typeof start != object && ( end < $('#wcal').data('firstweek' ) || start > $('#wcal').data('lastweek') ) )  
 		return ;
 	if ( icsObj.vcalendar.vevent == undefined && current == undefined )
@@ -1885,11 +1992,15 @@ function insertEvent ( href, icsObj, c, start, end , current)
 				$(entry).attr('original',0);
 			else
 				$(entry).attr('original',1);
-			$(entry).click(	eventClick );
+			if ( cals[c].perms.write || cals[c].perms['write-content'] )
+				$(entry).click(	eventClick );
 			if ( $(entry).length == 0 )
 				continue;
-			$(entry)[0].addEventListener('dragstart',calDragStart,true);
-			$(entry)[0].addEventListener('dragend',calDragEnd,true);
+			if ( cals[c].perms.write || cals[c].perms['write-content'] )
+			{
+				$(entry)[0].addEventListener('dragstart',calDragStart,true);
+				$(entry)[0].addEventListener('dragend',calDragEnd,true);
+			}
 			$(entry).hover(eventHover,eventMouseout);
 			perf[2].push($.now()-now);
 			if ( $('#calendar'+c).attr('checked') )
@@ -1941,9 +2052,12 @@ function insertEvent ( href, icsObj, c, start, end , current)
 			if ( cevent.sequence != undefined )
 				$(entry).attr('icssequence',cevent.sequence.VALUE);
 			$(entry).addClass('multiday');
-			$(entry).click(	eventClick );
-			$(entry)[0].addEventListener('dragstart',calDragStart,true);
-			$(entry)[0].addEventListener('dragend',calDragEnd,true);
+			if ( cals[c].perms.write || cals[c].perms['write-content'] )
+			{
+				$(entry).click(	eventClick );
+				$(entry)[0].addEventListener('dragstart',calDragStart,true);
+				$(entry)[0].addEventListener('dragend',calDragEnd,true);
+			}
 			$(entry).hover(eventHover,eventMouseout);
 			perf[2].push($.now()-now);
 			if ( $('#calendar'+c).attr('checked') )
@@ -1958,8 +2072,11 @@ function insertEvent ( href, icsObj, c, start, end , current)
 					$(cloned).addClass('eventstart');
 				if ( (j+1)*86400000 >= tdiff )
 					$(cloned).addClass('eventend');
-				$(cloned)[0].addEventListener('dragstart',calDragStart,true);
-				$(cloned)[0].addEventListener('dragend',calDragEnd,true);
+				if ( cals[c].perms.write || cals[c].perms['write-content'] )
+				{
+					$(cloned)[0].addEventListener('dragstart',calDragStart,true);
+					$(cloned)[0].addEventListener('dragend',calDragEnd,true);
+				}
 				if ( $('#day_' +  nd.DayString() + ' li[href="'+href+'"]' ).length < 1 )
 				{	
 					if ( $('#calendar'+c).attr('checked') )
@@ -2015,11 +2132,14 @@ function insertTodo ( href, icsObj, c  )
 	$(entry).attr('priority',icsObj.vcalendar[type].priority);
 	$(entry).attr('percent-complete',icsObj.vcalendar[type]['percent-complete']);
 	$(entry).attr('status',icsObj.vcalendar[type].status);
-	$(entry)[0].addEventListener('dragstart',calDragStart,true);
-	$(entry)[0].addEventListener('dragend',calDragEnd,true);
 	$(entry).data('ics', icsObj );
 	$(entry).hover(eventHover,eventMouseout);
-	$(entry).click(eventClick); 
+	if ( cals[c].perms.write || cals[c].perms['write-content'] )
+	{
+		$(entry).click(eventClick); 
+		$(entry)[0].addEventListener('dragstart',calDragStart,true);
+		$(entry)[0].addEventListener('dragend',calDragEnd,true);
+	}
 	if ( $('#caltodo ul li[href="' + href + '"]').length > 0 )
 		$('#caltodo ul li[href="' + href + '"]').remove();
 	if ( $('#calendar'+c).attr('checked') )
@@ -2165,6 +2285,7 @@ function inviteClick(e)
 				{
 					if ( debug )
 						console.log('attendee missing from event');
+					$('#wcal').removeData('clicked');
 					return;
 				}
 				var partstat;
@@ -2183,20 +2304,28 @@ function inviteClick(e)
 				for ( var i=0; i < a.length; i++ )
 				{
 					if ( $.fn.caldav.principalMap[a[i]] == myp )
+					{
 						attendees.PROPS[i]['partstat'] = partstat;
+						console.log ( 'XX YES this is me ' + myp +' => '+ attendees.VALUES[i] , attendees.PROPS[i]['partstat'] );
+					}
+					else
+						console.log ( ' not me ' + attendees.VALUES[i] , attendees.PROPS[i]['partstat'] );
 				}
+				console.log(partstat,ics.PARENT.printiCal());
 				var existing = $('#wcal .event[uid="'+ics.vcalendar[ics.TYPE].uid+'"], #caltodo .event[uid="'+ics.vcalendar[ics.TYPE].uid+'"]');
 				var originalHref = $(evt).attr('href');
 				if ( existing.length > 0 && $(existing).parents('#calinvites').length == 0 )
 				{
 					var href = $(existing).attr('href');
 					var cal = String($(existing).attr('class')).replace(/.*calendar([0-9]+).*/,"$1");
+					var outboxHref = $.fn.caldav.outboxMap[$.fn.caldav.data.myPrincipal] + guid() + '.ics';
 					//$(existing).data('ics',ics);
 					$(existing).remove();
 					if ( ics.TYPE == 'vevent' )
 		        insertEvent(href,ics,cal,$('#wcal').data('firstweek' ),$('#wcal').data('lastweek'));
 	        if ( ics.TYPE == 'vtodo' )
 						insertTodo(href,ics,cal,$('#wcal').data('firstweek' ),$('#wcal').data('lastweek'));
+					$(document).caldav('putNewEvent',{url:outboxHref},ics.PARENT.printiCal()); 
 					$(document).caldav('putEvent',{url:href},ics.PARENT.printiCal()); 
 					$(document).caldav('delEvent',{url:originalHref});
 				}
@@ -2204,10 +2333,13 @@ function inviteClick(e)
 				{
 					var href = $(evt).attr('href').replace(/^.*\//,'');
 					var cal = String($('#callist .selected').attr('class')).replace(/.*calendar([0-9]+).*/,"$1");
+					var outboxHref = $.fn.caldav.outboxMap[$.fn.caldav.data.myPrincipal] + href;
 					if ( $.fn.caldav.calendarData[cal].principal == $.fn.caldav.data.myPrincipal )
 						href = $.fn.caldav.calendarData[cal].href + href;
 					else
 						href = $.fn.caldav.calendarData[0].href + href;
+					// put to outbox
+					$(document).caldav('putNewEvent',{url:outboxHref},ics.PARENT.printiCal()); 
 					$(document).caldav('putNewEvent',{url:href},ics.PARENT.printiCal()); 
 					$(document).caldav('delEvent',{url:originalHref});
 					if ( ics.TYPE == 'vevent' )
@@ -2219,6 +2351,8 @@ function inviteClick(e)
 			$(document).unbind('click',$('#wcal').data('edit_click')); 
 			$(document).unbind('keydown',$('#wcal').data('edit_keyup')); 
 			$('#calpopupe').fadeOut();
+			$('#wcal').removeData('popup');
+			$('#wcal').removeData('clicked');
 		}
 		);
 	
@@ -2393,17 +2527,17 @@ function calDrop(e)
 					if ( ! e.altKey )
 					{  // move the event
 						if ( debug )
-							console.log(' moving ' + src + ' to ' + cals[c].url+src.replace(/^.*\//,'') );
+							console.log(' moving ' + src + ' to ' + cals[c].href+src.replace(/^.*\//,'') );
 						var params = { url: window.location.protocol + '//' + window.location.hostname + (window.location.port?':'+window.location.port:'')+ src,
-							headers:{Destination:cals[c].url+src.replace(/^.*\//,''),Overwrite:'F','Content-type':undefined},
+							headers:{Destination:cals[c].href+src.replace(/^.*\//,''),Overwrite:'F','Content-type':undefined},
 							username:$.fn.caldav.options.username,password:$.fn.caldav.options.password};
 						$(document).caldav('moveEvent',params ); 
 					}
 					else
 					{  // copy the event
 						if ( debug )
-							console.log(' copying ' + src + ' to ' + cals[c].url+src.replace(/^.*\//,'') );
-						var params = { url:cals[c].url+src.replace(/^.*\//,''),
+							console.log(' copying ' + src + ' to ' + cals[c].href+src.replace(/^.*\//,'') );
+						var params = { url:cals[c].href+src.replace(/^.*\//,''),
 							headers:{'If-None-Match':'*'},
 							username:$.fn.caldav.options.username,password:$.fn.caldav.options.password};
 						$(document).caldav('putNewEvent',params,ics.PARENT.toString() );
@@ -3516,7 +3650,7 @@ function printAttendee(a)
 				$(e.target).text(cn);
 		});
 	$(ret).append(plus);
-	if ( /calendar-auto-schedule/.test ( $.fn.caldav.serverSupports ) )
+	if ( /calendar-auto-schedule/.test ( $.fn.caldav.serverSupports ) && $.fn.caldav.outboxMap[$.fn.caldav.data.myPrincipal] )
 		$(ret).append(freebusy);
 	return ret;
 }
@@ -4227,10 +4361,14 @@ function buildcal(d)
 			var cparent = $('li:contains('+cals[i].principalName+') > ul',sideul);
 		}
 		var ce = $('<li class="calendar'+i+'" order="'+cals[i].order+'" title="'+cals[i].desc+'"><input type="checkbox" id="calendar'+i+'" checked="true" /><span >'+ cals[i].displayName+'</span></li>');
-		$(ce)[0].addEventListener('drop',calDrop,true);
-		$(ce)[0].addEventListener('dragenter', calDragEnter,true);
-		$(ce)[0].addEventListener('dragover', calDragOver,true);
-		$(ce).click (selectCalendar);
+
+		if ( cals[i].perms.write || cals[i].perms['write-content'] )
+		{
+			$(ce)[0].addEventListener('drop',calDrop,true);
+			$(ce)[0].addEventListener('dragenter', calDragEnter,true);
+			$(ce)[0].addEventListener('dragover', calDragOver,true);
+			$(ce).click (selectCalendar);
+		}
 		$(ce).dblclick (editCalendar);
 		$(ce).data(cals[i]);
 		$(cparent).append(ce);
@@ -4537,7 +4675,6 @@ function buildcal(d)
 	{
 		cals[i].url = String ( cals[i].url ).replace ( /\/\//g, '/' );
 		$(document).caldav('getToDos', { url:cals[i].url,username:$.fn.caldav.options.username,password:$.fn.caldav.options.password},i);
-		console.log( ' requesting todos for calendar('+i+') href: ' + cals[i].url );
 	}
 	
 	currentTimeIndicator();

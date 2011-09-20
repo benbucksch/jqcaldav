@@ -423,6 +423,8 @@ jQuery.extend ({
 			var outboxes = $("response resourcetype > ["+$.fn.caldav.xmlNSfield+"=schedule-outbox],",r.responseXML).closest('response'); 
 			var baseurl = jQuery.fn.caldav.options.url.replace(/(\/\/[.a-zA-Z0-9-])\/.*$/, '$1');
 			var s =0;
+			var write = false,read = false;
+			var perms = new Array();
 			if ( $.fn.caldav.collectionData && $.fn.caldav.collectionData.length > 0 )
 				s = $.fn.caldav.collectionData.length;
 			for (var i=0;i<inboxes.length;i++)
@@ -442,6 +444,12 @@ jQuery.extend ({
 				if ( $("resourcetype > ["+$.fn.caldav.xmlNSfield+"=webdav-binding]",pcalendars[i]).length > 0 )
 					continue;
 				var cuprincipal = $.trim($("owner > href",pcalendars[i]).text());
+				perms = new Object();
+				$("["+$.fn.caldav.xmlNSfield+"=current-user-privilege-set] ["+$.fn.caldav.xmlNSfield+"=privilege] *",rcalendars[i]).map(function(e){perms[String($(this)[0].localName).toLowerCase()]=true});
+				if ( perms.all && ! perms.read )
+					perms.read = true;
+				if ( perms.all && ! perms.write )
+					perms.write = true;
 				var href = $("> href",pcalendars[i]).text();
 				$.fn.caldav.collectionData[s+i] = { xml: $(pcalendars[i]).clone(true),
 				displayName: $("displayname",pcalendars[i]).text(),
@@ -452,6 +460,7 @@ jQuery.extend ({
 				desc: $(pcalendars[i]).find("["+$.fn.caldav.xmlNSfield+"=calendar-description]").text(),
 				ctag: $("*["+$.fn.caldav.xmlNSfield+"=getctag]",pcalendars[i]).text(),
 				principal: cuprincipal, 
+				perms:perms,
 				xml: $(pcalendars[i]).clone(),
 				color: $(pcalendars[i]).find("["+$.fn.caldav.xmlNSfield+"=calendar-color]").text().replace (/(#......)../,'$1'),
 				order: $(pcalendars[i]).find("["+$.fn.caldav.xmlNSfield+"=calendar-order]").text(),};
@@ -463,7 +472,7 @@ jQuery.extend ({
 						$.fn.caldav.principals[$.fn.caldav.principalMap[href]].cal = s+i;
 				}
 			}
-			var s =0;
+			s =0;
 			if ( $.fn.caldav.calendarData && $.fn.caldav.calendarData.length > 0 )
 				s = $.fn.caldav.calendarData.length;
 			for (var i=0;i<rcalendars.length;i++)
@@ -478,18 +487,26 @@ jQuery.extend ({
 					bound = $(rcalendars[i]).find("["+$.fn.caldav.xmlNSfield+"=resource-id] href:first").text();
 					parents = $(rcalendars[i]).find("["+$.fn.caldav.xmlNSfield+"=parentset]").clone();
 				}
-				$.fn.caldav.calendarData[s+i] = { xml: $(rcalendars[i]).clone(true),
+				perms = new Object();
+				$("["+$.fn.caldav.xmlNSfield+"=current-user-privilege-set] ["+$.fn.caldav.xmlNSfield+"=privilege] *",rcalendars[i]).map(function(e){perms[String($(this)[0].localName).toLowerCase()]=true});
+				if ( perms.all && ! perms.read )
+					perms.read = true;
+				if ( perms.all && ! perms.write )
+					perms.write = true;
+
+				$.fn.caldav.calendarData[s+i] = {// xml: $(rcalendars[i]).clone(true),
 				displayName: $("displayname",rcalendars[i]).text(),
 				href: href,
 		 		url: ($("> href",rcalendars[i]).text().match(/^\//) ?
-		 				baseurl.replace(/^(https?:\/\/[^\/]+).*$/,'$1') + $("> href",rcalendars[i]).text() : 	baseurl + $("> href",rcalendars[i]).text()),
+		 			 	baseurl + $("> href",rcalendars[i]).text() : baseurl.replace(/^(https?:\/\/[^\/]+).*$/,'$1') + $("> href",rcalendars[i]).text() ),
 				mailto: $("href:contains('mailto:')",rcalendars[i]).text().replace(/^mailto:/i,''),
 				desc: $(rcalendars[i]).find("["+$.fn.caldav.xmlNSfield+"=calendar-description]").text(),
 				ctag: $("*["+$.fn.caldav.xmlNSfield+"=getctag]",rcalendars[i]).text(),
 				principal: cuprincipal, 
 				bound: bound,
 				parents: parents,
-				xml: $(rcalendars[i]).clone(),
+				perms: perms,
+				xml: $(rcalendars[i]).clone(true),
 				color: $(rcalendars[i]).find("["+$.fn.caldav.xmlNSfield+"=calendar-color]").text().replace (/(#......)../,'$1'),
 				order: $(rcalendars[i]).find("["+$.fn.caldav.xmlNSfield+"=calendar-order]").text(),};
 				if ( $.fn.caldav.principalMap[cuprincipal] != undefined )
@@ -625,10 +642,10 @@ jQuery.extend ({
 							desc:$.trim($("["+$.fn.caldav.xmlNSfield+"=calendar-description]",results[i]).text()),
 							email:$.trim($("href:contains('mailto:')",results[i]).text()).replace(/^mailto:/i,'')
 						};
-						var addresses = $('calendar-user-address-set > href',results[i]);
+						var addresses = $("["+$.fn.caldav.xmlNSfield+"=calendar-user-address-set] > href",results);
 						for ( var j = 0; j < addresses.length; j++ )
 						{
-							if ( $.fn.caldav.principalMap[$(addresses[j]).text()] == undefined )
+							if ( $.fn.caldav.principalMap[$(addresses[j]).text()] == undefined && String($(addresses[j]).text()).length > 1 )
 								$.fn.caldav.principalMap[$(addresses[j]).text()] = $.fn.caldav.principalMap[href];
 						}
 					}
@@ -1034,7 +1051,8 @@ jQuery.extend ({
 		},
 
 		getToDos: function ( params, cal ) { 
-			console.log( ' requesting todos for calendar('+cal+') href: ' + params.url );
+			if ( debug )
+				console.log( ' requesting todos for calendar('+cal+') href: ' + params.url );
 
 			$.fn.caldav('spinner',true);
 			$.report ($.extend(true,{},$.fn.caldav.options,params,{headers:{depth:1},data:'<?xml version="1.0" encoding="utf-8"?>' + "\n" +
