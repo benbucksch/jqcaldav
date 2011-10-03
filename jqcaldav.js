@@ -4386,7 +4386,7 @@ function buildcal(d)
 		}
 		else
 		{
-			ss.addRule ( '#wcal .day .event.calendar'+i ,' opacity: 1 }'  );
+			ss.addRule ( '#wcal .day .event.calendar'+i ,' opacity: 1 '  );
 			ss.addRule ( '#wcal .day .event.calendar'+i +'bg',' opacity: 1 ' );
 			ss.addRule ( '#wcal .day .event.calendar'+i ,'  '  );
 			ss.addRule ( '#wcal .day .event.calendar'+i +'bg',' ' );
