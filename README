@@ -10,12 +10,13 @@ including all tabs and windows.
 ---------------------------------------------------------------------
 Install
 
-copy example.html to index.html and edit the data-caldavurl and 
+
+edit index.html change the data-caldavurl and 
 data-calproxyurl attributes.
 
-data-caldavurl is the address of your caldav servers root
-  if you are using DAViCal and installed it in a subdirectory foo on 
-	server bar it would be https://bar/foo/ or https://bar/foo/davical.php
+data-caldavurl is the address of your caldav servers root, generally 
+  you should install on the same host as your calendar server.  In 
+  that case set the data-caldavurl to '/' or '/davical/caldav.php'.
 
 data-calproxyurl is the directory where the .htaccess file is located
 
