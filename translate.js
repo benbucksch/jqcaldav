@@ -12,9 +12,50 @@ function loadLanguage ( lang, callback )
 					callback ( lang );
 				return ;
 			}
-			if ( typeof ( callback ) == "function" )
-				callback ( false );
-		},error:function(){alert('not found');}
+      if ( /.-./.test(lang) )
+      {
+			  $.ajax({url:jqcaldavPath+String(lang).replace(/-.*/,'').toLowerCase()+'.js',async:false, dataType:"json",success:function(d){
+			    if (d.ui != undefined)
+						{
+							languages[lang] = d;
+							if ( typeof ( callback ) == "function" )
+								callback ( lang );
+							return ;
+						}
+						if ( typeof ( callback ) == "function" )
+							callback ( false );
+					},error:function(){alert('not found');}
+					});
+      }
+      else
+      {
+        if ( typeof ( callback ) == "function" )
+          callback ( false );
+      }
+		},error:function()
+    {
+      if ( /.-./.test(lang) )
+      {
+			  $.ajax({url:jqcaldavPath+String(lang).replace(/-.*/,'').toLowerCase()+'.js',async:false, dataType:"json",success:function(d){
+			    if (d.ui != undefined)
+						{
+							languages[lang] = d;
+							if ( typeof ( callback ) == "function" )
+								callback ( lang );
+							return ;
+						}
+						if ( typeof ( callback ) == "function" )
+							callback ( false );
+					},error:function(){alert('not found');}
+					});
+      }
+      else
+      {
+        alert('not found');
+        if ( typeof ( callback ) == "function" )
+          callback ( false );
+      }
+    }
 		});
 }
 

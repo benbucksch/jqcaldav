@@ -42,7 +42,7 @@ function getTZ ( d )
 	return false;
 }
 
-var defaults={ui:{calendar:"Calendars",todos:"To Do","show":"Show","sort":"Sort","add":"Add",settings:"Settings",subscribe:"Subscribe",today:"Today",week:"Week",month:"Month",start:"Day Starts",end:"Day Ends",twentyFour:"24 Hour Time",username:'Username',password:'Password','go':'go','New Event':'New Event','New Todo':'New Todo','New Journal':'New Journal',"alarm":"alarm","done":"Done","delete":"Delete","name":"name","color":"color","description":"description","url":"url","privileges":"privileges","logout":"Logout","new calendar":"New Calendar","yes":"yes","no":"no","logout error":"Error logging out, please CLOSE or RESTART your browser!","owner":"Owner","subscribed":"Subscribed","lock failed":"failed to acquire lock, may not be able to save changes",loading:'working','update frequency':'update frequency',usealarms:"Enable Alarms","listSeparator":",","manual":"manual","bind":"bind","unbind":"unbind","refresh":"refresh","user":"User","path":"Path","source":"Source","available":"Show Availibility","resolve":"Next Availible","inviteFrom":"from","invitations":"Invitations","accept":"accept","maybe":"maybe","decline":"decline"},
+var defaults={ui:{calendar:"Calendars",todos:"To Do","show":"Show","sort":"Sort","add":"Add",settings:"Settings",subscribe:"Subscribe",today:"Today",week:"Week",month:"Month",start:"Day Starts",end:"Day Ends",twentyFour:"24 Hour Time",username:'Username',password:'Password','go':'go','New Event':'New Event','New Todo':'New Todo','New Journal':'New Journal',"alarm":"alarm","done":"Done","delete":"Delete","name":"name","color":"color","description":"description","url":"url","privileges":"privileges","logout":"Logout","new calendar":"New Calendar","yes":"yes","no":"no","logout error":"Error logging out, please CLOSE or RESTART your browser!","owner":"Owner","subscribed":"Subscribed","lock failed":"failed to acquire lock, may not be able to save changes",loading:'working','update frequency':'update frequency',usealarms:"Enable Alarms","listSeparator":",","manual":"manual","bind":"bind","unbind":"unbind","refresh":"refresh","user":"User","path":"Path","source":"Source","available":"Show Availibility","resolve":"Next Availible","inviteFrom":"from","invitations":"Invitations","accept":"accept","maybe":"maybe","decline":"decline","weekStart":"Week Starts on"},
 	months:["January","February","March","April","May","June","July","August","September","October","November","December"],
 	weekdays:["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
 	dropquestion:["Do you want to move",["All occurences","This one occurence"]],
@@ -68,26 +68,51 @@ $(document).ready ( function () {
 		var here = $('.jqcaldav:eq(0)');
 		jqcaldavPath = $('script[src*=jqcaldav]').attr('src').replace(/jqcaldav.js/,'');
 		$.ajax({url:jqcaldavPath+String(navigator.language?navigator.language:navigator.userLanguage).toLowerCase()+'.js',async:false, dataType:"json",success:function(d){
-			if (d.ui != undefined)
-			{
-				ui = $.extend(true, ui,d.ui);
-				months = $.extend(true, months,d.months);
-				weekdays = $.extend(true, weekdays,d.weekdays);
-				dropquestion = $.extend(true, dropquestion,d.dropquestion);
-				deletequestion = $.extend(true, deletequestion,d.deletequestion);
-				fieldNames = $.extend(true, fieldNames,d.fieldNames);
-				valueNames = $.extend(true, valueNames,d.valueNames);
-				durations = $.extend(true, durations,d.durations);
-				recurrenceUI = $.extend(true, recurrenceUI,d.recurrenceUI);
-				deleteCalQuestion = $.extend(true, deleteCalQuestion,d.deleteCalQuestion);
-				privileges = $.extend(true, privileges,d.privileges);
-			}
-			else
-				{ui=defaults.ui; months=defaults.months; weekdays=defaults.weekdays; dropquestion=defaults.dropquestion;
-				deletequestion=defaults.deletequestion; fieldNames=defaults.fieldNames; valueNames= defaults.valueNames;recurrenceUI=d.recurrenceUI;}},error:function()
-				{ui=defaults.ui; months=defaults.months; weekdays=defaults.weekdays; dropquestion=defaults.dropquestion;
-				deletequestion=defaults.deletequestion; fieldNames=defaults.fieldNames; valueNames= defaults.valueNames; recurrenceUI=defaults.recurrenceUI;}
-		});
+				if (d.ui != undefined)
+				{
+					ui = $.extend(true, ui,d.ui);
+					months = $.extend(true, months,d.months);
+					weekdays = $.extend(true, weekdays,d.weekdays);
+					dropquestion = $.extend(true, dropquestion,d.dropquestion);
+					deletequestion = $.extend(true, deletequestion,d.deletequestion);
+					fieldNames = $.extend(true, fieldNames,d.fieldNames);
+					valueNames = $.extend(true, valueNames,d.valueNames);
+					durations = $.extend(true, durations,d.durations);
+					recurrenceUI = $.extend(true, recurrenceUI,d.recurrenceUI);
+					deleteCalQuestion = $.extend(true, deleteCalQuestion,d.deleteCalQuestion);
+					privileges = $.extend(true, privileges,d.privileges);
+				}
+				else
+					{ui=defaults.ui; months=defaults.months; weekdays=defaults.weekdays; dropquestion=defaults.dropquestion;
+					deletequestion=defaults.deletequestion; fieldNames=defaults.fieldNames; valueNames= defaults.valueNames;recurrenceUI=d.recurrenceUI;}},
+      error:function()
+				{
+          $.ajax({url:jqcaldavPath+String(navigator.language?navigator.language:navigator.userLanguage).replace(/-.*/,'').toLowerCase()+'.js',async:false, dataType:"json",success:function(d){
+					if (d.ui != undefined)
+					{
+						ui = $.extend(true, ui,d.ui);
+						months = $.extend(true, months,d.months);
+						weekdays = $.extend(true, weekdays,d.weekdays);
+						dropquestion = $.extend(true, dropquestion,d.dropquestion);
+						deletequestion = $.extend(true, deletequestion,d.deletequestion);
+						fieldNames = $.extend(true, fieldNames,d.fieldNames);
+						valueNames = $.extend(true, valueNames,d.valueNames);
+						durations = $.extend(true, durations,d.durations);
+						recurrenceUI = $.extend(true, recurrenceUI,d.recurrenceUI);
+						deleteCalQuestion = $.extend(true, deleteCalQuestion,d.deleteCalQuestion);
+						privileges = $.extend(true, privileges,d.privileges);
+					}
+					else
+					{
+            ui=defaults.ui; months=defaults.months; weekdays=defaults.weekdays; dropquestion=defaults.dropquestion;
+						deletequestion=defaults.deletequestion; fieldNames=defaults.fieldNames; valueNames= defaults.valueNames;recurrenceUI=d.recurrenceUI;}
+          },error:function()
+          {
+            ui=defaults.ui; months=defaults.months; weekdays=defaults.weekdays; dropquestion=defaults.dropquestion;
+	  		  	deletequestion=defaults.deletequestion; fieldNames=defaults.fieldNames; valueNames= defaults.valueNames; recurrenceUI=defaults.recurrenceUI;
+          }
+        } );
+		}});
 		if ( $('.jqcaldav:eq(0)').data('debug') == 'true' ) debug = true;
 		if ( $('.jqcaldav:eq(0)').data('wait') != 'true' ) 
 		{
