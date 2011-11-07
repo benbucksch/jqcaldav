@@ -2145,6 +2145,7 @@ function insertTodo ( href, icsObj, c  )
 	var type = icsObj.TYPE;
 	var sortorder = icsObj.vcalendar[type]['x-apple-sort-order'];
 	var desc = '';
+  var cals = $(document).caldav('calendars');
 	desc += icsObj.vcalendar[type].summary.VALUE; 
 	if ( icsObj.vcalendar[type].uid )
 		var uid = icsObj.vcalendar[type].uid.VALUE;
