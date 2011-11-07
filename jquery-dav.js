@@ -488,7 +488,7 @@ jQuery.extend ({
 					parents = $(rcalendars[i]).find("["+$.fn.caldav.xmlNSfield+"=parentset]").clone();
 				}
 				perms = new Object();
-				$("["+$.fn.caldav.xmlNSfield+"=current-user-privilege-set] ["+$.fn.caldav.xmlNSfield+"=privilege] *",rcalendars[i]).map(function(e){perms[String($(this)[0].localName).toLowerCase()]=true});
+				$("["+$.fn.caldav.xmlNSfield+"=current-user-privilege-set] ["+$.fn.caldav.xmlNSfield+"=privilege] *",rcalendars[i]).map(function(e){perms[String($(this)[0][$.fn.caldav.xmlNSfield]).toLowerCase()]=true});
 				if ( perms.all && ! perms.read )
 					perms.read = true;
 				if ( perms.all && ! perms.write )
