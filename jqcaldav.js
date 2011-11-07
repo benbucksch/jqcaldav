@@ -2018,13 +2018,16 @@ function insertEvent ( href, icsObj, c, start, end , current)
 			else
 				$(entry).attr('original',1);
 			if ( cals[c].perms.write || cals[c].perms['write-content'] )
-				$(entry).click(	eventClick );
-			if ( $(entry).length == 0 )
-				continue;
-			if ( cals[c].perms.write || cals[c].perms['write-content'] )
 			{
+				$(entry).click(	eventClick );
 				$(entry)[0].addEventListener('dragstart',calDragStart,true);
 				$(entry)[0].addEventListener('dragend',calDragEnd,true);
+        if ( $(entry)[0].dragDrop != undefined )
+        {
+				  $(entry)[0].addEventListener('dragover',calDragOver,true);
+				  $(entry)[0].addEventListener('drag',calDragOver,true);
+          $(entry)[0].addEventListener('mousemove',function(e){if (window.event.button == 1)e.currentTarget.dragDrop();},true);
+        }
 			}
 			$(entry).hover(eventHover,eventMouseout);
 			perf[2].push($.now()-now);
@@ -2082,6 +2085,8 @@ function insertEvent ( href, icsObj, c, start, end , current)
 				$(entry).click(	eventClick );
 				$(entry)[0].addEventListener('dragstart',calDragStart,true);
 				$(entry)[0].addEventListener('dragend',calDragEnd,true);
+        if ( $(entry)[0].dragDrop != undefined )
+				  $(entry)[0].addEventListener('mousemove',function(e){if (window.event.button == 1)e.currentTarget.dragDrop();},true);
 			}
 			$(entry).hover(eventHover,eventMouseout);
 			perf[2].push($.now()-now);
@@ -2460,6 +2465,7 @@ function calDragLeave(event)
 
 function calDragOver(event) 
 {
+  var type = '';
 	if ( event.dataTransfer != undefined )
 	{
 		if ( event.dataTransfer.dropEffect == 'none' && ! event.altKey )
@@ -2467,7 +2473,8 @@ function calDragOver(event)
 		else if ( event.dataTransfer.dropEffect == 'none' && event.altKey )
 			event.dataTransfer.dropEffect = 'copy'; 
 		event.dataTransfer.effectAllowed = 'copyMove'; 
-		type = event.dataTransfer.getData('type');
+//    if ( event.dataTransfer['getData'] )
+//  		type = event.dataTransfer.getData('type');
 	}
 	var e = $(event.target).closest('.drop');
 	if ( e.length )
@@ -2501,8 +2508,11 @@ function calDragOver(event)
 				$('#caldrop').hide();
 		}
 	}
-	event.preventDefault(); 
-	event.stopPropagation();
+  if ( ! event.target.dragDrop )
+  {
+	  event.preventDefault(); 
+	  event.stopPropagation();
+  }
 	return false;
 }
 
@@ -2510,6 +2520,7 @@ function calDrop(e)
 {
     // drop the data
 		//console.log(e);
+		console.log('one');
 		e.preventDefault();
 		$('#wcal').removeClass('dragging');
 		$(e.target).closest('td').removeClass('drop');
@@ -2712,6 +2723,7 @@ function calDrop(e)
 				var dt = e.originalEvent.dataTransfer;
 			else
 				var dt = { files: undefined };
+      $('#wcal').removeData('dragging')
 			if ( window.File && window.FileReader && window.FileList && dt.files.length > 0 )
 			{
 				var sb = $(e.target).parents('#callist').length; 
@@ -2738,12 +2750,12 @@ function calDrop(e)
 			}
 			else
 			{
-				console.log(dt.types);
-				console.log(dt.files);
+				//console.log(dt.types);
+				//console.log(dt.files);
 	    	var data = dt.getData('text/plain');
 	    	var data1 = dt.getData('com.apple.pasteboard.promised-file-url');
 	    	var data2 = dt.getData('Text');
-				console.log(data);
+				//console.log(data);
 	    	//var data1 = e.dataTransfer.getData(data);
 				//console.log(data1);
 				//var ical = parseiCal ( data );
@@ -2753,6 +2765,8 @@ function calDrop(e)
 
 function calDragStart(event)
 {
+	$('#wcal').data('popup',$('#calpopup'));
+	$('#calpopup').data('event',event.target);
 	if (event.target instanceof HTMLLIElement) {
 		var cal = $(event.target).attr('class').match(/calendar(\d+)/)[1];
 		var cals = $(document).caldav('calendars');
@@ -2761,28 +2775,36 @@ function calDragStart(event)
 			event.preventDefault();
 			return false;
 		}
-		if ( $('#wcal').has(event.target).length )
-			event.dataTransfer.setDragImage(event.target,($(event.target).width()*(2/3)),1);
-		else if ( $('#caltodo').has(event.target).length )
-		{
-			event.dataTransfer.setDragImage(event.target,($(event.target).width()*(2/3)),1);
-			//event.dataTransfer.setDragImage(event.target);
-		}
-		else
-			event.dataTransfer.setDragImage(event.target);
+    if ( event.dataTransfer['setDragImage'] && typeof event.dataTransfer['setDragImage'] == 'function' )
+    {
+      if ( $('#wcal').has(event.target).length )
+        event.dataTransfer.setDragImage(event.target,($(event.target).width()*(2/3)),1);
+      else if ( $('#caltodo').has(event.target).length )
+      {
+        event.dataTransfer.setDragImage(event.target,($(event.target).width()*(2/3)),1);
+        //event.dataTransfer.setDragImage(event.target);
+      }
+      else
+        event.dataTransfer.setDragImage(event.target);
+    }
 		var ics = $(event.target).data('ics').PARENT.printiCal();
-		event.dataTransfer.setData('text/calendar', ics );
-		event.dataTransfer.setData('text/plain', ics );
-		event.dataTransfer.setData('Text', ics );
-		event.dataTransfer.setData('type', ics.TYPE );
-    //event.dataTransfer.setData('Text', ics );
+    try {
+      event.dataTransfer.setData('text/calendar', ics );
+      event.dataTransfer.setData('text/plain', ics );
+      event.dataTransfer.setData('Text', ics );
+      event.dataTransfer.setData('type', ics.TYPE );
+    } catch ( e) {
+		  event.dataTransfer.setData('Text', ics );
+    }
 		//if ( cals[cal] != undefined )
-		event.dataTransfer.setData('DownloadURL', 'text/calendar:event.ics:data:text/calendar;base64,' + window.btoa(ics) );
+    if ( typeof window.btoa == "function" )
+  		event.dataTransfer.setData('DownloadURL', 'text/calendar:event.ics:data:text/calendar;base64,' + window.btoa(ics) );
 		  //event.dataTransfer.setData('DownloadURL', 'text/calendar:event.ics:' + $('.jqcaldav:eq(0)').data('caldavurl') + $(event.target).attr('href') );
 		$('#wcal').data('dragging', $(event.target));
 		$('#wcal').addClass('dragging');
 		$('#calpopup').hide();
-		$('#calpopupe').hide();
+    if ( $('#calpopupe').length )
+  		$('#calpopupe').hide();
 		if ( cals[cal] != undefined )
 		  event.dataTransfer.effectAllowed = 'copyMove'; // only allow copy or move
 		else
@@ -3062,6 +3084,8 @@ function eventClick(e)
 	$('#calpopupe').remove();
 	$('#wcal').removeData('popup');
 	e.stopPropagation();
+  if ( $('#wcal').data('dragging') != undefined )
+    $('#wcal').removeData('dragging')
 	eventHover(e);
 	var cp = $($('#wcal').data('popup'));
 	var href = $($(cp).data('event')).attr('href');
