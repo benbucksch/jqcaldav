@@ -504,6 +504,7 @@ jQuery.extend ({
 				ctag: $("*["+$.fn.caldav.xmlNSfield+"=getctag]",rcalendars[i]).text(),
 				principal: cuprincipal, 
 				bound: bound,
+				owner: $("*["+$.fn.caldav.xmlNSfield+"=owner] href",rcalendars[i]).text(),
 				parents: parents,
 				perms: perms,
 				xml: $(rcalendars[i]).clone(true),

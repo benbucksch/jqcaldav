@@ -2010,6 +2010,7 @@ function insertEvent ( href, icsObj, c, start, end , current)
 			//if ( time == 0 )
 			//	$(entry).addClass('calendar' + c + 'bg');
 			$(entry).data('ics', icsObj);
+      $(entry).attr('owner',cals[c].owner);
 			$(entry).attr('sequence',0);
 			if ( cevent.sequence != undefined )
 				$(entry).attr('icssequence',cevent.sequence.VALUE);
@@ -2070,6 +2071,7 @@ function insertEvent ( href, icsObj, c, start, end , current)
 				$('[eventcount="'+$(entry).attr('eventcount')+']"').remove();
 			}
 			var entry = $('<li class="event calendar' + c + ' calendar' + c + 'bg" draggable="true" data-time="' + time + '" href="' + href + '" eventcount="'+currentevent+'" uid="' + cevent.uid.VALUE + '" instance="' + estart.DateString() + '" transparent="' + transp + '" >'+desc+'</li>');
+      $(entry).attr('owner',cals[c].owner);
 			if ( current != undefined )
 				icsObj.current = current;
 			$(entry).data('ics', icsObj);
@@ -2157,6 +2159,7 @@ function insertTodo ( href, icsObj, c  )
 	else
 		var uid = '';
 	var entry = $('<li class="event calendar' + c + '" data-time="' + sortorder + '" href="' + href + '" uid="' + uid + '" draggable="true" >'+desc+'</li>');
+	$(entry).attr('owner',cals[c].owner);
 	if ( icsObj.vcalendar[type].due && icsObj.vcalendar[type].due.DATE)
 		$(entry).attr('due',icsObj.vcalendar[type].due.DATE.getTime());
 	$(entry).attr('completed',icsObj.vcalendar[type].completed);
@@ -2275,119 +2278,7 @@ function inviteClick(e)
 				}
 			);
 	}
-	$('#calpopupe .button').bind ('click keypress',function (e) {
-			if ( e.keyCode > 0 )
-				if ( e.keyCode != 32 || e.keyCode != 13 )
-					return ;
-			var evt = $($('#calpopupe').data('event'));
-			var ics = $(evt).data('ics');
-			if ( $(evt).data('method') == 'CANCEL' )
-			{
-				var originalHref = $(evt).attr('href');
-				$(document).caldav('delEvent',{url:originalHref});
-				var existing = $('#wcal .event[uid="'+ics.vcalendar[ics.TYPE].uid+'"], #caltodo .event[uid="'+ics.vcalendar[ics.TYPE].uid+'"]');
-				if ( existing.length > 0 && $(existing).parents('#calinvites').length == 0 )
-				{
-					var href = $(existing).attr('href');
-					$(existing).remove();
-					$(document).caldav('delEvent',{url:href});
-				}
-			}
-			else if ( $(evt).data('method') == 'REPLY' )
-			{
-				var originalHref = $(evt).attr('href');
-				$(document).caldav('delEvent',{url:originalHref});
-				
-			 	//var existing = $('#wcal .event[uid="'+ics.vcalendar[ics.TYPE].uid+'"], #caltodo .event[uid="'+ics.vcalendar[ics.TYPE].uid+'"]');
-				//if ( existing.length > 0 && $(existing).parents('#calinvites').length == 0 )
-				//{
-				//	var cal = String($(existing).attr('class')).replace(/.*calendar([0-9]+).*/,"$1");
-				//	$(existing).remove();
-				//	if ( ics.TYPE == 'vevent' )
-		     //   insertEvent(href,ics,cal,$('#wcal').data('firstweek' ),$('#wcal').data('lastweek'));
-	      //  if ( ics.TYPE == 'vtodo' )
-				//		insertTodo(href,ics,cal,$('#wcal').data('firstweek' ),$('#wcal').data('lastweek'));
-				//}
-			}
-			else
-			{
-				var attendees = ics.vcalendar[ics.TYPE]['attendee'];
-				if ( typeof attendees != "object" )
-				{
-					if ( debug )
-						console.log('attendee missing from event');
-					$('#wcal').removeData('clicked');
-					return;
-				}
-				var partstat;
-				if ( $(e.target).text() == ui.accept )
-					partstat = 'ACCEPTED';
-				if ( $(e.target).text() == ui.maybe )
-					partstat = 'TENTATIVE';
-				if ( $(e.target).text() == ui.decline )
-					partstat = 'DECLINED';
-				if ( attendees['VALUES'] == undefined )
-					return ;
-				var a = attendees.VALUES;
-				if ( ics.vcalendar['method'] )
-					delete ics.vcalendar['method'];
-				var myp = $.fn.caldav.principalMap[$.fn.caldav.data.myPrincipal];
-				for ( var i=0; i < a.length; i++ )
-				{
-					if ( $.fn.caldav.principalMap[a[i]] == myp )
-					{
-						attendees.PROPS[i]['partstat'] = partstat;
-						console.log ( 'XX YES this is me ' + myp +' => '+ attendees.VALUES[i] , attendees.PROPS[i]['partstat'] );
-					}
-					else
-						console.log ( ' not me ' + attendees.VALUES[i] , attendees.PROPS[i]['partstat'] );
-				}
-				console.log(partstat,ics.PARENT.printiCal());
-				var existing = $('#wcal .event[uid="'+ics.vcalendar[ics.TYPE].uid+'"], #caltodo .event[uid="'+ics.vcalendar[ics.TYPE].uid+'"]');
-				var originalHref = $(evt).attr('href');
-				if ( existing.length > 0 && $(existing).parents('#calinvites').length == 0 )
-				{
-					var href = $(existing).attr('href');
-					var cal = String($(existing).attr('class')).replace(/.*calendar([0-9]+).*/,"$1");
-					var outboxHref = $.fn.caldav.outboxMap[$.fn.caldav.data.myPrincipal] + guid() + '.ics';
-					//$(existing).data('ics',ics);
-					$(existing).remove();
-					if ( ics.TYPE == 'vevent' )
-		        insertEvent(href,ics,cal,$('#wcal').data('firstweek' ),$('#wcal').data('lastweek'));
-	        if ( ics.TYPE == 'vtodo' )
-						insertTodo(href,ics,cal,$('#wcal').data('firstweek' ),$('#wcal').data('lastweek'));
-					$(document).caldav('putNewEvent',{url:outboxHref},ics.PARENT.printiCal()); 
-					$(document).caldav('putEvent',{url:href},ics.PARENT.printiCal()); 
-					$(document).caldav('delEvent',{url:originalHref});
-				}
-				else
-				{
-					var href = $(evt).attr('href').replace(/^.*\//,'');
-					var cal = String($('#callist .selected').attr('class')).replace(/.*calendar([0-9]+).*/,"$1");
-					var outboxHref = $.fn.caldav.outboxMap[$.fn.caldav.data.myPrincipal] + href;
-					if ( $.fn.caldav.calendarData[cal].principal == $.fn.caldav.data.myPrincipal )
-						href = $.fn.caldav.calendarData[cal].href + href;
-					else
-						href = $.fn.caldav.calendarData[0].href + href;
-					// put to outbox
-					$(document).caldav('putNewEvent',{url:outboxHref},ics.PARENT.printiCal()); 
-					$(document).caldav('putNewEvent',{url:href},ics.PARENT.printiCal()); 
-					$(document).caldav('delEvent',{url:originalHref});
-					if ( ics.TYPE == 'vevent' )
-		        insertEvent(href,ics,cal,$('#wcal').data('firstweek' ),$('#wcal').data('lastweek'));
-	        if ( ics.TYPE == 'vtodo' )
-						insertTodo(href,ics,cal,$('#wcal').data('firstweek' ),$('#wcal').data('lastweek'));
-				}
-			}
-			$(document).unbind('click',$('#wcal').data('edit_click')); 
-			$(document).unbind('keydown',$('#wcal').data('edit_keyup')); 
-			$('#calpopupe').fadeOut();
-			$('#wcal').removeData('popup');
-			$('#wcal').removeData('clicked');
-		}
-		);
-	
-	
+	$('#calpopupe .button').bind ('click keypress',inviteButtonClick);
 	
 	draggable ( $('#calpopupe') );
 	$('#calpopupe').show();
@@ -2395,6 +2286,122 @@ function inviteClick(e)
 	$(document).click( $('#wcal').data('edit_click') ); 
 	$(document).keyup( $('#wcal').data('edit_keyup') ); 
 }
+
+function inviteButtonClick (e) 
+{
+  if ( e.keyCode > 0 )
+    if ( e.keyCode != 32 || e.keyCode != 13 )
+      return ;
+  var evt = $($('#calpopupe').data('event'));
+  var ics = $(evt).data('ics');
+  if ( $(evt).data('method') == 'CANCEL' )
+  {
+    var originalHref = $(evt).attr('href');
+    $(document).caldav('delEvent',{url:originalHref});
+    var calHome = $.fn.caldav.data.myPrincipal;
+    var existing = $('#wcal .event[uid="'+ics.vcalendar[ics.TYPE].uid+'"], #caltodo .event[uid="'+ics.vcalendar[ics.TYPE].uid+'"]').filter('[owner^='+calHome+']' );
+    if ( existing.length > 0 && $(existing).parents('#calinvites').length == 0 )
+    {
+      var href = $(existing).attr('href');
+      $(existing).remove();
+      $(document).caldav('delEvent',{url:href});
+    }
+  }
+  else if ( $(evt).data('method') == 'REPLY' )
+  {
+    var originalHref = $(evt).attr('href');
+    $(document).caldav('delEvent',{url:originalHref});
+    
+    //var existing = $('#wcal .event[uid="'+ics.vcalendar[ics.TYPE].uid+'"], #caltodo .event[uid="'+ics.vcalendar[ics.TYPE].uid+'"]');
+    //if ( existing.length > 0 && $(existing).parents('#calinvites').length == 0 )
+    //{
+    //	var cal = String($(existing).attr('class')).replace(/.*calendar([0-9]+).*/,"$1");
+    //	$(existing).remove();
+    //	if ( ics.TYPE == 'vevent' )
+     //   insertEvent(href,ics,cal,$('#wcal').data('firstweek' ),$('#wcal').data('lastweek'));
+    //  if ( ics.TYPE == 'vtodo' )
+    //		insertTodo(href,ics,cal,$('#wcal').data('firstweek' ),$('#wcal').data('lastweek'));
+    //}
+  }
+  else
+  {
+    var attendees = ics.vcalendar[ics.TYPE]['attendee'];
+    if ( typeof attendees != "object" )
+    {
+      if ( debug )
+        console.log('attendee missing from event');
+      $('#wcal').removeData('clicked');
+      return;
+    }
+    var partstat;
+    if ( $(e.target).text() == ui.accept )
+      partstat = 'ACCEPTED';
+    if ( $(e.target).text() == ui.maybe )
+      partstat = 'TENTATIVE';
+    if ( $(e.target).text() == ui.decline )
+      partstat = 'DECLINED';
+    if ( attendees['VALUES'] == undefined )
+      return ;
+    var a = attendees.VALUES;
+    if ( ics.vcalendar['method'] )
+      delete ics.vcalendar['method'];
+    var myp = $.fn.caldav.principalMap[$.fn.caldav.data.myPrincipal];
+    for ( var i=0; i < a.length; i++ )
+    {
+      if ( $.fn.caldav.principalMap[a[i]] == myp )
+      {
+        attendees.PROPS[i]['partstat'] = partstat;
+        console.log ( 'XX YES this is me ' + myp +' => '+ attendees.VALUES[i] , attendees.PROPS[i]['partstat'] );
+      }
+      else
+        console.log ( ' not me ' + attendees.VALUES[i] , attendees.PROPS[i]['partstat'] );
+    }
+    console.log(partstat,ics.PARENT.printiCal());
+    var calHome = $.fn.caldav.data.myPrincipal;
+    var existing = $('#wcal .event[uid="'+ics.vcalendar[ics.TYPE].uid+'"], #caltodo .event[uid="'+ics.vcalendar[ics.TYPE].uid+'"]').filter('[owner^="'+calHome+'"]' );
+    var originalHref = $(evt).attr('href');
+    if ( existing.length > 0 && $(existing).parents('#calinvites').length == 0 )
+    {
+      var href = $(existing).attr('href');
+      var cal = String($(existing).attr('class')).replace(/.*calendar([0-9]+).*/,"$1");
+      var outboxHref = $.fn.caldav.outboxMap[$.fn.caldav.data.myPrincipal] + guid() + '.ics';
+      //$(existing).data('ics',ics);
+      $(existing).remove();
+      if ( ics.TYPE == 'vevent' )
+        insertEvent(href,ics,cal,$('#wcal').data('firstweek' ),$('#wcal').data('lastweek'));
+      if ( ics.TYPE == 'vtodo' )
+        insertTodo(href,ics,cal,$('#wcal').data('firstweek' ),$('#wcal').data('lastweek'));
+      $(document).caldav('putNewEvent',{url:outboxHref},ics.PARENT.printiCal()); 
+      $(document).caldav('putEvent',{url:href},ics.PARENT.printiCal()); 
+      $(document).caldav('delEvent',{url:originalHref});
+    }
+    else
+    {
+      var href = $(evt).attr('href').replace(/^.*\//,'');
+      var cal = String($('#callist .selected').attr('class')).replace(/.*calendar([0-9]+).*/,"$1");
+      var outboxHref = $.fn.caldav.outboxMap[$.fn.caldav.data.myPrincipal] + href;
+      if ( $.fn.caldav.calendarData[cal].principal == $.fn.caldav.data.myPrincipal )
+        href = $.fn.caldav.calendarData[cal].href + href;
+      else
+        href = $.fn.caldav.calendarData[0].href + href;
+      // put to outbox
+      $(document).caldav('putNewEvent',{url:outboxHref},ics.PARENT.printiCal()); 
+      $(document).caldav('putNewEvent',{url:href},ics.PARENT.printiCal()); 
+      $(document).caldav('delEvent',{url:originalHref});
+      if ( ics.TYPE == 'vevent' )
+        insertEvent(href,ics,cal,$('#wcal').data('firstweek' ),$('#wcal').data('lastweek'));
+      if ( ics.TYPE == 'vtodo' )
+        insertTodo(href,ics,cal,$('#wcal').data('firstweek' ),$('#wcal').data('lastweek'));
+    }
+  }
+  $(document).unbind('click',$('#wcal').data('edit_click')); 
+  $(document).unbind('keydown',$('#wcal').data('edit_keyup')); 
+  $('#calpopupe').fadeOut();
+  $('#wcal').removeData('popup');
+  $('#wcal').removeData('clicked');
+}
+
+
 
 function updateIcs ( href, ics , cal )
 {   
@@ -3091,6 +3098,7 @@ function eventClick(e)
 	var href = $($(cp).data('event')).attr('href');
 	var cals = $(document).caldav('calendars');
 	var c = $($(cp).data('event')).attr('class').match(/calendar(\d+)/)[1];
+  var d = $($(cp).data('event')).data('ics');
 	var ok = true;
 	if ( cals[c] != undefined ) 
 		ok = $(document).caldav('lock',href,600,
@@ -3115,6 +3123,11 @@ function eventClick(e)
 
 		$('#calpopupe').append('<div class="button delete" tabindex="0">'+ui['delete']+'</div>');
 		$('#calpopupe').append('<div class="button done" tabindex="0">'+ui.done+'</div>');
+    if ( d.vcalendar[d.TYPE].attendee )
+    {
+      $('#calpopupe').append('<div class="smallschedulebuttons group"><div class="button accept" tabindex="0">'+ui.accept+'</div><div class="button maybe" tabindex="0">'+ui.maybe+'</div><div class="button decline" tabindex="0">'+ui.decline+'</div></div>');
+      $('#calpopupe .smallschedulebuttons .button').bind('click keypress', inviteButtonClick );
+    }
 		if ( debug ) 
 		{
 			$('#calpopupe').append('<div class="button tweak" style="position:absolute;bottom:5px;left:70px; width:40px;" tabindex="0">tweak</div>'); // for debugging, not translated
@@ -3494,6 +3507,7 @@ function printAttendee(a)
 		if (props[i] != undefined )
 			$(ret).append('<span class="value attendee '+ String(props[i]['partstat']+'').toLowerCase() +'" title="'+String(props[i]['email']?props[i]['email']:atts[i].replace(/^mailto:/i,'')+'')+'" data-value="'+atts[i]+'" data-original="'+atts[i]+'" data-cn="'+String(props[i]['cn']+'')+'" data-email="'+String(props[i]['email']+'')+'" data-partstat="'+String(props[i]['partstat']+'')+'" data-schedstatus="'+String(props[i]['schedule-status']+'')+'" data-rsvp="'+String(props[i]['rsvp']+'')+'" contenteditable="true" >'+(props[i]['cn']?props[i]['cn']:atts[i].replace(/^mailto:/i,'')).replace(/^"(.*)"$/,"$1")+'</span>');	
 	}
+  $('[data-email="'+ $.fn.caldav.principals[$.fn.caldav.principalMap[$.fn.caldav.data.myPrincipal]].email +'"]',ret).addClass('me');
 	var plus = $('<span class="plus">'+ui.add+'</span>').click(function(){ var n = $('<span class="value attendee needs-action" contenteditable="true" ></span>');$(n).bind('keydown',completePrincipal);$(this).before(n);$(this).prev().focus();});
 	var freebusy = $('<span class="plus">'+ui.available+'</span>').click(
 			function(e)

@@ -170,7 +170,7 @@ function calstyle ()
 	"#calh .days td { display: table-cell; float: none; }\n" + 
 	'#gototoday { position: absolute; left: 0em; font-size: 12pt; width: 4em;}' + "\n" +
 	'#weekview { position: absolute; left: 7em; font-size: 12pt; width: 4em;}' + "\n" +
-	'#refresh { position: absolute; left: 14em; font-size: 12pt; font-weight: bold; width: 1em; padding: 0.1em .25em 0.1em .25em; height: 1.19em; }' + "\n" +
+	'#refresh { position: absolute; left: 14em; font-size: 12pt; font-face: Helvetica; font-weight: bold; width: 1em; padding: 0.1em .25em 0.1em .25em; height: 1.19em; }' + "\n" +
 	'#logout { position: absolute; right: 4em; font-size: 12pt; width: 4em;}' + "\n" +
 	'#calt { width:100%; border-spacing:0; padding:0; margin:0; border:0; table-layout: fixed; }' + "\n" + 
 	'#calsidebar { float: left; /* -moz-box-flex: 1; -webkit-box-flex: 1; box-flex: 1; */ position: relative; width: 15%; min-height: 6em; height: 100%; background-color: #EFEFFF; '+
@@ -338,6 +338,10 @@ function calstyle ()
 	'.calpopup .privilegeOwner:nth-last-child(n+2):after { content: ","; padding-right: 0.15em; }' + "\n" +
 	'.calpopup .add { position: absolute; bottom: 10px; left: 10px;}' + "\n" +
 	'.calpopup .schedulebuttons { position: absolute; bottom: 10px; left: 10px; right: 10px; text-align: center; }' + "\n" +
+	'.calpopup .group.smallschedulebuttons { position: absolute; bottom: 10px; right: 150px; text-align: center; -webkit-box-orient: vertical; -moz-box-orient: vertical; overflow: hidden; height: 1.25em; }' + "\n" +
+	'.calpopup .group.smallschedulebuttons:hover { overflow: visible; height: auto; margin-top: auto; }' + "\n" +
+	'.calpopup .group.smallschedulebuttons .button { border-right: 1px solid black;  -webkit-box-flex: 0; -moz-box-flex: 0; box-flex: 0; }' + "\n" +
+
 	'.calpopup .dropdown { padding-right: 1.5em; padding-left: 1em; }' + "\n" +
 	'.dropdown:after   { content: ""; display: block; position: absolute; right: 5px; width:0; height:0; border-color: #666 transparent transparent transparent; border-style: solid; border-width: 8px 4px 1px 4px;  '+
 		' -webkit-transform: translate(0px, -1em) ; -moz-transform: translate(0px,-1em) ; transform: translate(0px,-1em); } ' + "\n" +
