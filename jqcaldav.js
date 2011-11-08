@@ -45,6 +45,7 @@ function getTZ ( d )
 var defaults={ui:{calendar:"Calendars",todos:"To Do","show":"Show","sort":"Sort","add":"Add",settings:"Settings",subscribe:"Subscribe",today:"Today",week:"Week",month:"Month",start:"Day Starts",end:"Day Ends",twentyFour:"24 Hour Time",username:'Username',password:'Password','go':'go','New Event':'New Event','New Todo':'New Todo','New Journal':'New Journal',"alarm":"alarm","done":"Done","delete":"Delete","name":"name","color":"color","description":"description","url":"url","privileges":"privileges","logout":"Logout","new calendar":"New Calendar","yes":"yes","no":"no","logout error":"Error logging out, please CLOSE or RESTART your browser!","owner":"Owner","subscribed":"Subscribed","lock failed":"failed to acquire lock, may not be able to save changes",loading:'working','update frequency':'update frequency',usealarms:"Enable Alarms","listSeparator":",","manual":"manual","bind":"bind","unbind":"unbind","refresh":"refresh","user":"User","path":"Path","source":"Source","available":"Show Availibility","resolve":"Next Availible","inviteFrom":"from","invitations":"Invitations","accept":"accept","maybe":"maybe","decline":"decline","weekStart":"Week Starts on"},
 	months:["January","February","March","April","May","June","July","August","September","October","November","December"],
 	weekdays:["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
+	notifyquestion:["Do you want to notify",["yes","no"]],
 	dropquestion:["Do you want to move",["All occurences","This one occurence"]],
 	deletequestion:["Do you want to delete ",["All occurences","Delete this one occurence"]],
 	deleteCalQuestion:["Are you sure you want to delete ",["No","Delete Calendar"]],
@@ -60,7 +61,7 @@ var defaults={ui:{calendar:"Calendars",todos:"To Do","show":"Show","sort":"Sort"
 	},
 	"privileges":{"all":"all","bind":"bind","unbind":"unbind","unlock":"unlock","read":"read","acl":"acl","free-busy":"free-busy","privileges":"privileges","write":"write","content":"content","properties":"properties","acl":"acl","schedule-send":"schedule-send","invite":"invite","reply":"reply","freebusy":"freebusy","schedule-deliver":"schedule-deliver","invite":"invite","reply":"reply","query-freebusy":"query-freebusy"}};
 
-var ui=defaults.ui, months=defaults.months, weekdays=defaults.weekdays, dropquestion=defaults.dropquestion,
+var ui=defaults.ui, months=defaults.months, weekdays=defaults.weekdays, notifyquestion=defaults.notifyquestion, dropquestion=defaults.dropquestion,
 deletequestion=defaults.deletequestion, deleteCalQuestion=defaults.deleteCalQuestion, fieldNames=defaults.fieldNames, valueNames= defaults.valueNames,privileges=defaults.privileges ,durations=defaults.durations;
 var recurrenceUI=defaults.recurrenceUI;
 
@@ -73,6 +74,7 @@ $(document).ready ( function () {
 					ui = $.extend(true, ui,d.ui);
 					months = $.extend(true, months,d.months);
 					weekdays = $.extend(true, weekdays,d.weekdays);
+					notifyquestion = $.extend(true, notifyquestion,d.notifyquestion);
 					dropquestion = $.extend(true, dropquestion,d.dropquestion);
 					deletequestion = $.extend(true, deletequestion,d.deletequestion);
 					fieldNames = $.extend(true, fieldNames,d.fieldNames);
@@ -2310,7 +2312,7 @@ function inviteButtonClick (e)
   else if ( $(evt).data('method') == 'REPLY' )
   {
     var originalHref = $(evt).attr('href');
-    $(document).caldav('delEvent',{url:originalHref});
+    //$(document).caldav('delEvent',{url:originalHref});
     
     //var existing = $('#wcal .event[uid="'+ics.vcalendar[ics.TYPE].uid+'"], #caltodo .event[uid="'+ics.vcalendar[ics.TYPE].uid+'"]');
     //if ( existing.length > 0 && $(existing).parents('#calinvites').length == 0 )
@@ -2351,16 +2353,17 @@ function inviteButtonClick (e)
       if ( $.fn.caldav.principalMap[a[i]] == myp )
       {
         attendees.PROPS[i]['partstat'] = partstat;
-        console.log ( 'XX YES this is me ' + myp +' => '+ attendees.VALUES[i] , attendees.PROPS[i]['partstat'] );
+        //console.log ( 'XX YES this is me ' + myp +' => '+ attendees.VALUES[i] , attendees.PROPS[i]['partstat'] );
       }
-      else
-        console.log ( ' not me ' + attendees.VALUES[i] , attendees.PROPS[i]['partstat'] );
+      //else
+        //console.log ( ' not me ' + attendees.VALUES[i] , attendees.PROPS[i]['partstat'] );
     }
-    console.log(partstat,ics.PARENT.printiCal());
+    if ( debug )
+      console.log(partstat,ics.PARENT.printiCal());
     var calHome = $.fn.caldav.data.myPrincipal;
     var existing = $('#wcal .event[uid="'+ics.vcalendar[ics.TYPE].uid+'"], #caltodo .event[uid="'+ics.vcalendar[ics.TYPE].uid+'"]').filter('[owner^="'+calHome+'"]' );
     var originalHref = $(evt).attr('href');
-    if ( existing.length > 0 && $(existing).parents('#calinvites').length == 0 )
+    if ( existing.length > 0 )
     {
       var href = $(existing).attr('href');
       var cal = String($(existing).attr('class')).replace(/.*calendar([0-9]+).*/,"$1");
@@ -2371,9 +2374,15 @@ function inviteButtonClick (e)
         insertEvent(href,ics,cal,$('#wcal').data('firstweek' ),$('#wcal').data('lastweek'));
       if ( ics.TYPE == 'vtodo' )
         insertTodo(href,ics,cal,$('#wcal').data('firstweek' ),$('#wcal').data('lastweek'));
-      $(document).caldav('putNewEvent',{url:outboxHref},ics.PARENT.printiCal()); 
+      //$(document).caldav('putNewEvent',{url:outboxHref},ics.PARENT.printiCal()); 
       $(document).caldav('putEvent',{url:href},ics.PARENT.printiCal()); 
-      $(document).caldav('delEvent',{url:originalHref});
+      if ( originalHref.indexOf($.fn.caldav.inboxMap[$.fn.caldav.data.myPrincipal]) > -1 )
+      {
+        $(document).caldav('delEvent',{url:originalHref,'Schedule-Reply':'F'});
+        $(evt).remove();
+      }
+      else
+        $('#invitewrap [uid="'+ics.vcalendar[ics.TYPE].uid+'"]').remove();
     }
     else
     {
@@ -2385,9 +2394,9 @@ function inviteButtonClick (e)
       else
         href = $.fn.caldav.calendarData[0].href + href;
       // put to outbox
-      $(document).caldav('putNewEvent',{url:outboxHref},ics.PARENT.printiCal()); 
+      //$(document).caldav('putNewEvent',{url:outboxHref},ics.PARENT.printiCal()); 
       $(document).caldav('putNewEvent',{url:href},ics.PARENT.printiCal()); 
-      $(document).caldav('delEvent',{url:originalHref});
+      $(document).caldav('delEvent',{url:originalHref,'Schedule-Reply':'F'});
       if ( ics.TYPE == 'vevent' )
         insertEvent(href,ics,cal,$('#wcal').data('firstweek' ),$('#wcal').data('lastweek'));
       if ( ics.TYPE == 'vtodo' )
@@ -4201,7 +4210,25 @@ function eventDeleted (e)
 	var d = $(t).data('ics');
 	if ( ! d instanceof Object )
 		return false;
-	if ( d.TYPE =='vtodo' )
+  if ( d.vcalendar[d.TYPE].attendee && e.notify == undefined )
+  {
+    $('#wcal').data('deleting',t);
+		$('#wcal').data('drop-question',e);
+		questionBox(notifyquestion[0],notifyquestion[1],
+				function(e) {
+					var evt = $('#wcal').data('drop-question');
+					$('#wcal').removeData('drop-question');
+					if ( e == -1 ) 
+					{
+						$('#wcal').removeData('popup');
+						$('#wcal').removeData('clicked');
+						return false;
+					}
+					evt.notify = e == 0 ? 'T' : 'F' ;
+					eventDeleted(evt);
+				} );
+  }
+  else if ( d.TYPE =='vtodo' )
 	{
 		var params = { url:src};
 		$(document).caldav('unlock',src );
@@ -4211,6 +4238,8 @@ function eventDeleted (e)
 	else if ( d.vcalendar.vevent.rrule == undefined  && d.vcalendar.vevent['recurrence-id'] == undefined )
 	{
 		var params = { url:src};
+    if ( e.notify != undefined )
+      params['Schedule-Reply'] = e.notify
 		$(document).caldav('unlock',src );
 		$(document).caldav('delEvent',params); 
 		//$(t).remove();
@@ -4238,6 +4267,8 @@ function eventDeleted (e)
 	{
 		var params = { url:src};
 		$(document).caldav('unlock',src );
+    if ( e.notify != undefined )
+      params['Schedule-Reply'] = e.notify
 		$(document).caldav('delEvent',params); 
 		$('[href="'+$(t).attr('href')+'"]').fadeOut('fast',function (){$(this).remove();  } );
 	}
@@ -4258,6 +4289,8 @@ function eventDeleted (e)
 		var href = $(t).attr('href');
 		$(t).fadeOut('fast',function (){$(t).remove();  } );
 		var params = { url:href};
+    if ( e.notify != undefined )
+      params['Schedule-Reply'] = e.notify
 		$(document).caldav('putEvent',params,d.PARENT.printiCal (  )); 
 		// add exdate
 	}
@@ -4438,7 +4471,7 @@ function buildcal(d)
 		$(cparent).append(ce);
 		eventSort(cparent);
 		var ss = styles.getStyleSheet ( 'calstyle' );
-		if ( settings.calendars != undefined && settings.calendars[cals[i].url] != undefined && settings.calendars[cals[i].url] == false )
+		if ( settings.calendars != undefined && settings.calendars[cals[i].href] != undefined && settings.calendars[cals[i].href] == false )
 		{
 			$('#calendar'+i,cparent).attr('checked',false);
 			$('#calendar'+i,cparent).val(false);
