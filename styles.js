@@ -195,9 +195,11 @@ function calstyle ()
 		'-moz-transition-property: all; -moz-transition-duration: .4s; transition-property: all; transition-duration: .4s;  } ' + "\n" +
 	'#callist > li > ul > li { margin-left: 0; padding-left: 1.5em; list-style-type: none; padding-top: .12em; padding-bottom: .12em; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; } ' + "\n" +
 	'#callist > li > ul > li.selected { background: #CCD; background: -moz-linear-gradient(top, #CCD 0%, #AAA 100%); background: -webkit-gradient(linear, left top, left bottom, from(#CCD), to(#AAA)); background: -webkit-linear-gradient(top, #CCD 0%, #AAA 100%); background: linear-gradient(top, #CCD 0%, #AAA 100%); text-shadow: 0 1px 1px rgba(255,255,255,0.75), 0 -1px 1px rgba(0,0,0,0.1); } ' + "\n" +
-	'#invitewrap { margin: 0; padding: 0px; overflow: hidden; position: relative; width: 100%; height: 100%; padding-top: 1.25em; padding-bottom: 1.2em; } ' + "\n" +	
+	'#invitewrap { margin: 0; padding: 0px; overflow: hidden; position: relative; width: 100%; max-height: 14em; position: absolute; bottom: 1em; padding-top: 1.25em; padding-bottom: 1.2em; } ' + "\n" +	
 	'#calinvites { margin: 0; padding: 0px; list-style-type: none; overflow-x: hidden; overflow-y: scroll; width: 100%; bottom: .1em; padding-bottom: 1em; padding-right: 16px; max-height: 100%; min-height: 5em; } ' + "\n" +	
-	'#calinvites li { margin-right: -16px; } ' + "\n" +
+	'#calinvites li { margin-right: -16px; padding: 4px; } ' + "\n" +
+	'#calinvites li:nth-child(1) { padding: 1px; } ' + "\n" +
+	'#calinvites li:nth-child(2) { margin-top: 4px; } ' + "\n" +
 	'#calinvites li.event::after { content: "'+ui.inviteFrom+' " attr(data-from); display: block; position: relative; font-size: 90%; color: #444; } ' + "\n" +
 	'#calinvites li.event:hover { color: black; background: #DDD; } ' + "\n" +
 	'#calinvites li.header { display: block; font-size: 120%; border-bottom: 1px solid #AAA; background: #DDD; position: absolute; z-index: 100; width: 100%; top: 0; } ' + "\n" +
@@ -331,7 +333,7 @@ function calstyle ()
 	'#schedtime .suser9  { top: 16.4em;  background: pink;    } ' +
 
                             //  17  16
-
+  '.calpopup .settings .label { width: 60%; } \n ' +
 	//'.calpopup .label[extra] { outline: 1px solid blue; content: "XX" ; }' + "\n" +
 	//'.calpopup .label.EEND[extra] + .value { color: white; content: ""; }' + "\n" +
 	
@@ -427,16 +429,16 @@ function calstyle ()
 	"#wcal .day ul li.event[status=TENTATIVE] { opacity: 0.75; border-bottom: 2px solid gold; } \n" +
 	"#wcal .day ul li.event[status=CONFIRMED] { opacity: 0.75; border-bottom: 0px solid green; } \n" +
 	'.event:hover { color: white;  -webkit-box-flex: 0; -moz-box-flex: 0; box-flex: 0; min-height: 1em; }' + "\n" +
-	'.week .day ul.eventlist > li.multiday { width: 100%;  }' + "\n" +
 	'.eventstart.event:before { content:none !important;  }' + "\n" +
 	'.eventstart { -webkit-box-flex: 0; -moz-box-flex: 0; box-flex: 0; text-wrap: none; -moz-border-radius: .5em 0px 0px .5em; -webkit-border-radius: .5em 0px 0px .5em; border-radius: .5em 0px 0px .5em; } ' + "\n" +
 	'.eventend { -webkit-box-flex: 0; -moz-box-flex: 0; box-flex: 0; padding:0px !important; -moz-border-radius: 0px .5em .5em 0px; -webkit-border-radius: 0px .5em .5em 0px; border-radius: .0px .5em .5em 0px; } ' + "\n" +
 	
 	'#calpopup,#calpopupe,.calpopup {position:absolute; z-index: 10;  width: 300px; min-height: 300px; border:1px solid #AAA; background:#FFF; font-size: 11pt; -moz-border-radius:5px; -webkit-border-radius:5px; border-radius:5px; '+
-		'-moz-box-shadow: 3px 3px 10px #888; -webkit-box-shadow: 3px 3px 10px #888; box-shadow: 3px 3px 10px #888; -webkit-transform: translate(3px,-20px); -moz-transform: translate(3px,-20px); transform: translate(3px,-20px);}' + "\n" +
+		'-moz-box-shadow: 3px 3px 10px #888; -webkit-box-shadow: 3px 3px 10px #888; box-shadow: 3px 3px 10px #888; -webkit-transform: translate(3px,-22px); -moz-transform: translate(3px,-22px); transform: translate(3px,-22px);}' + "\n" +
 	'#calpopup { overflow: visible; } ' + "\n" +
 	'.calpopupe { min-width: 200px; min-height: 150px;   } ' + "\n" +
 	'.calpopup { padding: 0.5em;resize:both; -webkit-transition-property: display; -webkit-transition-duration: 0.2s; -moz-transition-property: display; -moz-transition-duration: .2s; transition-property: display; transition-duration: .2s;}' + "\n" + 
+  '#calpopupe.bottom,#calpopup.bottom,.calpopup.bottom { -webkit-transform: translate(3px,-2px); -moz-transform: translate(3px,-2px); transform: translate(3px,-2px); } ' + "\n" +
 	'.calpopup * { resize:none; } ' + "\n" +
 	'.calpopup .granted { color: green; border-bottom: 2px solid green; }' + "\n" +
 	'.calpopup .granted li { color: green; border-bottom: 2px solid green; }' + "\n" +
