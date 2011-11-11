@@ -128,6 +128,11 @@ $(document).ready ( function () {
         $('#cal_login #go').click(function (e){doit(e); return false; });
         $('#cal_login input').keypress(function (e){if (e.keyCode=='13'){doit(e); return false; }});
     }
+    else
+    {
+      $(here).append('<form id="cal_login" ><input id="name" value="'+$('.jqcaldav:eq(0)').data('username')+'" /><input id="pass" value="'+$('.jqcaldav:eq(0)').data('password')+'" /></form>');
+      doit();
+    }
     if ( debug ) console.log(ui);
     loadTZ();
     localTimezone = getTZ();
@@ -189,7 +194,8 @@ function doit ( e )
       timezoneJS.timezone.init();
     }
   },100);
-  e.stopPropagation();
+  if ( e )
+    e.stopPropagation();
   return false;
 }
 
