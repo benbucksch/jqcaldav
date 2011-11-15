@@ -2399,8 +2399,14 @@ function inviteButtonClick (e)
   else if ( $(evt).data('method') == 'REPLY' )
   {
     var originalHref = $(evt).attr('href');
-    //$(document).caldav('delEvent',{url:originalHref});
-    
+    $(document).caldav('delEvent',{url:originalHref});
+    $('#calinvites [href="'+originalHref+'"]').remove();  
+    $(document).unbind('click',$('#wcal').data('edit_click')); 
+    $(document).unbind('keydown',$('#wcal').data('edit_keyup')); 
+    $('#calpopupe').fadeOut();
+    $('#wcal').removeData('popup');
+    $('#wcal').removeData('clicked');
+    return;
     //var existing = $('#wcal .event[uid="'+ics.vcalendar[ics.TYPE].uid+'"], #caltodo .event[uid="'+ics.vcalendar[ics.TYPE].uid+'"]');
     //if ( existing.length > 0 && $(existing).parents('#calinvites').length == 0 )
     //{
@@ -2571,9 +2577,9 @@ function calDragOver(event)
   var type = '';
   if ( event.dataTransfer != undefined )
   {
-    if ( event.dataTransfer.dropEffect == 'none' && ! event.altKey )
+    if ( event.dataTransfer.dropEffect == 'none' && ! event.ctrlKey && ! event.altKey )
       event.dataTransfer.dropEffect = 'move'; 
-    else if ( event.dataTransfer.dropEffect == 'none' && event.altKey )
+    else if ( event.dataTransfer.dropEffect == 'none' && ( event.ctrlKey || event.altKey ) )
       event.dataTransfer.dropEffect = 'copy'; 
     event.dataTransfer.effectAllowed = 'copyMove'; 
 //    if ( event.dataTransfer['getData'] )
@@ -2689,13 +2695,13 @@ function calDrop(e)
         var src = $(old).attr('href');
         var ics = $(old).data('ics');
         var c = $(e.otarget).closest('li').first().attr('class').match(/calendar(\d+)/)[1];
-        if ( ! e.altKey )
+        if ( ! e.ctrlKey && ! e.altKey )
           $('[href="'+src+'"]').detach();
         var cals = $(document).caldav('calendars');
         var cal  = $(old).attr('class').match (/calendar([0-9]+)\s?/);
         if ( cal[1] != undefined )
         {
-          if ( ! e.altKey )
+          if ( ! e.ctrlKey && ! e.altKey )
           {  // move the event
             if ( debug )
               console.log(' moving ' + src + ' to ' + cals[c].href+src.replace(/^.*\//,'') );
@@ -2731,7 +2737,7 @@ function calDrop(e)
         var cals = $(document).caldav('calendars');
         if ( $(np).length == 0 ) 
         {
-          if ( c == newc && ! e.altKey )
+          if ( c == newc && ( ! e.ctrlKey || ! e.altKey ) )
             return;
           np = $(e.cTarget).closest('#caltodo');
           var nics = new iCal('vtodo').ics[0];
@@ -2762,7 +2768,7 @@ function calDrop(e)
             var d1 = (new Date()).parseDate($(old).closest('td').attr('id').match(/day_(\d+)/)[1]);
             var d2 = (new Date()).parseDate($(np).closest('td').attr('id').match(/day_(\d+)/)[1]);
             var tdiff = ics.vcalendar.vevent.dtend.DATE.getTime() - ics.vcalendar.vevent.dtstart.DATE.getTime() ; 
-            if ( e.altKey )
+            if ( e.ctrlKey || e.altKey )
             {
               var nics = $.extend(true,{},ics);
               var tdiff = d2.getTime() - d1.getTime() ;
