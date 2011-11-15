@@ -247,7 +247,10 @@ function calstyle ()
 	'li[priority="9"]::before { display: block; position: absolute; left: 100%; width: .7em; margin-left: -0.7em; margin-top: -0.05em; height: .2em; border-top: .15em solid #999; content: " " } ' +
 
 	'#wcal { width: 100%; overflow: scroll; float: left; overflow-x: hidden; height:24em; border-spacing:0; padding:0; margin:0; margin-left: 0.95em; margin-right: -9px; border:0; border-top: 1px solid #AAA; border-left: 1px solid #AAA; }' + "\n" + 
-	
+
+
+	'.highlighted { outline: 1px dotted #888 ; -moz-box-shadow: 2px 2px 4px #888; -webkit-box-shadow: 2px 2px 4px #888; box-shadow: 2px 2px 4px #888;  }' + "\n" +
+
 	'.calpopup { overflow: auto; } ' + "\n" +
 	'.calpopup * { overflow: hidden; } ' + "\n" +
 	'.calpopup ul { margin:0; padding:1em; max-width: 100%; overflow: hidden; }' + "\n" +

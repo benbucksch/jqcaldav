@@ -2622,15 +2622,46 @@ function calDragOver(event)
 function calDrop(e) 
 {
     // drop the data
-    //console.log(e);
-    console.log('one');
+    var hl = $('.highlighted');
+    if ( e.otarget == undefined )
+      e.otarget = e.currentTarget;
+    if ( e.multi !== true && hl.length > 0 && ( e.dataTransfer != undefined || e.originalEvent.dataTransfer != undefined ) )
+    {
+      e.preventDefault();
+      var d1,d2,diff;
+      diff = 0;
+      if ( $(e.target).parents('#wcal').length > 0 && $($('#wcal').data('dragging')).parents('#wcal').length )
+      {
+        d1 = (new Date().Zero()).parseDate($($('#wcal').data('dragging')).closest('td').attr('id').match(/day_(\d+)/)[1]);
+        d2 = (new Date().Zero()).parseDate($(e.currentTarget).closest('td').attr('id').match(/day_(\d+)/)[1]);
+        diff = d2.getTime() - d1.getTime();
+      }
+      if ( $($('#wcal').data('dragging')).hasClass('highlighted') )
+      {
+        e.multi = true;
+        for ( var i=0; i<hl.length; i++)
+        {
+          $('#wcal').data('dragging',hl[i]);
+          if ( diff != 0 )
+          {
+            d1 = new Date ((new Date().Zero()).parseDate($(hl[i]).closest('td').attr('id').match(/day_(\d+)/)[1]).getTime() +
+              diff ).DayString();
+            console.log ( 'adjusting target to ' + d1 );
+            e.otarget = $('#day_'+d1)[0];
+          }
+          console.log('dragging', hl[i]);
+          calDrop(e);
+        }
+      }
+      $('.highlighted').toggleClass('.highlighted');
+      return;
+    }
     e.preventDefault();
     $('#wcal').removeClass('dragging');
-    $(e.target).closest('td').removeClass('drop');
+    $(e.otarget).closest('td').removeClass('drop');
     var old = $('#wcal').data('dragging');
     e.preventOK = true;
-    if ( e.currentTarget != undefined )
-      e.cTarget = e.currentTarget;
+    e.cTarget = e.otarget;
     if ( old != undefined && $(old).data('ics').TYPE == 'vevent' && $(old).data('ics').vcalendar.vevent.rrule != undefined && e.moveAll == undefined )
     {
       $('#wcal').data('drop-question',e);
@@ -2651,13 +2682,13 @@ function calDrop(e)
     $('#caldrop').detach().hide().appendTo('#wcal');
     if ( old != null )
     {
-      var sb = $(e.target).parents('#callist').length; 
+      var sb = $(e.otarget).parents('#callist').length; 
       if ( sb >= 1 )
       {
         $('#wcal').removeData('dragging');
         var src = $(old).attr('href');
         var ics = $(old).data('ics');
-        var c = $(e.target).closest('li').first().attr('class').match(/calendar(\d+)/)[1];
+        var c = $(e.otarget).closest('li').first().attr('class').match(/calendar(\d+)/)[1];
         if ( ! e.altKey )
           $('[href="'+src+'"]').detach();
         var cals = $(document).caldav('calendars');
@@ -2718,73 +2749,99 @@ function calDrop(e)
           if ( ics.vcalendar[ics.TYPE].dtend )
             nics.vcalendar.vtodo.due.UPDATE ( ics.vcalendar[ics.TYPE].dtend );
           ve['uid'].VALUE = guid();
-          src = cals[newc].url+src.replace(/^.*\//,'');
-          if ( c == newc )
-            String(src).replace ( /(\.[a-zA-Z]*)$/, '-1$1');
+          src = cals[newc].url+ve['uid'].VALUE;
           var params = { url:src};
           $(document).caldav('putNewEvent',params,nics.PARENT.toString() ); 
           insertTodo(src,nics,newc,$('#wcal').data('firstweek' ),$('#wcal').data('lastweek'));
         }
         else
         {
+          // copy event
           if ( ics.TYPE == 'vevent' )
           {
             var d1 = (new Date()).parseDate($(old).closest('td').attr('id').match(/day_(\d+)/)[1]);
             var d2 = (new Date()).parseDate($(np).closest('td').attr('id').match(/day_(\d+)/)[1]);
             var tdiff = ics.vcalendar.vevent.dtend.DATE.getTime() - ics.vcalendar.vevent.dtstart.DATE.getTime() ; 
-            if ( e.moveAll === false )
+            if ( e.altKey )
             {
-              $(old).detach();
               var nics = $.extend(true,{},ics);
-              nics.vcalendar.vevent.dtstamp = (new Date()).DateString ( );
-              nics.vcalendar.vevent.sequence.VALUE++;
-              var start = d1;
-              var expan = ics.vcalendar.vevent.rrule.RECURRENCE.expandRecurrence(ics.vcalendar.vevent.dtstart.VALUE,dateAdd(start,'d',2));
-              delete nics.vcalendar.vevent.rrule;
-              delete nics.vcalendar.vevent.exdate;
-              for ( var i in expan )
-                if ( expan[i] >= start)
-                {
-                  var estart = expan[i];
-                  break ;
-                }
-              nics.vcalendar.vevent['recurrence-id'] = nics.PARENT.newField ('RECURRENCE-ID',estart,nics.vcalendar.vevent.dtstart.PROP); 
-              var nstart = new Date ( estart.getTime() + ( d2.getTime() - d1.getTime() ) ); 
-              if ( newtime != undefined )
-                nstart.setUTCHours( newtime.getUTCHours() ); 
-              var dur = ics.vcalendar.vevent.dtend.DATE.getTime() - ics.vcalendar.vevent.dtstart.DATE.getTime() ; 
-              var nend = new Date ( estart.getTime() + dur );
-              nics.vcalendar.vevent.dtstart = nics.PARENT.newField ( 'dtstart', nstart, nics.vcalendar.vevent.dtstart.PROP );
-              nics.vcalendar.vevent.dtend = nics.PARENT.newField ( 'dtend', nstart, nics.vcalendar.vevent.dtstart.PROP );
-              nics.PARENT = ics.PARENT;
-              ics.PARENT.push ( nics.vcalendar );
-              var params = { url:src};
-              $(document).caldav('putEvent',params,ics.PARENT.toString() ); 
-              insertEvent(src,nics,c,$('#wcal').data('firstweek' ),$('#wcal').data('lastweek'));
-              return ;
-            }
-            else if ( e.moveAll === true )
-            {
-              $('li[uid="'+ics.vcalendar.vevent.uid.VALUE+'"][original=1][href="'+src+'"]').detach();
               var tdiff = d2.getTime() - d1.getTime() ;
-              if ( ics.vcalendar.vevent.rrule.RECURRENCE.UNTIL != undefined )
-                ics.vcalendar.vevent.rrule.RECURRENCE.UNTIL = (new Date()).DateString ( new Date ( (new Date()).parseDate(ics.vcalendar.vevent.rrule.RECURRENCE.UNTIL).getTime() + tdiff ) );
+              var c = $(old).attr('class').match(/calendar(\d+)/)[1];
+              if ( newtime != undefined )
+                tdiff += ( newtime.getUTCHours() - (ics.vcalendar.vevent.dtstart.DATE.getUTCHours())) * 3600000;
+              ics.vcalendar.vevent.dtstart.ORIGDATE = ics.vcalendar.vevent.dtstart;
+              ics.vcalendar.vevent.dtstart.UPDATE ( new Date ( ics.vcalendar.vevent.dtstart.DATE.getTime() + tdiff ) );
+              ics.vcalendar.vevent.dtend.UPDATE ( new Date ( ics.vcalendar.vevent.dtend.DATE.getTime() + tdiff ) );
+              var nguid = guid()
+              ics.vcalendar.vevent.uid.UPDATE ( nguid );
+              var nurl = cals[c].href+nguid+'.ics';
+              
+              
+              if ( debug )
+                console.log(' copying ' + src + ' to ' + nurl );
+              var params = { url:nurl,
+                headers:{'If-None-Match':'*'},
+                username:$.fn.caldav.options.username,password:$.fn.caldav.options.password};
+              $(document).caldav('putNewEvent',params,ics.PARENT.toString() );
+              
+              insertEvent(nurl,ics,c,$('#wcal').data('firstweek' ),$('#wcal').data('lastweek'));
             }
             else
-            {
-              var tdiff = ics.vcalendar.vevent.dtend.DATE.getTime() - ics.vcalendar.vevent.dtstart.DATE.getTime() ; 
-              $(old).detach();
-              $('li[uid="'+ics.vcalendar.vevent.uid.VALUE+'"][original=1][href="'+src+'"]').detach();
+            { // move event
+              if ( e.moveAll === false )
+              { // move occurence 
+                $(old).detach();
+                var nics = $.extend(true,{},ics);
+                nics.vcalendar.vevent.dtstamp = (new Date()).DateString ( );
+                nics.vcalendar.vevent.sequence.VALUE++;
+                var start = d1;
+                var expan = ics.vcalendar.vevent.rrule.RECURRENCE.expandRecurrence(ics.vcalendar.vevent.dtstart.VALUE,dateAdd(start,'d',2));
+                delete nics.vcalendar.vevent.rrule;
+                delete nics.vcalendar.vevent.exdate;
+                for ( var i in expan )
+                  if ( expan[i] >= start)
+                  {
+                    var estart = expan[i];
+                    break ;
+                  }
+                nics.vcalendar.vevent['recurrence-id'] = nics.PARENT.newField ('RECURRENCE-ID',estart,nics.vcalendar.vevent.dtstart.PROP); 
+                var nstart = new Date ( estart.getTime() + ( d2.getTime() - d1.getTime() ) ); 
+                if ( newtime != undefined )
+                  nstart.setUTCHours( newtime.getUTCHours() ); 
+                var dur = ics.vcalendar.vevent.dtend.DATE.getTime() - ics.vcalendar.vevent.dtstart.DATE.getTime() ; 
+                var nend = new Date ( estart.getTime() + dur );
+                nics.vcalendar.vevent.dtstart = nics.PARENT.newField ( 'dtstart', nstart, nics.vcalendar.vevent.dtstart.PROP );
+                nics.vcalendar.vevent.dtend = nics.PARENT.newField ( 'dtend', nstart, nics.vcalendar.vevent.dtstart.PROP );
+                nics.PARENT = ics.PARENT;
+                ics.PARENT.push ( nics.vcalendar );
+                var params = { url:src};
+                $(document).caldav('putEvent',params,ics.PARENT.toString() ); 
+                insertEvent(src,nics,c,$('#wcal').data('firstweek' ),$('#wcal').data('lastweek'));
+                return ;
+              }
+              else if ( e.moveAll === true )
+              { // move entire series
+                $('li[uid="'+ics.vcalendar.vevent.uid.VALUE+'"][original=1][href="'+src+'"]').detach();
+                var tdiff = d2.getTime() - d1.getTime() ;
+                if ( ics.vcalendar.vevent.rrule.RECURRENCE.UNTIL != undefined )
+                  ics.vcalendar.vevent.rrule.RECURRENCE.UNTIL = (new Date()).DateString ( new Date ( (new Date()).parseDate(ics.vcalendar.vevent.rrule.RECURRENCE.UNTIL).getTime() + tdiff ) );
+              }
+              else
+              { // plain move event
+                var tdiff = ics.vcalendar.vevent.dtend.DATE.getTime() - ics.vcalendar.vevent.dtstart.DATE.getTime() ; 
+                $(old).detach();
+                $('li[uid="'+ics.vcalendar.vevent.uid.VALUE+'"][original=1][href="'+src+'"]').detach();
+              }
+              var tdiff = d2.getTime() - d1.getTime() ;
+              if ( newtime != undefined )
+                tdiff += ( newtime.getUTCHours() - (ics.vcalendar.vevent.dtstart.DATE.getUTCHours())) * 3600000;
+              ics.vcalendar.vevent.dtstart.ORIGDATE = ics.vcalendar.vevent.dtstart;
+              ics.vcalendar.vevent.dtstart.UPDATE ( new Date ( ics.vcalendar.vevent.dtstart.DATE.getTime() + tdiff ) );
+              ics.vcalendar.vevent.dtend.UPDATE ( new Date ( ics.vcalendar.vevent.dtend.DATE.getTime() + tdiff ) );
+              var params = { url:src};
+              $(document).caldav('putEvent',params,ics.PARENT.toString() ); 
+              insertEvent(src,ics,c,$('#wcal').data('firstweek' ),$('#wcal').data('lastweek'));
             }
-            var tdiff = d2.getTime() - d1.getTime() ;
-            if ( newtime != undefined )
-              tdiff += ( newtime.getUTCHours() - (ics.vcalendar.vevent.dtstart.DATE.getUTCHours())) * 3600000;
-            ics.vcalendar.vevent.dtstart.ORIGDATE = ics.vcalendar.vevent.dtstart;
-            ics.vcalendar.vevent.dtstart.UPDATE ( new Date ( ics.vcalendar.vevent.dtstart.DATE.getTime() + tdiff ) );
-            ics.vcalendar.vevent.dtend.UPDATE ( new Date ( ics.vcalendar.vevent.dtend.DATE.getTime() + tdiff ) );
-            var params = { url:src};
-            $(document).caldav('putEvent',params,ics.PARENT.toString() ); 
-            insertEvent(src,ics,c,$('#wcal').data('firstweek' ),$('#wcal').data('lastweek'));
           }
           else
           {
@@ -3186,6 +3243,19 @@ function eventMouseout()
 
 function eventClick(e)
 {
+  if ( e.shiftKey )
+  {
+    var hl = $('.highlighted');
+    if ( hl.length > 0 )
+    {
+      if ( $(hl[0]).parents('#caltodo').length > 0 && $(e.target).parents('#caltodo').length == 0 )
+        $('.highlighted').toggleClass('highlighted');
+      if ( $(hl[0]).parents('#wcal').length > 0 && $(e.target).parents('#wcal').length == 0 )
+        $('.highlighted').toggleClass('highlighted');
+    }
+    $(e.target).toggleClass('highlighted');
+    return;
+  }
   $('#calpopupe').remove();
   $('#wcal').removeData('popup');
   e.stopPropagation();
