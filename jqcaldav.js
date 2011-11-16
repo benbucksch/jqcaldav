@@ -3369,7 +3369,7 @@ function eventClick(e)
 
     $('#calpopupe').append('<div class="button delete" tabindex="0">'+ui['delete']+'</div>');
     $('#calpopupe').append('<div class="button done" tabindex="0">'+ui.done+'</div>');
-    if ( d.vcalendar[d.TYPE].attendee )
+    if ( d.vcalendar[d.TYPE].attendee  && ( cals[c].principal == $.fn.caldav.data.myPrincipal || cals[c].perms['all'] || cals[c].perms['schedule-send'] || cals[c].perms['schedule-send-reply']) )
     {
       var mystatus = String($('#calpopupe .attendee.me').data('partstat')).toLowerCase();
       $('#calpopupe').append('<div class="smallschedulebuttons group '+mystatus+'"><div class="button accept" tabindex="0">'+ui.accept+'</div><div class="button maybe" tabindex="0">'+ui.maybe+'</div><div class="button decline" tabindex="0">'+ui.decline+'</div></div>');
