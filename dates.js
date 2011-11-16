@@ -146,7 +146,7 @@ Date.prototype.prettyDate = function(short){
 	return this.pad(this.getUTCMonth()+1)+'/'
       + this.pad(this.getUTCDate())+'/'
       + this.getUTCFullYear()+' '
-			+ (short===true?'':this.prettyTime()) };
+			+ (short===true?'':this.prettyTime())}
 
 function emptyDuration ()
 {
@@ -324,7 +324,12 @@ Date.prototype.parsePrettyDate = function(d,zero){
 		this.setUTCMilliseconds(0);
 	}
 	var dRX = /([0-9]{1,2})\/([0-9]{1,2})\/([0-9]{4})\s*(([0-2]?[0-9]):?([0-6][0-9])?:?([0-6][0-9])?\s*([AP]M)?)?/i;
-	var parts = String(d).match( dRX ).slice(1);
+  if ( String ( d ) == '' )
+    throw 'error in date string';
+  try {
+	  var parts = String(d).match( dRX ).slice(1);
+  }catch (e){ 
+    throw 'error in date string'; }
 	if ( parts[3] != undefined )
 	{
 		this.setUTCFullYear(parts[2]);
@@ -378,6 +383,8 @@ function dateAdd ( d, field, amount )
 { // y = year, m = month, W = weeks, w = week number, d = day of month(25), D = day of week (3) -> wed, h = hour, M = minute, s = Second
 	var ret = new Date ( d.getTime() );
 	var amount = Number(amount);
+  if ( String(amount) == 'NaN' )
+    return ret;
 	switch ( field )
 	{
 		case 'y':

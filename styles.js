@@ -260,9 +260,9 @@ function calstyle ()
 	'.calpopup > ul > li:first-child span { font-size: 14pt; color: #004; padding-bottom: .75em;}' + "\n" +
 	'.calpopup .label { margin:0; padding:0; display: block; float: left; width: 5.5em; text-align: right; color: #777; font-weight: bold; padding-right: 3px; margin-top: 6px;clear: left; }' + "\n" +
 	'.calpopup .value { resize: none; outline: none; margin:0; padding:0; padding-right: 2px; padding-left: 4px; min-width: 3em; min-height: 1em; display: block; float: left; margin-top: 6px; margin-bottom: 2px; }' + "\n" +
-	'.calpopup .value:hover { outline: 1px solid #AAA; resize: both;}' + "\n" +
+	'.calpopup .value.text:hover { outline: 1px solid #AAA; resize: both;}' + "\n" +
 	'.calpopup .value:focus { outline: none; -moz-box-shadow: 1px 1px 3px #888; -webkit-box-shadow: 1px 1px 3px #888; box-shadow: 1px 1px 3px #888; resize: none; }' + "\n" +
-	'.calpopup .value:focus:hover { resize:both; }' + "\n" +
+	'.calpopup .value.text:focus:hover { resize:both; }' + "\n" +
 	'.calpopup .attendee.accepted:before { content: "\\2713"; color: white; background-color: green; -moz-border-radius:.55em; -webkit-border-radius:.5em; border-radius:.5em; display: inline-block; width: 1em; height: 1em; margin:.2em; text-align: center; padding: .05em ; font-weight: bold; } \n' + 
 	'.calpopup .attendee.tentative:before { content: "?"; color: white; background-color: gold; -moz-border-radius:.55em; -webkit-border-radius:.5em; border-radius:.5em; display: inline-block; width: 1em; height: 1em; margin:.2em; text-align: center; padding: .05em ; font-weight: bold; } \n' + 
 	'.calpopup .attendee.needs-action:before { content: "!"; color: white; background-color: grey; -moz-border-radius:.55em; -webkit-border-radius:.5em; border-radius:.5em; display: inline-block; width: 1em; height: 1em; margin:.2em; text-align: center; padding: .05em ; font-weight: bold; } \n' + 
@@ -345,8 +345,12 @@ function calstyle ()
 	'.calpopup .schedulebuttons { position: absolute; bottom: 10px; left: 10px; right: 10px; text-align: center; }' + "\n" +
 	'.calpopup .group.smallschedulebuttons { position: absolute; bottom: 10px; right: 150px; text-align: right; -webkit-box-orient: vertical; -moz-box-orient: vertical; box-orient: vertical; overflow: hidden; height: 1.25em; }' + "\n" +
 	'.calpopup .group.smallschedulebuttons:hover { overflow: visible; height: auto; margin-top: auto; }' + "\n" +
-  '.calpopup .group.smallschedulebuttons:hover .button:first-child { margin-top: 0 !important; } ' + "\n" + 
+
+  '.calpopup .group.smallschedulebuttons:hover .button:nth-child(1) { margin-top: 0 !important; } ' + "\n" + 
 	'.calpopup .group.smallschedulebuttons .button { border-right: 1px solid black;  -webkit-box-flex: 0; -moz-box-flex: 0; box-flex: 0; display: -webkit-box; display: -moz-box; display: box; -moz-box-orient: vertical; box-orient: vertical; }' + "\n" +
+  
+  '.calpopup .group.smallschedulebuttons.tentative .button:nth-child(1) { margin-top: -1.5em; } ' + "\n" + 
+  '.calpopup .group.smallschedulebuttons.declined .button:nth-child(1) { margin-top: -3em; } ' + "\n" + 
 
 	'.calpopup .dropdown { padding-right: 1.5em; padding-left: 1em; }' + "\n" +
 	'.dropdown:after   { content: ""; display: block; position: absolute; right: 5px; width:0; height:0; border-color: #666 transparent transparent transparent; border-style: solid; border-width: 8px 4px 1px 4px;  '+

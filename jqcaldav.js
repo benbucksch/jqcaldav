@@ -1709,6 +1709,69 @@ function keyboardSelector (e)
   return true;
 }
 
+// scrolling for dates
+function dateScroll (e )
+{
+  if ( e.wheelDelta == undefined )
+    var z = e.detail;
+  else
+    var z = 0 - (Math.abs(e.wheelDelta) >= 3 ? ( Math.abs(e.wheelDelta)> 29? Math.round(e.wheelDelta/30):Math.round(e.wheelDelta/3)): e.wheelDelta);
+  if ( Math.abs(z) > 2 )
+    z = Math.round(z/3);
+  var off = 0;
+  if ( document.caretRangeFromPoint )
+  {
+    var r = document.caretRangeFromPoint(e.originalEvent.pageX,e.originalEvent.pageY);
+    off = r.startOffset;
+  }
+  else if ( e.originalEvent.rangeOffset )
+  {
+    off = e.originalEvent.rangeOffset;
+  }
+  else
+  {
+    // fake it, poorly
+    off = Math.round ( $(e.target).text().length * ( e.offsetX / $(e.target).width() ) );
+    console.log ( 'offset ' + off + '  from ' + $(e.target).width() + '/' + e.offsetX );
+  }
+  var dlen = String($(e.target).text()).replace ( /^(\s*[0-9]{2,4}\s*[,./';: ]\s*[0-9]{2,4}\s*[,./';: ]\s*[0-9]{2,4}\s+).*$/, '$1').length;
+  try {
+    var dt = (new Date).Zero().parsePrettyDate($(e.target).text());
+  }catch(e){// stop if it ain't a date
+    return ;
+  }
+  if ( off < dlen )
+  {
+    //adjust date
+    dt.add('d',z);
+    console.log ( 'moved ' + z + ' @ dlen =' + dlen + ' and off =' + off );
+  }
+  else
+  {
+    // adjust time
+    var timeparts = String($(e.target).text()).slice(dlen-1).split(/:/);
+    if ( off > dlen + timeparts[0].length )
+    {
+      if ( Number ( timeparts[1] )  % 5 != 0 )
+      {
+        if ( Number ( timeparts[1] ) <= 57 )
+        {
+          dt.setUTCMinutes(Math.round(Number ( timeparts[1] ) / 5) * 5);
+        }
+        else
+        {
+          dt.setUTCMinutes(60);
+        }
+      }
+      dt.add('M',z * 5);
+    }
+    else
+      dt.add('h',z);
+    console.log ( 'moved ' + z + ' @ dlen =' + dlen + ' hlen =' + timeparts[0].length + ' and off =' + off );
+  }
+  $(e.target).text (dt.prettyDate());
+}
+
 // get inbox events for principal
 function getInbox ( p )
 {
@@ -3149,18 +3212,22 @@ function eventHover (e)
   if ( /calendarserver-private-events/.test ( $.fn.caldav.serverSupports ) )
     props.push('x-calendarserver-access');
   var used = [];
+  var fn;
   for ( var x in props )
   {
     var extra = '';
+    fn = props[x];
     switch ( props[x] )
     {
       case 'ESTART':
         var extra = duration?'extra="'+recurrenceUI.on+'"':'';
         var label = fieldNames['dtstart'];
+        fn = 'dtstart';
         break;
       case 'EEND':
         var extra = duration?'extra="'+recurrenceUI.until+'"':'';
         var label = fieldNames['dtend'];
+        fn = 'dtend';
         break;
       case 'DURATION':
         var label = fieldNames['duration'];
@@ -3222,6 +3289,11 @@ function eventHover (e)
         $( '.value', li ).text ( text );
         $( '.value', li ).attr ( 'data-value', text );
       }
+      if ( d.PARENT.fields[fn].type == 'date' )
+      {
+        $( '.value', li ).bind ( 'mousewheel DOMMouseScroll', dateScroll );
+      }
+      $( '.value', li ).addClass ( d.PARENT.fields[fn].type );
       $(ul).append(li);
     }
     //else if ( props[x] == 'summary' )
@@ -3299,7 +3371,8 @@ function eventClick(e)
     $('#calpopupe').append('<div class="button done" tabindex="0">'+ui.done+'</div>');
     if ( d.vcalendar[d.TYPE].attendee )
     {
-      $('#calpopupe').append('<div class="smallschedulebuttons group"><div class="button accept" tabindex="0">'+ui.accept+'</div><div class="button maybe" tabindex="0">'+ui.maybe+'</div><div class="button decline" tabindex="0">'+ui.decline+'</div></div>');
+      var mystatus = String($('#calpopupe .attendee.me').data('partstat')).toLowerCase();
+      $('#calpopupe').append('<div class="smallschedulebuttons group '+mystatus+'"><div class="button accept" tabindex="0">'+ui.accept+'</div><div class="button maybe" tabindex="0">'+ui.maybe+'</div><div class="button decline" tabindex="0">'+ui.decline+'</div></div>');
       $('#calpopupe .smallschedulebuttons .button').bind('click keypress', inviteButtonClick );
     }
     if ( debug ) 
@@ -3509,8 +3582,10 @@ function addField(e)
   var d = $($(cp).data('event')).data('ics');
   var cF = $('.label',cp);
   var currentFields=[];
+  var fieldsLUT = {};
   for ( var i in fieldNames )
   {
+    fieldsLUT[fieldNames[i]] = i;
     var labels = $('.label:contains('+ fieldNames[i] +')',cp);
     for ( var j=0;j<labels.length;j++ )
       if ( $(labels[j]).text() == fieldNames[i] )
@@ -3586,6 +3661,8 @@ function addField(e)
       else
       {
         $('.value',txt).focus(fieldClick);
+        if ( iCal().fields[fieldsLUT[ $(this).text()]].type == 'date' )
+          $('.value',txt).bind('mousewheel DOMMouseScroll',dateScroll);
         var cp = $(this).closest('li').before(txt);
         $(cp).prev().children('.value').focus();
       }
@@ -3610,6 +3687,7 @@ function addField(e)
         {
           var plus = $('<span></span>').append($('<span class="plus">'+ui.add+'</span>').click(function(){$(this).before('<span class="alarm"><span class="action" contenteditable="true">'+valueNames.AUDIO+'</span><span class="value" contenteditable="true">15</span><span class="length" contenteditable="true" >'+durations['minutes before']+'</span><span class="related" contenteditable="true" >'+valueNames.START+'</span></span>');}));
           $('.value',txt).replaceWith(plus);
+          $('.value',txt).bind('mousewheel DOMMouseScroll',dateScroll);
           var cp = $(this).closest('li').before(txt);
           $('.action,.length,.related',cp).bind('click, focus',alarmFieldClick);
         }
@@ -3644,6 +3722,8 @@ function addField(e)
         else
         {
           $('.value',txt).focus(fieldClick);
+          if ( iCal().fields[fieldsLUT[ $(this).text()]].type == 'date' )
+            $('.value',txt).bind('mousewheel DOMMouseScroll',dateScroll);
           var cp = $(this).closest('li').before(txt);
           $(cp).prev().children('.value').focus();
         }
