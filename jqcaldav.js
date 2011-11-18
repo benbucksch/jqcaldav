@@ -4764,7 +4764,10 @@ function buildcal(d)
   $('#addcalendar',sidebar).click(addCalendar); 
   $('#calsettings',sidebar).click(calSettings); 
   $(calwrap).append(sidebar);
-  $(calwrap).append('<div id="calcenter" ><div id="calheader" tabindex="6"><span id="gototoday" class="button" >'+ui.today+'</span><span id="weekview" class="button" >'+ui.week+'</span><span id="refresh" class="button" >&#8635;</span><span id="calmonthname">' + months[s.getMonth()] + '</span><span id="calyearname">' + s.getFullYear() + '</span><span id="logout" class="button" >'+ui.logout+'</span></div>');
+  if ( $.fn.caldav.reports['sync-collection'] )
+    $(calwrap).append('<div id="calcenter" ><div id="calheader" tabindex="6"><span id="gototoday" class="button" >'+ui.today+'</span><span id="weekview" class="button" >'+ui.week+'</span><span id="refresh" class="button" >&#8635;</span><span id="calmonthname">' + months[s.getMonth()] + '</span><span id="calyearname">' + s.getFullYear() + '</span><span id="logout" class="button" >'+ui.logout+'</span></div>');
+  else
+    $(calwrap).append('<div id="calcenter" ><div id="calheader" tabindex="6"><span id="gototoday" class="button" >'+ui.today+'</span><span id="weekview" class="button" >'+ui.week+'</span><span id="calmonthname">' + months[s.getMonth()] + '</span><span id="calyearname">' + s.getFullYear() + '</span><span id="logout" class="button" >'+ui.logout+'</span></div>');
   $('#refresh',calwrap).click(function(){calendarSync(); return false;} );
   $('#gototoday',calwrap).click(function(){var d = new Date(); scrollCal ( d );return false;} );
   $('#logout',calwrap).click(function(){ logoutClicked(); return false;} );
