@@ -470,7 +470,7 @@ jQuery.extend ({
       }
       for (var i=0;i<pcalendars.length;i++)
       {
-        var href = $("> *|href",pcalendars[i]).text();
+        var href = decodeURIComponent ( $("> *|href",pcalendars[i]).text() );
         if ( debug )
           console.log('processing principal ' + href );
         if ( $("*|resourcetype > *|webdav-binding",pcalendars[i]).length > 0 )
@@ -515,8 +515,8 @@ jQuery.extend ({
         s = $.fn.caldav.calendarData.length;
       for (var i=0;i<rcalendars.length;i++)
       {
-        var cuprincipal = $.trim($("*|owner > *|href",rcalendars[i]).text());
-        var href = $("> *|href",rcalendars[i]).text();
+        var cuprincipal = decodeURIComponent ( $.trim($("*|owner > *|href",rcalendars[i]).text()) ); 
+        var href = decodeURIComponent ( $("> *|href",rcalendars[i]).text() );
         var bound = false;
         var parents = false;
         if ( $("*|resourcetype > *|webdav-binding",rcalendars[i]).length > 0 )
@@ -588,7 +588,8 @@ jQuery.extend ({
               $.fn.caldav.data.principalCollection = $.trim($('*|principal-collection-set > *|href',r.responseXML).text());
             else
               $.fn.caldav.data.principalCollection = $.trim($('*|response > *|href:first',r.responseXML).text());
-            $.fn.caldav.data.myPrincipal = $.trim($('*|current-user-principal > *|href:first',r.responseXML).text());
+            $.fn.caldav.data.myPrincipal = String ( $.trim($('*|current-user-principal > *|href:first',r.responseXML).text())
+              ).replace ( /\/$/, '' );
             if ( ! $.fn.caldav.options.fullDiscovery && $.fn.caldav.data.myPrincipal.match(/\//) ) 
             {
               $.fn.caldav.requestcount++;
@@ -606,7 +607,8 @@ jQuery.extend ({
                 {
                   $.fn.caldav('spinner',false);
                   var results = $('*|response',r.responseXML);
-                  $.fn.caldav.data.myPrincipal = $.trim($('*|current-user-principal > *|href:first',r.responseXML).text());
+                  $.fn.caldav.data.myPrincipal = String ( $.trim($('*|current-user-principal > *|href:first',r.responseXML).text())
+                    ).replace ( /\/$/, '' );
                   if ( $('*|href:first:contains('+$.fn.caldav.data.myPrincipal+')',r.responseXML).length == 0 )
                   {
                     $.fn.caldav.requestcount++;
