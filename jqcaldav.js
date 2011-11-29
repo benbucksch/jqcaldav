@@ -2458,28 +2458,22 @@ function inviteButtonClick (e)
       $(existing).remove();
       $(document).caldav('delEvent',{url:href});
     }
+    if ( ! $.fn.caldav.supports['calendar-auto-schedule'] )
+    {
+      // todo add mailto: link support for servers that don't support scheduling
+
+    }
   }
   else if ( $(evt).data('method') == 'REPLY' )
   {
     var originalHref = $(evt).attr('href');
     $(document).caldav('delEvent',{url:originalHref});
     $('#calinvites [href="'+originalHref+'"]').remove();  
-    $(document).unbind('click',$('#wcal').data('edit_click')); 
-    $(document).unbind('keydown',$('#wcal').data('edit_keyup')); 
-    $('#calpopupe').fadeOut();
-    $('#wcal').removeData('popup');
-    $('#wcal').removeData('clicked');
-    return;
-    //var existing = $('#wcal .event[uid="'+ics.vcalendar[ics.TYPE].uid+'"], #caltodo .event[uid="'+ics.vcalendar[ics.TYPE].uid+'"]');
-    //if ( existing.length > 0 && $(existing).parents('#calinvites').length == 0 )
-    //{
-    //  var cal = String($(existing).attr('class')).replace(/.*calendar([0-9]+).*/,"$1");
-    //  $(existing).remove();
-    //  if ( ics.TYPE == 'vevent' )
-     //   insertEvent(href,ics,cal,$('#wcal').data('firstweek' ),$('#wcal').data('lastweek'));
-    //  if ( ics.TYPE == 'vtodo' )
-    //    insertTodo(href,ics,cal,$('#wcal').data('firstweek' ),$('#wcal').data('lastweek'));
-    //}
+    if ( ! $.fn.caldav.supports['calendar-auto-schedule'] )
+    {
+      // todo add mailto: link support for servers that don't support scheduling
+
+    }
   }
   else
   {
@@ -2488,6 +2482,10 @@ function inviteButtonClick (e)
     {
       if ( debug )
         console.log('attendee missing from event');
+      $(document).unbind('click',$('#wcal').data('edit_click')); 
+      $(document).unbind('keydown',$('#wcal').data('edit_keyup')); 
+      $('#calpopupe').fadeOut();
+      $('#wcal').removeData('popup');
       $('#wcal').removeData('clicked');
       return;
     }
@@ -2504,8 +2502,16 @@ function inviteButtonClick (e)
     if ( ics.vcalendar['method'] )
       delete ics.vcalendar['method'];
     var myp = $.fn.caldav.principalMap[$.fn.caldav.data.myPrincipal];
+    var addresses = '';
     for ( var i=0; i < a.length; i++ )
     {
+      if ( /^mailto:/.test(attendees.VALUES[i]) )
+      {
+        if ( attendees.PROPS[i]['cn'] )
+          adddresses = adddresses + ', ' + attendees.PROPS[i]['cn'] + ' <' + String(attendees.VALUES[i]).replace( /^mailto:/,'') + '>';
+        else
+          adddresses = adddresses + ', ' + String(attendees.VALUES[i]).replace( /^mailto:/,'') ;
+      }
       if ( $.fn.caldav.principalMap[a[i]] == myp )
       {
         attendees.PROPS[i]['partstat'] = partstat;
@@ -2514,12 +2520,21 @@ function inviteButtonClick (e)
       //else
         //console.log ( ' not me ' + attendees.VALUES[i] , attendees.PROPS[i]['partstat'] );
     }
+    addresses = addresses.replace(/^, /,'');
     if ( debug )
       console.log(partstat,ics.PARENT.printiCal());
     var calHome = $.fn.caldav.data.myPrincipal;
     var existing = $('#wcal .event[uid="'+ics.vcalendar[ics.TYPE].uid+'"], #caltodo .event[uid="'+ics.vcalendar[ics.TYPE].uid+'"]').filter('[owner^="'+calHome+'"]' );
     var originalHref = $(evt).attr('href');
-    if ( existing.length > 0 )
+      var mailtext = 'mailto:' + addresses + '?subject=' + ics.vcalendar[ics.TYPE].summary + '&body=' + ics.PARENT.printiCal( );
+      console.log( mailtext );
+    if ( ! $.fn.caldav.supports['calendar-auto-schedule'] )
+    {
+      // todo add mailto: link support for servers that don't support scheduling
+      var mailtext = 'mailto:' + addresses + '?subject=' + ics.vcalendar[ics.TYPE].summary + '&body=' + ics.PARENT.printiCal( );
+      console.log( mailtext );
+    }
+    else if ( existing.length > 0 )
     {
       var href = $(existing).attr('href');
       var cal = String($(existing).attr('class')).replace(/.*calendar([0-9]+).*/,"$1");
@@ -3110,12 +3125,18 @@ function newevent (e)
     d.setUTCHours(d.getUTCHours()+1);
     $(ul).append('<li><span class="label EEND" data-field="to" >'+fieldNames.dtend+'</span><span class="value">'+d.prettyDate() +'</span></li>');
     $(ul).append('<li><span class="label transp" data-field="show as" >'+fieldNames.transp+'</span><span class="value">'+ valueNames.TRANSPARENT +'</span></li>');
+    $( '.ESTART ~ .value', ul ).bind ( 'mousewheel DOMMouseScroll', dateScroll );
+    $( '.ESTART ~ .value', ul ).addClass ( 'date' );
+    $( '.EEND ~ .value', ul ).bind ( 'mousewheel DOMMouseScroll', dateScroll );
+    $( '.EEND ~ .value', ul ).addClass ( 'date' );
   }
   else if ( type == 'todo' ) 
   {
   var d = new Date();
     d.setUTCDate((new Date()).getDate()+1);
     $(ul).append('<li><span class="label due" data-field="due" >'+fieldNames.due+'</span><span class="value">'+d.prettyDate() +'</span></li>');
+    $( '.due ~ .value', ul ).bind ( 'mousewheel DOMMouseScroll', dateScroll );
+    $( '.due ~ .value', ul ).addClass ( 'date' );
   }
   $(pop).append(ul);
   var off = $(e.target).offset();
@@ -4035,6 +4056,7 @@ function attendeeEdited ( element, attendee )
       edited = true;
     }
   }
+  var addresses = '';
   for ( var i=0; i < atnds.length; i++ )
   {
     var p = $(atnds[i]).data();
@@ -4084,12 +4106,18 @@ function attendeeEdited ( element, attendee )
           partstat:($(atnds[i]).data('partstat')?$(atnds[i]).data('partstat'):'NEEDS-ACTION'),
           rsvp:($(atnds[i]).data('rsvp')?$(atnds[i]).data('rsvp'):'TRUE')
         };
-      if ( /calendar-auto-schedule/.test ( $.fn.caldav.serverSupports ) && eml != $.fn.caldav.principals[$.fn.caldav.principalMap[$.fn.caldav.data.myPrincipal]].email )
+      
+      addresses = addresses + ', ' + cn + ' <' + eml + '>';
+      
+      if ( $.fn.caldav.supports['calendar-auto-schedule'] && eml != $.fn.caldav.principals[$.fn.caldav.principalMap[$.fn.caldav.data.myPrincipal]].email )
         np['schdeule-agent']='SERVER';
       attendee.UPDATE('mailto:' +eml,np);
       edited = true;
     }
   }
+  var ics = $($('#calpopupe').data('event')).data('ics');
+      var mailtext = 'mailto:' + addresses + '?subject=' + ics.vcalendar[ics.TYPE].summary + '&body=ics goes here' ;
+      console.log( mailtext );
   return edited;
 }
 
