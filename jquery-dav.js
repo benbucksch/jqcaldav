@@ -588,8 +588,8 @@ jQuery.extend ({
               $.fn.caldav.data.principalCollection = $.trim($('*|principal-collection-set > *|href',r.responseXML).text());
             else
               $.fn.caldav.data.principalCollection = $.trim($('*|response > *|href:first',r.responseXML).text());
-            $.fn.caldav.data.myPrincipal = String ( $.trim($('*|current-user-principal > *|href:first',r.responseXML).text())
-              ).replace ( /\/$/, '' );
+            $.fn.caldav.data.myPrincipal = $.trim($('*|current-user-principal > *|href:first',r.responseXML).text())
+              //).replace ( /(.)\/$/, '$1' );
             if ( ! $.fn.caldav.options.fullDiscovery && $.fn.caldav.data.myPrincipal.match(/\//) ) 
             {
               $.fn.caldav.requestcount++;
