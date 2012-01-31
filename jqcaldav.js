@@ -3889,8 +3889,8 @@ function printAttendee(a)
                   $('#schedtime .sched').addClass('conflict');
               }
             });
-        var es = Zero().parsePrettyDate($('#calpopupe .ESTART + .value').data('value'));
-        var ee = Zero().parsePrettyDate($('#calpopupe .EEND + .value').data('value'));
+        var es = Zero().parsePrettyDate($('#calpopupe .ESTART + .value').text());
+        var ee = Zero().parsePrettyDate($('#calpopupe .EEND + .value').text());
         len  = parseInt(((ee.getTime()-es.getTime())*4)/3600000)/4;
         var offset = 'start' + Math.round(es.getUTCMinutes()/15);
         $('#schedtime li.sday'+es.getUTCDate()+'.shour'+es.getUTCHours(),n).append('<span class="sched '+offset+'" data-hours="'+len+'"></span>');
@@ -3912,8 +3912,8 @@ function printAttendee(a)
             {
               var responses = $('response',r.responseXML);
               var vcs = $($('#calpopupe').data('event')).data('ics');
-              var es = Zero().parsePrettyDate($('#calpopupe .ESTART + .value').data('value')).getTime();
-              var ee = Zero().parsePrettyDate($('#calpopupe .EEND + .value').data('value')).getTime();
+              var es = Zero().parsePrettyDate($('#calpopupe .ESTART + .value').text()).getTime();
+              var ee = Zero().parsePrettyDate($('#calpopupe .EEND + .value').text()).getTime();
               var times = [] ;
               var vector = $('#schedtime').data('vector') ;
               var sbegin = $('#schedtime').data('begin');

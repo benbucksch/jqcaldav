@@ -49,8 +49,30 @@ jQuery.fn.filterNsNode = function(name)
 
 
 jQuery.extend ({
+    httpoverride: function ( params, callback ) {
+      return function ( r, s ) {
+        if ( r.status == 200 )
+        {
+          var method = params.type;
+          if ( params.beforeSend != undefined )
+          {
+            var bs = params.beforeSend;
+            params.beforeSend = function ( r ) { bs(); r.setRequestHeader('X-Http-Method-Override',method ); }
+          }
+          else
+            params.beforeSend = function ( r ) { r.setRequestHeader('X-Http-Method-Override',method); }
+          params.type = 'POST';
+          jQuery.ajax ( params );
+        }
+        else
+        {
+          if ( typeof callback == 'function' )
+            callback( r, s );
+        }
+      };
+    },
     options : function( origSettings ) { 
-    $.ajaxSetup.headers = {};
+      $.ajaxSetup.headers = {};
     var s = jQuery.extend(true, {}, jQuery.ajaxSettings,{type:'OPTIONS'},origSettings);
         return jQuery.ajax ( { beforeSend: function (r){var h = s.headers;for (var i in h)r.setRequestHeader(i,h[i])},
                    cache: s.cache,
@@ -98,7 +120,7 @@ jQuery.extend ({
     propfind : function( origSettings ) { 
     $.ajaxSetup.headers = {};
     var s = jQuery.extend(true, {}, jQuery.ajaxSettings,{contentType:'text/xml',type:'PROPFIND'},origSettings);
-        return jQuery.ajax ( { beforeSend: function (r){var h = s.headers;for (var i in h)r.setRequestHeader(i,h[i])},
+    var params = { beforeSend: function (r){var h = s.headers;for (var i in h)r.setRequestHeader(i,h[i])},
                    cache: s.cache,
                    contentType: s.contentType,
                    data: s.data,
@@ -106,11 +128,11 @@ jQuery.extend ({
                    username: encodeURIComponent(s.username),
                    type: 'PROPFIND',
                    url: s.url,
-                   success: s.success,
                    complete: s.complete,
                    withCredentials: true,
-                   }
-            );
+                   };
+         params['success'] = jQuery.httpoverride ( params, s.success );
+         return jQuery.ajax ( params );
      },
     proppatch : function( origSettings ) { 
     $.ajaxSetup.headers = {};
