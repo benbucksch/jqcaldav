@@ -2508,9 +2508,9 @@ function inviteButtonClick (e)
       if ( /^mailto:/.test(attendees.VALUES[i]) )
       {
         if ( attendees.PROPS[i]['cn'] )
-          adddresses = adddresses + ', ' + attendees.PROPS[i]['cn'] + ' <' + String(attendees.VALUES[i]).replace( /^mailto:/,'') + '>';
+          addresses = addresses + ', ' + attendees.PROPS[i]['cn'] + ' <' + String(attendees.VALUES[i]).replace( /^mailto:/,'') + '>';
         else
-          adddresses = adddresses + ', ' + String(attendees.VALUES[i]).replace( /^mailto:/,'') ;
+          addresses = addresses + ', ' + String(attendees.VALUES[i]).replace( /^mailto:/,'') ;
       }
       if ( $.fn.caldav.principalMap[a[i]] == myp )
       {
