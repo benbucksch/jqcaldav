@@ -3367,7 +3367,7 @@ function eventClick(e)
   var c = $($(cp).data('event')).attr('class').match(/calendar(\d+)/)[1];
   var d = $($(cp).data('event')).data('ics');
   var ok = true;
-  if ( cals[c] != undefined ) 
+  if ( cals[c] != undefined && /(^| )2,/.test ( $.fn.caldav.serverSupports ) )
     ok = $(document).caldav('lock',href,600,
         function(k)
         {
@@ -3392,9 +3392,13 @@ function eventClick(e)
     $('#calpopupe').append('<div class="button done" tabindex="0">'+ui.done+'</div>');
     if ( d.vcalendar[d.TYPE].attendee  && ( cals[c].principal == $.fn.caldav.data.myPrincipal || cals[c].perms['all'] || cals[c].perms['schedule-send'] || cals[c].perms['schedule-send-reply']) )
     {
-      var mystatus = String($('#calpopupe .attendee.me').data('partstat')).toLowerCase();
-      $('#calpopupe').append('<div class="smallschedulebuttons group '+mystatus+'"><div class="button accept" tabindex="0">'+ui.accept+'</div><div class="button maybe" tabindex="0">'+ui.maybe+'</div><div class="button decline" tabindex="0">'+ui.decline+'</div></div>');
-      $('#calpopupe .smallschedulebuttons .button').bind('click keypress', inviteButtonClick );
+      var myemail = $.fn.caldav.principals[$.fn.caldav.principalMap[$.fn.caldav.data.myPrincipal]].email;
+      if ( 'mailto:' + myemail != d.vcalendar[d.TYPE].organizer.VALUE )
+      {
+        var mystatus = String($('#calpopupe .attendee.me').data('partstat')).toLowerCase();
+        $('#calpopupe').append('<div class="smallschedulebuttons group '+mystatus+'"><div class="button accept" tabindex="0">'+ui.accept+'</div><div class="button maybe" tabindex="0">'+ui.maybe+'</div><div class="button decline" tabindex="0">'+ui.decline+'</div></div>');
+        $('#calpopupe .smallschedulebuttons .button').bind('click keypress', inviteButtonClick );
+      }
     }
     if ( debug ) 
     {

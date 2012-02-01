@@ -367,6 +367,7 @@ Date.prototype.localTzApply = function(){ var adj = localTimezone.offset * 60/10
 Date.prototype.localTzRemove = function(){ var adj = localTimezone.offset * 60/100 * 60; this.setTime( this.getTime() - adj *1000); return this; };
 Date.prototype.getLongMinutes = function(){return this.getUTCHours() * 100 + this.getUTCMinutes() * (100/60);};
 Date.prototype.Zero = function (){ Zero(this); return this; };
+Date.prototype.ZeroTime = function (){ this.setUTCHours(0); this.setUTCMinutes(0); this.setUTCSeconds(0); this.setUTCMilliseconds(0); return this; };
 Date.prototype.WeekStart = new Number(0);
 Date.prototype.setWeekStart = function ( Day ) { this.WeekStart = new Number(Day); return this; };
 Date.prototype.getWeekStart = function ( ) { return this.WeekStart; };

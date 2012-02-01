@@ -342,6 +342,12 @@ var iCal = function ( text ) {
 				}
 				else 
 					this.DATE.zulu = true;
+        if ( this.FIELD == 'due' && this.PROP['value'] != undefined )
+        {
+          this.SHORT = true;
+          this.DATE.zulu = false;
+          this.DATE.ZeroTime();
+        }
 			} 
 		};
 		this.PERIOD = function ()
@@ -666,6 +672,11 @@ var iCal = function ( text ) {
 					this.DATE.zulu = true;
 				else
 					this.DATE.zulu = false;
+        if ( this.FIELD == 'due' && this.PROP['value'] != undefined )
+        {
+          this.SHORT = true;
+          return this.DATE.prettyDate(true); // no time
+        }
 				if ( arguments.length > 0 && this.DATES.length > 1 ) 
 					return this.DATES[arguments[0]].prettyDate(); 
 				else 
@@ -754,11 +765,27 @@ var iCal = function ( text ) {
 					case	'period':
 						break;	
 					case	'date':
-						if ( ( this.PROP != undefined && this.PROP['tzid'] != undefined ) || this.PARENT.tzname )
-							this.DATE.zulu = false;
-						else
-							this.DATE.zulu = true;
-						ret = ret + this.DATE.DateString() + "\n";
+            if ( this.FIELD.toLowerCase() == 'due' || this.SHORT == true )
+            {
+              if ( this.PROP != undefined && this.PROP['value'] != undefined )
+              {
+                this.DATE.zulu = false;
+                ret = ret + this.DATE.DayString() + "\n";
+              }
+              else
+              {
+                this.DATE.zulu = true;
+                ret = ret + this.DATE.DateString() + "\n";
+              }
+            }
+            else
+            {
+              if ( ( this.PROP != undefined && this.PROP['tzid'] != undefined ) || this.PARENT.tzname )
+                this.DATE.zulu = false;
+              else
+                this.DATE.zulu = true;
+              ret = ret + this.DATE.DateString() + "\n";
+            }
 						break ;
 					case	'recurrence':
 						ret = ret + this.RECURRENCE.unparseRecurrence() + "\n";
