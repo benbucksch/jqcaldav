@@ -1843,21 +1843,9 @@ function showHideTodos ( e )
   $('#caltodo .event').each(function(i,e)
     {
       if ( todoVisible(e) ) 
-      {
-        var calviz = $('#'+$(e).attr('class').match(/(calendar\d+)/)[1]).attr('checked'); 
-        if ( calviz != false )
-          $(e).fadeIn('fast',function(){$(this).css('display',null);});
-        else
-          $(e).css('display',null);
-      }
+        $(e).removeClass('hidden');
       else
-      {
-        var calviz = $('#'+$(e).attr('class').match(/(calendar\d+)/)[1]).attr('checked'); 
-        if ( calviz != false )
-          $(e).fadeOut();
-        else 
-          $(e).hide();
-      }
+        $(e).addClass('hidden');
     });
 }
 
@@ -1882,6 +1870,21 @@ function showSortTodos ( e )
 function sortTodos ( e )
 {
   var txt = $(e).text();
+  var prev = $('#caltodo > ul').attr('sort');
+  if ( prev == txt )
+  {
+    if ( settings.todoSortReverse )
+      settings.todoSortReverse = false; 
+    else
+      settings.todoSortReverse = true; 
+  }
+  else
+  {
+    if ( txt == 'priority' )
+      settings.todoSortReverse = true; 
+    else
+      settings.todoSortReverse = false; 
+  }
   $('#caltodo > ul').attr('sort',txt);
   settings.todoSort = txt;
   saveSettings(false);
@@ -1894,6 +1897,7 @@ function todoVisible ( e )
   var txt = $('#caltodo > ul').attr('show');
   var ret = true;
   var opts = String(txt).split(',');
+  console.log ( opts );
   if ( opts.indexOf('COMPLETED') == -1 && ( $(e).attr('completed') || $(e).attr('status') == 'completed' ) )
     ret = false;
   if ( opts.indexOf('CANCELLED') == -1 && $(e).attr('status') == 'cancelled' )
@@ -2326,9 +2330,9 @@ function insertTodo ( href, icsObj, c  )
   if ( $('#calendar'+c).attr('checked') )
   {
     if ( ! todoVisible(entry) )
-      $(entry).hide().appendTo($('#caltodo ul' ));
+      $(entry).addClass('hidden').appendTo($('#caltodo ul' ));
     else
-      $(entry).hide().appendTo($('#caltodo ul' )).fadeIn();
+      $(entry).hide().appendTo($('#caltodo ul' )).fadeIn('fast',function(){$(this).removeAttr('style')});
   }
   else
     $(entry).appendTo($('#caltodo ul' ));
@@ -2546,7 +2550,13 @@ function inviteButtonClick (e)
       if ( ics.TYPE == 'vtodo' )
         insertTodo(href,ics,cal,$('#wcal').data('firstweek' ),$('#wcal').data('lastweek'));
       //$(document).caldav('putNewEvent',{url:outboxHref},ics.PARENT.printiCal()); 
-      $(document).caldav('putEvent',{url:href},ics.PARENT.printiCal()); 
+      if ( partstat == 'DECLINED' ) 
+      {
+        $(document).caldav('delEvent',{url:href,'Schedule-Reply':'F'});
+        $(existing).remove();
+      }
+      else
+        $(document).caldav('putEvent',{url:href},ics.PARENT.printiCal()); 
       if ( originalHref.indexOf($.fn.caldav.inboxMap[$.fn.caldav.data.myPrincipal]) > -1 )
       {
         $(document).caldav('delEvent',{url:originalHref,'Schedule-Reply':'F'});
@@ -2565,8 +2575,8 @@ function inviteButtonClick (e)
       else
         href = $.fn.caldav.calendarData[0].href + href;
       // put to outbox
-      //$(document).caldav('putNewEvent',{url:outboxHref},ics.PARENT.printiCal()); 
-      $(document).caldav('putNewEvent',{url:href},ics.PARENT.printiCal()); 
+      if ( partstat != 'DECLINED' ) 
+        $(document).caldav('putNewEvent',{url:href},ics.PARENT.printiCal()); 
       $(document).caldav('delEvent',{url:originalHref,'Schedule-Reply':'F'});
       if ( ics.TYPE == 'vevent' )
         insertEvent(href,ics,cal,$('#wcal').data('firstweek' ),$('#wcal').data('lastweek'));
@@ -4601,12 +4611,21 @@ function eventSort( e )
 function todoSort( e )
 {
   var events = $(e).children('li');
+  var flip = settings.todoSortReverse;
   $(events).detach();
   var sortorder = $(e).attr('sort');
   if ( sortorder == 'manual' )
     sortorder = 'data-time';
+  if ( / /.test ( sortorder ) )
+    sortorder = sortorder.replace(/ /,'-');
   events.sort(function (a,b)
       {
+        if ( flip )
+        {
+          var c = b;
+          b = a
+          a = c
+        }
         if ( $(a).attr(sortorder) && $(b).attr(sortorder) )
           return $(a).attr(sortorder) - $(b).attr(sortorder); 
         else if ( $(a).attr(sortorder) )
@@ -4891,6 +4910,8 @@ function buildcal(d)
     var show = settings.todoShow;
   else
     var show = "COMPLETED,CANCELLED,past due,upcoming,NEEDS-ACTION,IN-PROCESS";
+  if ( settings.todoSortReverse == "false" )
+    settings.todoSortReverse = false;
   if ( settings.todoSort )
     var sort = settings.todoSort;
   else

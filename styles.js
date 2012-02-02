@@ -217,34 +217,35 @@ function calstyle ()
 	'#caltodo > .sidetitle div.button { display: block; font-size: 50%; font-weight: lighter; border: none !important; text-align: center; width: 100%; margin:0;}' + "\n" +
 	'#caltodo > .sidetitle span { display: block; float: left; width: 50%; margin:-1px; padding:0; position: relative; bottom: -0.43em;}' + "\n" +
 	'#caltodo ul { position: absolute; top: 3.6em; bottom: 0; overflow-x: hidden; overflow-y: auto; margin: 0; padding: 0px; list-style: none; width: 100%; } ' + "\n" +
-	'#caltodo ul li { overflow: hidden; display: block; margin: 0; padding: 0; padding-left: 0; margin-bottom: .75em; line-height: 1.2em; list-style-type: none;  } ' + "\n" +
+	'#caltodo ul li { overflow: hidden; display: block; margin: 0; padding: 0; padding-left: 0; margin-bottom: .75em; line-height: 1.2em; list-style-type: none; -webkit-transition-property: all; -webkit-transition-duration: .2s; -moz-transition-property: all; -moz-transition-duration: .2s; transition-property: all; transition-duration: .2s; } ' + "\n" +
+	'#caltodo ul li.hidden { margin-bottom: 0px; padding-top: 0px; padding-bottom: 0px; height: 0px; opacity: 1.0; } ' + "\n" +
 	
-	'li[priority="1"]::after { display: block; position: relative; left: 100%; width: .7em; margin-left: -0.7em; top: -0.8em; height: .3em; border-top: .15em solid #444; border-bottom: .15em solid #444; content: " " } ' +
-	'li[priority="1"]::before { display: block; position: absolute; left: 100%; width: .7em; margin-left: -0.7em; margin-top: -0.05em; height: .2em; border-top: .15em solid #444; content: " " } ' +
+	'li[priority="1"]::after { display: block; position: relative; left: 100%; width: .7em; margin-left: -0.7em; top: -0.85em; height: 0em; border-top: .4em solid #444; border-bottom: .4em solid #444; content: " " } ' +
+	'li[priority="1"]::before { display: block; position: absolute; left: 100%; width: .7em; margin-left: -0.7em; margin-top: -0.05em; height: .2em; border-top: .4em solid #444; content: " " } ' +
 
-	'li[priority="2"]::after { display: block; position: relative; left: 100%; width: .7em; margin-left: -0.7em; top: -0.8em; height: .3em; border-top: .15em solid #444; border-bottom: .15em solid #444; content: " " } ' +
-	'li[priority="2"]::before { display: block; position: absolute; left: 100%; width: .7em; margin-left: -0.7em; margin-top: -0.05em; height: .2em; border-top: .15em solid #444; content: " " } ' +
+	'li[priority="2"]::after { display: block; position: relative; left: 100%; width: .7em; margin-left: -0.7em; top: -0.85em; height: 0em; border-top: .4em solid #444; border-bottom: .4em solid #444; content: " " } ' +
+	'li[priority="2"]::before { display: block; position: absolute; left: 100%; width: .7em; margin-left: -0.7em; margin-top: -0.05em; height: .2em; border-top: .4em solid #444; content: " " } ' +
 
-	'li[priority="3"]::after { display: block; position: relative; left: 100%; width: .7em; margin-left: -0.7em; top: -0.8em; height: .3em; border-top: .15em solid #444; border-bottom: .15em solid #444; content: " " } ' +
-	'li[priority="3"]::before { display: block; position: absolute; left: 100%; width: .7em; margin-left: -0.7em; margin-top: -0.05em; height: .2em; border-top: .15em solid #444; content: " " } ' +
+	'li[priority="3"]::after { display: block; position: relative; left: 100%; width: .7em; margin-left: -0.7em; top: -0.85em; height: 0em; border-top: .4em solid #444; border-bottom: .4em solid #444; content: " " } ' +
+	'li[priority="3"]::before { display: block; position: absolute; left: 100%; width: .7em; margin-left: -0.7em; margin-top: -0.05em; height: .2em; border-top: .4em solid #444; content: " " } ' +
 
-	'li[priority="4"]::after { display: block; position: relative; left: 100%; width: .7em; margin-left: -0.7em; top: -0.8em; height: .3em; border-top: .15em solid #444; border-bottom: .15em solid #444; content: " " } ' +
-	'li[priority="4"]::before { display: block; position: absolute; left: 100%; width: .7em; margin-left: -0.7em; margin-top: -0.05em; height: .2em; border-top: .15em solid #444; content: " " } ' +
+	'li[priority="4"]::after { display: block; position: relative; left: 100%; width: .7em; margin-left: -0.7em; top: -0.85em; height: 0em; border-top: .4em solid #444; border-bottom: .4em solid #444; content: " " } ' +
+	'li[priority="4"]::before { display: block; position: absolute; left: 100%; width: .7em; margin-left: -0.7em; margin-top: -0.05em; height: .2em; border-top: .4em solid #444; content: " " } ' +
 
-	'li[priority="5"]::after { display: block; position: relative; left: 100%; width: .7em; margin-left: -0.7em; top: -0.8em; height: .3em; border-top: .15em solid #444; border-bottom: .15em solid #444; content: " " } ' +
-	'li[priority="5"]::before { display: block; position: absolute; left: 100%; width: .7em; margin-left: -0.7em; margin-top: -0.05em; height: .2em; border-top: .15em solid #999; content: " " } ' +
+	'li[priority="5"]::after { display: block; position: relative; left: 100%; width: .7em; margin-left: -0.7em; top: -0.85em; height: 0em; border-top: .4em solid #444; border-bottom: .4em solid #444; content: " " } ' +
+	'li[priority="5"]::before { display: block; position: absolute; left: 100%; width: .7em; margin-left: -0.7em; margin-top: -0.05em; height: .2em; border-top: .4em solid #AAA; content: " " } ' +
 
-	'li[priority="6"]::after { display: block; position: relative; left: 100%; width: .7em; margin-left: -0.7em; top: -0.8em; height: .3em; border-top: .15em solid #999; border-bottom: .15em solid #444; content: " " } ' +
-	'li[priority="6"]::before { display: block; position: absolute; left: 100%; width: .7em; margin-left: -0.7em; margin-top: -0.05em; height: .2em; border-top: .15em solid #999; content: " " } ' +
+	'li[priority="6"]::after { display: block; position: relative; left: 100%; width: .7em; margin-left: -0.7em; top: -0.85em; height: 0em; border-top: .4em solid #AAA; border-bottom: .4em solid #444; content: " " } ' +
+	'li[priority="6"]::before { display: block; position: absolute; left: 100%; width: .7em; margin-left: -0.7em; margin-top: -0.05em; height: .2em; border-top: .4em solid #AAA; content: " " } ' +
 
-	'li[priority="7"]::after { display: block; position: relative; left: 100%; width: .7em; margin-left: -0.7em; top: -0.8em; height: .3em; border-top: .15em solid #999; border-bottom: .15em solid #444; content: " " } ' +
-	'li[priority="7"]::before { display: block; position: absolute; left: 100%; width: .7em; margin-left: -0.7em; margin-top: -0.05em; height: .2em; border-top: .15em solid #999; content: " " } ' +
+	'li[priority="7"]::after { display: block; position: relative; left: 100%; width: .7em; margin-left: -0.7em; top: -0.85em; height: 0em; border-top: .4em solid #AAA; border-bottom: .4em solid #444; content: " " } ' +
+	'li[priority="7"]::before { display: block; position: absolute; left: 100%; width: .7em; margin-left: -0.7em; margin-top: -0.05em; height: .2em; border-top: .4em solid #AAA; content: " " } ' +
 
-	'li[priority="8"]::after { display: block; position: relative; left: 100%; width: .7em; margin-left: -0.7em; top: -0.8em; height: .3em; border-top: .15em solid #999; border-bottom: .15em solid #444; content: " " } ' +
-	'li[priority="8"]::before { display: block; position: absolute; left: 100%; width: .7em; margin-left: -0.7em; margin-top: -0.05em; height: .2em; border-top: .15em solid #999; content: " " } ' +
+	'li[priority="8"]::after { display: block; position: relative; left: 100%; width: .7em; margin-left: -0.7em; top: -0.85em; height: 0em; border-top: .4em solid #AAA; border-bottom: .4em solid #444; content: " " } ' +
+	'li[priority="8"]::before { display: block; position: absolute; left: 100%; width: .7em; margin-left: -0.7em; margin-top: -0.05em; height: .2em; border-top: .4em solid #AAA; content: " " } ' +
 
-	'li[priority="9"]::after { display: block; position: relative; left: 100%; width: .7em; margin-left: -0.7em; top: -0.8em; height: .3em; border-top: .15em solid #999; border-bottom: .15em solid #444; content: " " } ' +
-	'li[priority="9"]::before { display: block; position: absolute; left: 100%; width: .7em; margin-left: -0.7em; margin-top: -0.05em; height: .2em; border-top: .15em solid #999; content: " " } ' +
+	'li[priority="9"]::after { display: block; position: relative; left: 100%; width: .7em; margin-left: -0.7em; top: -0.85em; height: 0em; border-top: .4em solid #AAA; border-bottom: .4em solid #444; content: " " } ' +
+	'li[priority="9"]::before { display: block; position: absolute; left: 100%; width: .7em; margin-left: -0.7em; margin-top: -0.05em; height: .2em; border-top: .4em solid #AAA; content: " " } ' +
 
 	'#wcal { width: 100%; overflow: scroll; float: left; overflow-x: hidden; height:24em; border-spacing:0; padding:0; margin:0; margin-left: 0.95em; margin-right: -9px; border:0; border-top: 1px solid #AAA; border-left: 1px solid #AAA; }' + "\n" + 
 
