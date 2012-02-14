@@ -482,13 +482,13 @@ jQuery.extend ({
       {
         var cuprincipal = $.trim($("*|owner > *|href",inboxes[i]).text());
         var href = $("> *|href",inboxes[i]).text();
-        $.fn.caldav.inboxMap[cuprincipal] = href;
+        $.fn.caldav.inboxMap[cuprincipal] = decodeURIComponent ( href );
       }
       for (var i=0;i<outboxes.length;i++)
       {
         var cuprincipal = $.trim($("*|owner > *|href",outboxes[i]).text());
         var href = $("> *|href",outboxes[i]).text();
-        $.fn.caldav.outboxMap[cuprincipal] = href;
+        $.fn.caldav.outboxMap[cuprincipal] = decodeURIComponent ( href );
       }
       for (var i=0;i<pcalendars.length;i++)
       {
@@ -607,10 +607,10 @@ jQuery.extend ({
             if ( jQuery.fn.caldav.data == undefined )
               jQuery.fn.caldav.data = {};
             if ( $('*|principal-collection-set > *|href',r.responseXML).length > 0 )
-              $.fn.caldav.data.principalCollection = $.trim($('*|principal-collection-set > *|href',r.responseXML).text());
+              $.fn.caldav.data.principalCollection = decodeURIComponent ( $.trim($('*|principal-collection-set > *|href',r.responseXML).text()) );
             else
-              $.fn.caldav.data.principalCollection = $.trim($('*|response > *|href:first',r.responseXML).text());
-            $.fn.caldav.data.myPrincipal = $.trim($('*|current-user-principal > *|href:first',r.responseXML).text())
+              $.fn.caldav.data.principalCollection = decodeURIComponent ( $.trim($('*|response > *|href:first',r.responseXML).text()) );
+            $.fn.caldav.data.myPrincipal = decodeURIComponent ( $.trim($('*|current-user-principal > *|href:first',r.responseXML).text()) )
               //).replace ( /(.)\/$/, '$1' );
             if ( ! $.fn.caldav.options.fullDiscovery && $.fn.caldav.data.myPrincipal.match(/\//) ) 
             {
@@ -629,7 +629,7 @@ jQuery.extend ({
                 {
                   $.fn.caldav('spinner',false);
                   var results = $('*|response',r.responseXML);
-                  $.fn.caldav.data.myPrincipal = String ( $.trim($('*|current-user-principal > *|href:first',r.responseXML).text())
+                  $.fn.caldav.data.myPrincipal = decodeURIComponent ( String ( $.trim($('*|current-user-principal > *|href:first',r.responseXML).text()) )
                     ).replace ( /\/$/, '' );
                   if ( $('*|href:first:contains('+$.fn.caldav.data.myPrincipal+')',r.responseXML).length == 0 )
                   {
@@ -640,7 +640,7 @@ jQuery.extend ({
                     return;
                   for ( var i = 0; i < results.length; i++ )
                   {
-                    var href = $('*|href:first',results[i]).text();
+                    var href = decodeURIComponent ( $('*|href:first',results[i]).text() );
                     if ( $.fn.caldav.principalMap[href] != undefined )
                       continue ;
                     if ( debug ) 
@@ -693,12 +693,12 @@ jQuery.extend ({
             var results = $('*|response',r.responseXML);
             for ( var i = 0; i < results.length; i++ )
             {
-              var href = $('> *|href:first',results[i]).text();
+              var href = decodeURIComponent ( $('> *|href:first',results[i]).text() );
               if ( debug )
                 console.log('getPrincipalData found principal ' + href , results[i] );
               if ( $.fn.caldav.principalMap[href] == undefined )
                 $.fn.caldav.principalMap[href] = $.fn.caldav.principals.length;
-              var calendar = $.trim($("*|calendar-home-set:first",results[i]).text());
+              var calendar = decodeURIComponent ( $.trim($("*|calendar-home-set:first",results[i]).text()) );
               if ( $("*|webdav-binding:first",results[i]).length > 0 )
                 var calendar = href.replace(/\/[^\/]*\/?$/,'/');
               if ( $.fn.caldav.principalMap[calendar] == undefined )
@@ -714,8 +714,8 @@ jQuery.extend ({
               var addresses = $("*|calendar-user-address-set > *|href",results);
               for ( var j = 0; j < addresses.length; j++ )
               {
-                if ( $.fn.caldav.principalMap[$(addresses[j]).text()] == undefined && String($(addresses[j]).text()).length > 1 )
-                  $.fn.caldav.principalMap[$(addresses[j]).text()] = $.fn.caldav.principalMap[href];
+                if ( $.fn.caldav.principalMap[decodeURIComponent($(addresses[j]).text())] == undefined && String($(addresses[j]).text()).length > 1 )
+                  $.fn.caldav.principalMap[decodeURIComponent($(addresses[j]).text())] = $.fn.caldav.principalMap[href];
               }
             }
             var proxywrite  = $("*|calendar-proxy-write-for:first *|href", r.responseXML);
