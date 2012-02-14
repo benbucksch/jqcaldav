@@ -723,7 +723,7 @@ jQuery.extend ({
             var proxy  = $(proxywrite,proxyread);
             for ( var i = 0; i < proxy.length; i++ )
             {
-              var u =$(proxy[i]).text();
+              var u = decodeURIComponent($(proxy[i]).text());
               if ( $.fn.caldav.principalMap[u] == undefined )
               {
                 $.fn.caldav.requestcount++;
@@ -756,12 +756,12 @@ jQuery.extend ({
             var results = $('*|response',r.responseXML);
             for ( var i = 0; i < results.length; i++ )
             {
-              var href = $.trim($(results[i]).children('*|href:first').text());
+              var href = decodeURIComponent($.trim($(results[i]).children('*|href:first').text()));
               if ($.fn.caldav.principalMap[href] != undefined )
                 continue;
               $.fn.caldav.principals.push({
                 href:href,
-                calendar:$.trim($("["+$.fn.caldav.xmlNSfield+"=calendar-home-set]:first",r.responseXML).text()),
+                calendar:decodeURIComponent($.trim($("["+$.fn.caldav.xmlNSfield+"=calendar-home-set]:first",r.responseXML).text())),
                 name:$.trim($("["+$.fn.caldav.xmlNSfield+"=displayname]",results[i]).text()),
                 email:$.trim($("*|href:contains('mailto:')",results[i]).text()).replace(/^mailto:/i,'')
               });
