@@ -2019,9 +2019,14 @@ function insertEvent ( href, icsObj, c, start, end , current)
   if ( cevent.dtend != undefined )
     var eend = cevent.dtend.DATE;
   else if ( cevent.duration != undefined )
-    var eend = cevent.dtstart.DATE.addDuration ( cevent.duration.VALUE );
+  {
+    var eend = new Date(estart.getTime());
+    eend.addDuration ( cevent.duration.DURATION );
+    if ( debug )
+      console.log ( estart, cevent.duration.DURATION );
+  }
   else
-    return;
+    var eend = estart;
   // make sure millisecond differences don't effect event durations
   var tdiff = Math.floor ( ( eend - estart ) / 100 ) * 100 ;
   var run = new Array ();
@@ -2130,6 +2135,7 @@ function insertEvent ( href, icsObj, c, start, end , current)
       var transp = cevent.transp!=undefined?cevent.transp.VALUE:'TRANSPARENT';
       var status = cevent.status!=undefined?'status="'+cevent.status.VALUE+'"':'';
       var duration = 0+parseInt(tdiff/900000)*15;
+      if ( debug ) console.log ( 'duration',duration, tdiff );
       if ( duration >= (settings.end.getLongMinutes() - settings.start.getLongMinutes() )/25*15 )
         duration = 1;
       var etime = parseInt(time/10000)*100;
@@ -3191,9 +3197,24 @@ function eventHover (e)
   
   if ( d.vcalendar.vevent != undefined )
   {
-    var estart = d.vcalendar.vevent.dtstart.DATE;
-    var eend = d.vcalendar.vevent.dtend.DATE;
-    var tdiff = eend - estart;
+    var estart = new Date(d.vcalendar.vevent.dtstart.DATE.getTime());
+    var eend, tdiff;
+    if ( d.vcalendar.vevent.dtend != undefined )
+    {
+      eend = new Date(d.vcalendar.vevent.dtend.DATE.getTime());
+      tdiff = eend - estart;
+    }
+    else if ( d.vcalendar.vevent.duration != undefined )
+    {
+      eend = new Date(estart.getTime());
+      eend.addDuration(d.vcalendar.vevent.duration.DURATION);
+      tdiff = eend - estart;
+    }
+    else
+    {
+      tdiff = 0;
+      eend = new Date(estart.getTime());
+    }
     if ( d.vcalendar.vevent.rrule != undefined )
     {
       var start = (new Date()).parseDate($(e.target).attr('instance'));
@@ -3217,7 +3238,10 @@ function eventHover (e)
     if ( tdiff == 86400000 ) 
       duration = true;
     props.push('ESTART');
-    props.push('EEND');
+    if ( d.vcalendar.vevent.dtend != undefined )
+      props.push('EEND');
+    else if ( debug )
+      console.log ( d.vcalendar.vevent.duration.DURATION );
     for ( var x in d.PARENT.components.vevent.optional){props.push(d.PARENT.components.vevent.optional[x]); }
     if ( d.vcalendar[type].valarm != undefined )
     {
@@ -4360,12 +4384,30 @@ function eventEdited (e)
   var mod = '',dmod = false;
   if ( d.vcalendar.vevent != undefined && $('span:contains('+fieldNames.dtstart+') + span',cp).length )
   {
-    var dts = (new Date()).parsePrettyDate ( $('span:contains('+fieldNames.dtstart+') + span',cp).text() );
-    var dte = (new Date()).parsePrettyDate ( $('span:contains('+fieldNames.dtend+') + span',cp).text() );
-    if ( dts > dte )
-    {
-      $('span:contains('+fieldNames.dtend+') + span',cp).css('outline','1px solid red').attr('tabindex',-1).focus();
+    if ( debug ) console.log ( 'checking vevent for basic validity' );
+    try {
+      var dts = (new Date()).parsePrettyDate ( $('span:contains('+fieldNames.dtstart+') + span',cp).text() );
+    } catch (e) {
+      $('span:contains('+fieldNames.dtstart+') + span',cp).css('outline','1px solid red').attr('tabindex',-1).focus();
       return false;
+    }
+    if ( $('span:contains('+fieldNames.dtend+') + span',cp).length > 0 )
+    {
+      var dte = (new Date()).parsePrettyDate ( $('span:contains('+fieldNames.dtend+') + span',cp).text() );
+      if ( dts > dte )
+      {
+        $('span:contains('+fieldNames.dtend+') + span',cp).css('outline','1px solid red').attr('tabindex',-1).focus();
+        return false;
+      }
+    }
+    else if ( $('span:contains('+fieldNames.duration+') + span',cp).length > 0 )
+    {
+      var dur = parseDuration ( $('span:contains('+fieldNames.duration+') + span',cp).text() )
+      if ( dur['negative'] )
+      {
+        $('span:contains('+fieldNames.duration+') + span',cp).css('outline','1px solid red').attr('tabindex',-1).focus();
+        return false;
+      }
     }
   }
   if (  $('span:contains('+fieldNames.duration+') + span',cp).text() == fieldNames.duration )
@@ -4391,6 +4433,7 @@ function eventEdited (e)
   for ( var x in props )
   {
     var label = fieldNames[props[x]];
+    if (debug) console.log ( 'looking for changes in field: ' + ( label == undefined ? props[x] + ' no label': label ) );
     if ( label == undefined )
       continue;
     var element = $('span.label[data-field="'+label+'"] + span',cp);
@@ -4409,7 +4452,10 @@ function eventEdited (e)
       if ( $.trim($(element).text()) == '' )
       {
         if ( d.PARENT.components.vevent.required.indexOf ( props[x] ) > -1 )
-          continue ;
+        {
+          $(element).css('outline','1px solid red').attr('tabindex',-1).focus();
+          return false;
+        }
         else
           delete d.vcalendar[type][props[x]];
       }

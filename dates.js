@@ -185,6 +185,17 @@ function toDuration(msecs)
 	return dur;
 }
 
+function durationToSeconds ( dur )
+{
+  var secs = 0;
+  secs += 30758400000*dur.years +
+    604800000*dur.weeks +
+    86400000*dur.days +
+    3600000*dur.hours +
+    60000*dur.minutes +
+    1000*dur.seconds;
+  return parseInt ( secs / 1000 )
+}
 
 function parseDuration(dur)
 {
@@ -197,13 +208,27 @@ function parseDuration(dur)
 	var seconds = /([1-9][0-9]*)[\s\t.,=_;@:-]*s(econds?)?/i;
 	var neg = /(^-P?|before)/;
 	var validDuration = /([-+])?P([0-9]+W)?([0-9]+D)?(T([0-9]+H)?([0-9]+M)?([0-9]+S)?)?/;
-	var s = String(dur),y,m,w,d,h,M,S,n;
+	var s,y,m,w,d,h,M,S,n;
+  s= String(dur);
+  y = 0;
+  m = 0;
+  w = 0;
+  d = 0;
+  h = 0;
+  M = 0;
+  S = 0;
 	if ( s.match ( validDuration ) )
 	{
 		var r = s.match ( validDuration );
-		return {years:0,months:0,negative:r[1]==undefined?false:true,
-			weeks:parseInt(r[2])+0,days:parseInt(r[3])+0,
-			hours:parseInt(r[5])+0,minutes:parseInt(r[6])+0,seconds:parseInt(r[7])+0,valid:true};
+    y = 0;
+    m = 0;
+    n = r[1]==undefined?false:true;
+    w = r[2]==undefined?0:parseInt(r[2])+0;
+    d = r[3]==undefined?0:parseInt(r[3])+0;
+    h = r[5]==undefined?0:parseInt(r[5])+0;
+    M = r[6]==undefined?0:parseInt(r[6])+0;
+    S = r[7]==undefined?0:parseInt(r[7])+0;
+	  return {years:y,months:m,weeks:w,days:d,hours:h,minutes:M,seconds:S,negative:n,valid:true};
 	}
 	if ( s.match ( neg ) )
 		var n = true;
