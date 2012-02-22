@@ -3333,7 +3333,7 @@ function eventHover (e)
         var text = '';
         console.log('error printing '+ props[x]);}
       if ( d.vcalendar[type][props[x]].length > 1 )
-      {
+      { // this should probably be in a loop
         var li = $( '<li><span class="label ' + props[x]+'" data-field="'+label+'" ' + extra+' >' + label + '</span><span class="value"></span></li>' );
         $( '.value', li ).text ( text );
         $( '.value', li ).attr ('data-value', text );
@@ -3341,7 +3341,7 @@ function eventHover (e)
       else
       {
         var li = $( '<li><span class="label '+props[x]+'" data-field="'+label+'" '+extra+' >'+label+'</span><span class="value"></span></li>' );
-        $( '.value', li ).text ( text );
+        $( '.value', li ).append ( expandText ( text ) );
         $( '.value', li ).attr ( 'data-value', text );
       }
       if ( d.PARENT.fields[fn].type == 'date' )
@@ -3350,21 +3350,7 @@ function eventHover (e)
       }
       $( '.value', li ).addClass ( d.PARENT.fields[fn].type );
       if ( props[x] == 'url' )
-        $(li).hover ( 
-            function ( e ) 
-            { 
-              if ( $('.value',e.target).text().match(/^https?:\/\/.+/) ) 
-              { 
-                $('a',e.target).remove() 
-                $('.value',e.target).after( '<a href="'+encodeURI($('.value',e.target).text()) +'" class="link" target="_newtab">'+(ui.open?ui.open:'open')+'</a>'); 
-                e.stopPropagation();
-                return true;
-              } 
-            }, 
-            function ( e ) 
-            {
-              $('a',e.target).remove() 
-            } );
+        urlHover ( li );
       $(ul).append(li);
     }
     //else if ( props[x] == 'summary' )
@@ -3514,6 +3500,36 @@ function eventClick(e)
   //return false;
 }
 
+function urlHover ( el )
+{
+  $(el).hover ( 
+            function ( e ) 
+            { 
+              if ( $('.value',e.target).text().match(/^https?:\/\/.+/) ) 
+              { 
+                $('a',e.target).remove() 
+                $('.value',e.target).after( '<a href="'+encodeURI($('.value',e.target).text()) +'" class="link" target="_newtab">'+(ui.open?ui.open:'open')+'</a>'); 
+                e.stopPropagation();
+                return true;
+              } 
+            }, 
+            function ( e ) 
+            {
+              $('a',e.target).remove() 
+            } );
+}
+
+function expandText ( t )
+{
+  return '<p>' + String ( t ).split ( "\n" ).join ( '</p><p>' ) + '</p>';
+}
+
+function unexpandText ( ele )
+{
+  var txt = ''
+  $('p',ele).each(function(i,e){txt += $(e).text() + "\n"});
+  return txt;
+}
 
 function buildOptions ( opt )
 {
@@ -4457,13 +4473,14 @@ function eventEdited (e)
     {
       //var element = $('span.label[data-value="'+String(label).replace(/([\[\]'"])/g,'\\$1')+'"] + span',cp)[0];
       var element = $('span.label[data-field="'+label+'"] + span',cp)[0];
+      var text = $.trim ( unexpandText( element ) ); 
       if  ( d.vcalendar[type][props[x]] == undefined )
       {
         d.vcalendar[type][props[x]] = d.PARENT.newField( props[x] );
       }
-      if ( $(element).data('value') == $(element).text() )
+      if ( $(element).data('value') == text )
         continue ;
-      if ( d.vcalendar[type][props[x]] == $(element).text() )
+      if ( d.vcalendar[type][props[x]] == text )
         continue ;
       if ( $.trim($(element).text()) == '' )
       {
@@ -4485,7 +4502,7 @@ function eventEdited (e)
       else if ( props[x] == 'rrule' )
         d.vcalendar[type][props[x]].UPDATE ( $(element) );
       else
-        d.vcalendar[type][props[x]].UPDATE ( $(element).text() );
+        d.vcalendar[type][props[x]].UPDATE ( text );
       if ( debug ) console.log ( 'modified prop ' + props[x] + ' with display name ' + label + ' from type ' + type + "\n  from " + d.vcalendar[type][props[x]] + "\n    to " + $(element).text() );
       mod += props[x];
       edited=true;

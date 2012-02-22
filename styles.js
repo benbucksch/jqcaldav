@@ -258,11 +258,13 @@ function calstyle ()
 	'.calpopup li { margin:0; padding:0; list-style: none; list-style-type: none; font-size:9pt; }' + "\n" +
 	'.calpopup > ul > li { clear: both; min-height: 1.8em; }' + "\n" +
 	'.calpopup > ul > li:first-child span:first-child { display: none; }' + "\n" +
-	'.calpopup > ul > li:first-child span { font-size: 14pt; color: #004; padding-bottom: .75em;}' + "\n" +
-	'.calpopup .label { margin:0; padding:0; display: block; float: left; width: 5.5em; text-align: right; color: #777; font-weight: bold; padding-right: 3px; margin-top: 6px;clear: left; }' + "\n" +
-	'.calpopup .value { resize: none; outline: none; margin:0; padding:0; padding-right: 2px; padding-left: 4px; min-width: 3em; min-height: 1em; display: block; float: left; margin-top: 6px; margin-bottom: 2px; }' + "\n" +
+	'.calpopup > ul > li:first-child span { font-size: 14pt; color: #004; padding-bottom: .75em; margin-left: 0; }' + "\n" +
+	'.calpopup .label { margin:0; padding:0; display: block; float: left; width: 5.5em; text-align: right; color: #777; font-weight: bold; padding-right: 3px; margin-top: 6px;clear: left; position: absolute; }' + "\n" +
+	'.calpopup .value { resize: none; outline: none; margin:0; padding:0; padding-right: 2px; padding-left: 4px; min-width: 3em; min-height: 1em; display: block; float: left; margin-top: 6px; margin-bottom: 2px; margin-left: 5.5em; }' + "\n" +
+  '.calpopup .value p:first-child { display: inline; }' + "\n" +
+  '.calpopup .value p { padding: 0; margin: 0; }' + "\n" +
 	'.calpopup .value.text:hover { outline: 1px solid #AAA; resize: both;}' + "\n" +
-	'.calpopup .value:focus { outline: none; -moz-box-shadow: 1px 1px 3px #888; -webkit-box-shadow: 1px 1px 3px #888; box-shadow: 1px 1px 3px #888; resize: none; }' + "\n" +
+	'.calpopup .value:focus { outline: none; -moz-box-shadow: 1px 1px 3px #888; -webkit-box-shadow: 1px 1px 3px #888; box-shadow: 1px 1px 3px #888; resize: none; width: auto;}' + "\n" +
 	'.calpopup .value.text:focus:hover { resize:both; }' + "\n" +
 	'.calpopup .attendee.accepted:before { content: "\\2713"; color: white; background-color: green; -moz-border-radius:.55em; -webkit-border-radius:.5em; border-radius:.5em; display: inline-block; width: 1em; height: 1em; margin:.2em; text-align: center; padding: .05em ; font-weight: bold; } \n' + 
 	'.calpopup .attendee.tentative:before { content: "?"; color: white; background-color: gold; -moz-border-radius:.55em; -webkit-border-radius:.5em; border-radius:.5em; display: inline-block; width: 1em; height: 1em; margin:.2em; text-align: center; padding: .05em ; font-weight: bold; } \n' + 
