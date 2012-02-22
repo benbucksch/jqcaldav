@@ -42,7 +42,7 @@ function getTZ ( d )
   return false;
 }
 
-var defaults={ui:{calendar:"Calendars",todos:"To Do","show":"Show","sort":"Sort","add":"Add",settings:"Settings",subscribe:"Subscribe",today:"Today",week:"Week",month:"Month",start:"Day Starts",end:"Day Ends",twentyFour:"24 Hour Time",username:'Username',password:'Password','go':'go','New Event':'New Event','New Todo':'New Todo','New Journal':'New Journal',"alarm":"alarm","done":"Done","delete":"Delete","name":"name","color":"color","description":"description","url":"url","privileges":"privileges","logout":"Logout","new calendar":"New Calendar","yes":"yes","no":"no","logout error":"Error logging out, please CLOSE or RESTART your browser!","owner":"Owner","subscribed":"Subscribed","lock failed":"failed to acquire lock, may not be able to save changes",loading:'working','update frequency':'update frequency',usealarms:"Enable Alarms","listSeparator":",","manual":"manual","bind":"bind","unbind":"unbind","refresh":"refresh","user":"User","path":"Path","source":"Source","available":"Show Availibility","resolve":"Next Availible","inviteFrom":"from","invitations":"Invitations","accept":"accept","maybe":"maybe","decline":"decline","weekStart":"Week Starts on","shortAllDay":"Collapse Events that span Multiple Days"},
+var defaults={ui:{calendar:"Calendars",todos:"To Do","show":"Show","sort":"Sort","add":"Add",settings:"Settings",subscribe:"Subscribe",today:"Today",week:"Week",month:"Month",start:"Day Starts",end:"Day Ends",twentyFour:"24 Hour Time",username:'Username',password:'Password','go':'go','New Event':'New Event','New Todo':'New Todo','New Journal':'New Journal',"alarm":"alarm","done":"Done","delete":"Delete","name":"name","color":"color","description":"description","url":"url","privileges":"privileges","logout":"Logout","new calendar":"New Calendar","yes":"yes","no":"no","logout error":"Error logging out, please CLOSE or RESTART your browser!","owner":"Owner","subscribed":"Subscribed","lock failed":"failed to acquire lock, may not be able to save changes",loading:'working','update frequency':'update frequency',usealarms:"Enable Alarms","listSeparator":",","manual":"manual","bind":"bind","unbind":"unbind","refresh":"refresh","user":"User","path":"Path","source":"Source","available":"Show Availibility","resolve":"Next Availible","inviteFrom":"from","invitations":"Invitations","accept":"accept","maybe":"maybe","decline":"decline","weekStart":"Week Starts on","shortAllDay":"Collapse Events that span Multiple Days","shift click to edit":"Shift-Click to Edit"},
   months:["January","February","March","April","May","June","July","August","September","October","November","December"],
   weekdays:["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
   notifyquestion:["Do you want to notify",["yes","no"]],
@@ -3349,6 +3349,22 @@ function eventHover (e)
         $( '.value', li ).bind ( 'mousewheel DOMMouseScroll', dateScroll );
       }
       $( '.value', li ).addClass ( d.PARENT.fields[fn].type );
+      if ( props[x] == 'url' )
+        $(li).hover ( 
+            function ( e ) 
+            { 
+              if ( $('.value',e.target).text().match(/^https?:\/\/.+/) ) 
+              { 
+                $('a',e.target).remove() 
+                $('.value',e.target).after( '<a href="'+encodeURI($('.value',e.target).text()) +'" class="link" target="_newtab">'+(ui.open?ui.open:'open')+'</a>'); 
+                e.stopPropagation();
+                return true;
+              } 
+            }, 
+            function ( e ) 
+            {
+              $('a',e.target).remove() 
+            } );
       $(ul).append(li);
     }
     //else if ( props[x] == 'summary' )
