@@ -95,7 +95,7 @@ var iCal = function ( text ) {
 				continue;
 			l = l.slice(1);
 			var a=l[1].replace(/\\(,|;)/g,'$1');
-			l[1]=a.replace(/\\n/g,"\n");
+			l[1]=a.replace(/\\[Nn]/g,"\n");
 			l0l = l[0].toLowerCase();
 			if ( l[0] == 'BEGIN' )
 			{
@@ -626,7 +626,7 @@ var iCal = function ( text ) {
 				if ( valueNames[t] )
 					t = valueNames[t];
 				if ( t != undefined )
-				return t.replace(/\\n/g,"\n");},
+				return t.replace(/\\[Nn]/g,"\n");},
 			'utc-offset':function(){
 				var t = this.VALUE; 
 				if ( t != undefined )
@@ -639,7 +639,7 @@ var iCal = function ( text ) {
 				if ( valueNames[t] )
 					t = valueNames[t];
 				if ( t != undefined )
-				return t.replace(/\\n/g,"\n");},
+				return t.replace(/\\[Nn]/g,"\n");},
 			period:function(){
 				if ( arguments.length > 0 && this.VALUES && this.VALUES.length > 1 ) 
 					var t = this.VALUES[arguments[0]]; 
@@ -648,7 +648,7 @@ var iCal = function ( text ) {
 				if ( valueNames[t] )
 					t = valueNames[t];
 				if ( t != undefined )
-				return t.replace(/\\n/g,"\n");},
+				return t.replace(/\\[Nn]/g,"\n");},
 			schedule:function(){
 				if ( this.FIELD == 'organizer' && this.PROP && this.PROP['cn'] && this.PROP['cn'] != '' )
 					return String(this.PROP['cn']).replace(/['"<>]/g,'');
@@ -659,7 +659,7 @@ var iCal = function ( text ) {
 				if ( valueNames[t] )
 					var t = String(valueNames[t]);
 				if ( t != undefined )
-				return t.replace(/\\n/g,"\n");},
+				return t.replace(/\\[Nn]/g,"\n");},
 			date:function(){
 				if ( this.PROPS && this.PROPS.length > 1 )
 				{
