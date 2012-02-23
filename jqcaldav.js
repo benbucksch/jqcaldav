@@ -5183,8 +5183,8 @@ function questionBox ( question, answers, callback )
 function buildtimeline ()
 {
   var s = new Date();
-  var b = s.getFullYear() - 4;
-  var e = s.getFullYear() + 2;
+  var b = s.getFullYear() - 3;
+  var e = s.getFullYear() + 3;
   var redline = function (e){$('.line',this).css({top:e.pageY  - $(this).offset().top - ($('.line').height()/2)});
       if ($('.timeline').data('date') !=undefined)$('.line').html(($('.timeline').data('date').getMonth()+1)+'&nbsp;&mdash;');}
   var div = $('<div class="timeline" ></div');
