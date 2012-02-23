@@ -3829,7 +3829,7 @@ function addField(e)
 
 function printAttendee(a)
 {
-  var ret  = $('<span><span>');
+  var ret  = $('<span class="value"><span>');
   var atts=[],props=[];
   if ( a == undefined )
   {
