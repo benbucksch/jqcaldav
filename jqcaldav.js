@@ -3527,7 +3527,10 @@ function expandText ( t )
 function unexpandText ( ele )
 {
   var txt = ''
-  $('p',ele).each(function(i,e){txt += $(e).text() + "\n"});
+  if ( $('p',ele).length > 0 )
+    $('p',ele).each(function(i,e){txt += $(e).text() + "\n"});
+  else
+    txt = $(ele).text();
   return txt;
 }
 
