@@ -366,7 +366,7 @@ function calstyle ()
 	'.calpopup .bind { position: absolute; bottom: 10px; left: 10px; }' + "\n" +
 	'.button { text-align: center; padding: 0.1em 1.25em 0.1em 1.25em; border: 1px solid #888; border-bottom: 1px solid #AAA; '+
 		'-webkit-border-radius: 2px; -moz-border-radius: 2px; border-radius: 2px; font-size: 9pt; '+
-		'background:  -moz-linear-gradient(top, #FFF 0%,#dadada 55%,#dddddd 100%); background: -webkit-gradient(linear, left top, left bottom, from(#FFF),color-stop(0.55,#dadada), to(#dddddd) ); }' + "\n" +
+		'background-color: #dddddd; background:  -moz-linear-gradient(top, #FFF 0%,#dadada 55%,#dddddd 100%); background: -webkit-gradient(linear, left top, left bottom, from(#FFF),color-stop(0.55,#dadada), to(#dddddd) ); background-image: -o-linear-gradient(top, #FFF 0%,#dadada 55%,#dddddd 100%); }' + "\n" +
 	'.group { padding-left: 1px; padding-right: 1px; display: -webkit-box;display: box; -webkit-box-orient: horizontal; -webkit-box-pack: center; -moz-box-orient: horizontal; -moz-box-pack: center; box-orient: horizontal; box-pack: center; -moz-box-align: baseline; box-orient: horizontal; box-align: baseline; -moz-box-flex: 1; } '+"\n"+
 	'.group .button { border-right: 0px; display: inline; display: -webkit-box; display: box;  -webkit-box-flex: 1; box-flex: 1; -webkit-border-radius: 0px; -moz-border-radius: 0px; border-radius: 0px; -moz-box-orient: horizontal; -moz-box-pack: center; text-align: center; }' + "\n" +
 	'.group .button:first-child { border-right: 0px; -webkit-border-radius: 2px; -moz-border-radius: 2px; border-radius: 2px;  border-top-right-radius: 0px;  border-bottom-right-radius: 0px;  }' + "\n" +
