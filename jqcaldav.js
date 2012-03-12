@@ -120,9 +120,9 @@ $(document).ready ( function () {
     if ( $('.jqcaldav:eq(0)').data('wait') != 'true' ) 
     {
       $(here).append('<form id="cal_login" ><div style="max-width: 40%; min-width: 16em;margin: 30%; margin-top:1em; padding: 2em; -moz-border-radius: 1.5em; -webkit-border-radius: 1.5em; border-radius: 1.5em; ' +
-        '-moz-box-shadow: 0px 0px 10px #888; -webkit-box-shadow: 0px 0px 10px #888; box-shadow: 0px 0px 10px #888; "><div id="cal_login_wrapper"><div style="text-align:center"><span style="width:50%;margin-left: -3em;display: block;float:left;'+
-        'text-align: right; padding-right: 1em;">'+ui.username+'</span><input id="name" size="20" style="float: left;" autofocus /></div><div style="clear: left;text-align:center;"><span style="width:50%;margin-left: -3em;'+
-        'display: block;float:left;text-align: right; padding-right: 1em;">'+ui.password+'</span><input id="pass" size="20" type="password" style="float: left;"/></div><div><input id="go" size="20" type="button" value="'+ui.go+'" style="float: left;" /></div><div>&nbsp;</div></div></div></form>');
+        '-moz-box-shadow: 0px 0px 10px #888; -webkit-box-shadow: 0px 0px 10px #888; box-shadow: 0px 0px 10px #888; "><div id="cal_login_wrapper"><div style="text-align:center"><label for="name" style="width:50%;margin-left: -3em;display: block;float:left;'+
+        'text-align: right; padding-right: 1em;">'+ui.username+'</label><input id="name" size="20" style="float: left;" autofocus /></div><div style="clear: left;text-align:center;"><label for="pass" style="width:50%;margin-left: -3em;'+
+        'display: block;float:left;text-align: right; padding-right: 1em;">'+ui.password+'</label><input id="pass" size="20" type="password" style="float: left;"/></div><div><input id="go" size="20" type="button" value="'+ui.go+'" style="float: left;" /></div><div>&nbsp;</div></div></div></form>');
         $('#cal_login input:eq(0)').focus();
         $('#cal_login').submit(function(e){console.log('doinging it');doit(e);return false;});
         $('#cal_login #go').click(function (e){doit(e); return false; });
