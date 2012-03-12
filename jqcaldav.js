@@ -174,7 +174,7 @@ function doit ( e )
   if ( $('.jqcaldav:first').data('caldavurl') == '' )
     $('.jqcaldav:first').data('caldavurl','/');
   $('#cal_login').fadeOut(99);
-  var loading = $('<div id="caldavloading1" style="display:none;position:fixed;left:100%;top:100%;margin-top:-1em;margin-left:-4em;text-align: center; width:4em; background-color:black;color:white;-moz-border-top-left-radius:.5em;-webkit-border-top-left-radius:.5em;border-top-left-radius:.5em;opacity:.5;z-index:100;" data-loading="0" ><span>'+ui.loading+'</span></div>').appendTo(document.body);
+  var loading = $('<div id="caldavloading1" style="display:none;position:fixed;right:0;bottom:0;text-align: center; width:4em; background-color:black;color:white;-moz-border-top-left-radius:.5em;-webkit-border-top-left-radius:.5em;border-top-left-radius:.5em;opacity:.5;z-index:100;padding:.1em .4em;" data-loading="0" ><span>'+ui.loading+'</span></div>').appendTo(document.body);
   window.setTimeout(function()
   {
     var fd = $('.jqcaldav:first').data('fulldiscovery');
