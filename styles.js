@@ -155,7 +155,7 @@ function calstyle ()
 		wvs = wvs + '.weekview .week .day .eventlist li.event[data-duration="'+i+'"] {height:'+ c + '%; max-height:100% }' + "\n";
 	}
 
-	var cs = '<style title="calstyle" type="text/css">' + "\n" +
+	var cs = '<style title="calstyle">' + "\n" +
 	"body > .hourswrapper { display: none; } \n" +
 	'#calwrap { font-family: Helvetica, sans-serif;  clear: both; clear-after:bottom; position: absolute; top:0; left: 0; width: 100%; height: 100%; overflow: hidden; background-color: #FFF; '+
 		'/* display: -webkit-box;display: -moz-box;display: box; -webkit-box-orient: horizontal; -webkit-box-pack: justify; -moz-box-orient: horizontal; -moz-box-pack: justify; box-orient: horizontal; box-pack: justify; */ }' + "\n" + 
