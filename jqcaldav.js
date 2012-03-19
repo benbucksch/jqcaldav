@@ -1379,6 +1379,7 @@ function savePrincipal (e)
   var props ={'displayname':'name','calendar-description':'description'} ;
   var ns ={'displayname':'DAV:','calendar-color':'http://apple.com/ns/ical/','calendar-description':'urn:ietf:params:xml:ns:caldav','calendar-order':'http://apple.com/ns/ical/'} ;
   var edited = false;
+  var acledited = false;
   var write = false;
   var modified = {};
   if ( cals[c] )
@@ -1446,10 +1447,13 @@ function savePrincipal (e)
             $(cpriv).parent().remove();
           else
             $(cpriv).remove();
+          if ( $('grant',ace).children().length == 0 )
+            $(ace).remove();
         }
       }
       if ( mod )
       {
+        acledited = true;
         if ( addACE )
           $(acl).append(ace);
         console.log('privileges changed for ' + owner);
@@ -1458,8 +1462,15 @@ function savePrincipal (e)
     }
     $('ace inherited',acl).closest('ace').remove();
     $('ace protected',acl).closest('ace').remove();
+    //var elements = acl[0].getElementsByTagName('*');
+    //for ( var e=0; e < elements.length; e++ )
+     // if ( elements[e].nodeType != 1 )
+     //   elements[e].parentNode.removeChild(elements[e]);
+    $('privilege > *',acl).empty();
+    $('owner,authenticated,unauthenticated',acl).empty();
+    console.log ( acl )
     var s = new XMLSerializer();
-    var newacl = '<?xml version="1.0" encoding="utf-8"?>' + "\n" + s.serializeToString(acl[0]);
+    var newacl = '<?xml version="1.0" encoding="utf-8"?>' + "\n" + XML(s.serializeToString(acl[0])).toXMLString();
     if ( debug )
       console.log(newacl);
   }
@@ -1518,9 +1529,10 @@ function savePrincipal (e)
       $(document).caldav('makeCalendar', {url:url},cal,modified);
     else
       $(document).caldav('updateCollection', {},cal,modified);
-    if ( write && mod )
+    if ( write && acledited )
       $.acl({url:cals[c].href,username:$.fn.caldav.options.username,password:$.fn.caldav.options.password,data:newacl,
         complete:function(r,s){
+          console.log ( newacl )
           if (s!='success')
             alert('error setting privileges');
           else
