@@ -1,29 +1,6 @@
-jqCalDav
-
-A CalDAV Client for modern(ca. 2011) web browsers using a bit 
-of html5 and a bunch of css3. Patches, bug reports and translations 
-of the en-us.js file are welcome, send to rob+jqcaldav@boxacle.net.
-
-N.B. the surest way to log out is to completely close the Browser, 
-including all tabs and windows.
-
----------------------------------------------------------------------
-Install
-
-
-edit index.html change the data-caldavurl and 
-data-calproxyurl attributes.
-
-data-caldavurl is the address of your caldav servers root, generally 
-  you should install on the same host as your calendar server.  In 
-  that case set the data-caldavurl to '/' or '/davical/caldav.php'.
-
-data-calproxyurl is the directory where the .htaccess file is located
-
----------------------------------------------------------------------
-Licenses
-
 Copyright (c) 2011, Rob Ostensen ( rob@boxacle.net )
+
+MIT license
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
