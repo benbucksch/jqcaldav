@@ -1,7 +1,7 @@
 # jqCalDav
 
-A CalDAV Client for 2011 web browsers using a bit
-of html5 and a bunch of css3.
+A CalDAV Client for 2011 web browsers using a bit of HTML5 and a bunch of CSS3.
+It's a SPA web app implemented in JavaScript with heavy use of jQuery. You need to place it on a web server.
 
 Written by Rob Ostensen. See his [original website](http://boxacle.net/jqcaldav/).
 
